@@ -24,7 +24,7 @@ export default function VersionBadge({ className = "" }) {
     : `App version ${VERSION.version}${VERSION.build ? `, build ${VERSION.build}` : ""}, built from commit ${VERSION.commit}${VERSION.built ? ` on ${VERSION.built}` : ""}.`;
   const title = server ? `${app} Server build: commit ${server}.` : app;
   return (
-    <span className={`font-mono text-[11px] text-white/40 ${className}`}>
+    <span className={`font-mono text-[11px] text-white/55 ${className}`}>
       <button type="button" title={title} aria-expanded={open} onClick={() => setOpen((v) => !v)}
               className="cursor-pointer text-left underline decoration-dotted underline-offset-2">
         {versionLabel()}{server && server !== "dev" ? ` · server ${server}` : ""}

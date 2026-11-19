@@ -132,7 +132,7 @@ export default function EditWindow({
     <div className="flex overflow-hidden rounded-xl border border-white/10 bg-black/30">
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
-        <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/40">
+        <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55">
           <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title="Add a track" aria-label="Add a track"><Plus size={14} /></button>
         </div>
@@ -168,7 +168,7 @@ export default function EditWindow({
                   <button type="button" aria-pressed={laneOf(t, views[t.id]).on !== false} title="Read: the track follows this lane. Off: the fader is used."
                           className={`rounded px-1 py-0.5 ${laneOf(t, views[t.id]).on !== false ? "bg-emerald-500 text-black" : "bg-white/10 text-white/60"}`}
                           onClick={() => { const l = laneOf(t, views[t.id]); onAuto(t.id, views[t.id], { ...l, on: l.on === false }); }}>Read</button>
-                  <button type="button" className="text-white/40 hover:text-mcz-ember" title="Clear this lane" aria-label={`Clear ${t.name} ${views[t.id]} automation`}
+                  <button type="button" className="text-white/55 hover:text-mcz-ember" title="Clear this lane" aria-label={`Clear ${t.name} ${views[t.id]} automation`}
                           onClick={() => { if (window.confirm(`Clear the ${PARAMS[views[t.id]].label.toLowerCase()} automation on ${t.name}?`)) onAuto(t.id, views[t.id], { on: true, points: [] }); }}>
                     <Trash2 size={11} />
                   </button>

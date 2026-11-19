@@ -102,7 +102,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
               <input type="checkbox" checked={!!on[i]} onChange={(e) => setOn({ ...on, [i]: e.target.checked })} aria-label={`Include ${t.name}`} />
               <input className="w-28 rounded bg-black/30 px-1" value={t.name} aria-label="Part name"
                 onChange={(e) => setFile((f) => ({ ...f, tracks: f.tracks.map((x, k) => (k === i ? { ...x, name: e.target.value.slice(0, 40) } : x)) }))} />
-              <span className="text-white/40">{t.notes.length} notes · {Math.ceil(beatsOf(t.notes) / 4)} bars{t.drums ? " · drums" : ""}</span>
+              <span className="text-white/55">{t.notes.length} notes · {Math.ceil(beatsOf(t.notes) / 4)} bars{t.drums ? " · drums" : ""}</span>
               <select className="neon-input !w-auto !py-1 text-xs" data-nomemo="true" value={pick[i]} onChange={(e) => setPick({ ...pick, [i]: e.target.value })}>
                 {INSTRUMENTS.map(([k, label]) => <option key={k} value={k} disabled={!ok.has(k)}>{label}{ok.has(k) ? "" : " — upgrade"}</option>)}
               </select>
@@ -118,12 +118,12 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
           <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)} />
         )}
         {cap != null && cap < INSTRUMENTS.length && (
-          <p className="text-[11px] text-white/45">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+          <p className="text-[11px] text-white/60">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
             <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium has 6; StatZ has all</button></p>
         )}
         <button className="neon-btn-primary !w-auto px-4" disabled={sending || !!working} onClick={send}><Send size={14} /> {sending ? "Rendering…" : "Send the parts to tracks"}</button>
       </>}
-      {!file && !err && <p className="text-xs text-white/45">A .mid from any DAW or from Instrumental ConnectZ. The sounds are this app&apos;s own instruments, made on your device — outside plugins (VST) can&apos;t run in a browser.</p>}
+      {!file && !err && <p className="text-xs text-white/60">A .mid from any DAW or from Instrumental ConnectZ. The sounds are this app&apos;s own instruments, made on your device — outside plugins (VST) can&apos;t run in a browser.</p>}
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );

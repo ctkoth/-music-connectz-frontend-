@@ -87,7 +87,7 @@ export default function ShareStats({ endpoint, membersToggle = false, defaultDay
             <Price amount={cost?.cost?.amount ?? null} emoji={ENERGY} />
           </button>
           <button type="button" className="text-xs text-white/50" onClick={() => setOpen(false)}>Cancel</button>
-          <span className="text-[11px] text-white/40">A refused post isn't charged.</span>
+          <span className="text-[11px] text-white/55">A refused post isn't charged.</span>
         </div>
       )}
       {msg && <p role="alert" className="text-xs text-mcz-ember">{msg}</p>}

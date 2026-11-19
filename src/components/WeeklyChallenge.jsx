@@ -38,11 +38,11 @@ export default function WeeklyChallenge({ appKey, challenge, onSetup }) {
           </button>
         )}
       </div>
-      {top?.length === 0 && <p className="text-white/45">No cards shared yet — yours could be the first.</p>}
+      {top?.length === 0 && <p className="text-white/60">No cards shared yet — yours could be the first.</p>}
       {open && top?.map((r, i) => (
         <a key={r.token} href={`/s/${r.token}`} target="_blank" rel="noreferrer"
            className="flex items-center gap-2 text-white/75 hover:text-white">
-          <span className="w-5 text-white/40">{i + 1}.</span>
+          <span className="w-5 text-white/55">{i + 1}.</span>
           <b className="tabular-nums">{r.shown}</b>
           <span>@{r.username}{r.human ? " · human-made" : ""}</span>
         </a>

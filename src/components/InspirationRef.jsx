@@ -35,12 +35,12 @@ export default function InspirationRef({ value, onChange, disabled, what = "a so
   return (
     <div className="space-y-1 rounded-lg border border-white/10 px-3 py-2 text-[11px] text-white/60" data-tour="inspiration">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-white/75">Inspiration <span className="text-white/35">(optional)</span></span>
+        <span className="text-white/75">Inspiration <span className="text-white/50">(optional)</span></span>
         {value ? (
           <span className="flex items-center gap-1 rounded-full border border-mcz-cyan/40 px-2 py-0.5 text-white/80">
             {value.name}
             <button type="button" aria-label="Remove the inspiration" disabled={disabled}
-              onClick={() => onChange(null)} className="text-white/40 hover:text-white"><X size={11} /></button>
+              onClick={() => onChange(null)} className="text-white/55 hover:text-white"><X size={11} /></button>
           </span>
         ) : (
           <button type="button" className="re-link inline-flex items-center gap-1" disabled={disabled}
@@ -50,7 +50,7 @@ export default function InspirationRef({ value, onChange, disabled, what = "a so
         )}
         <input ref={input} type="file" accept={accept} className="hidden" onChange={pick} />
       </div>
-      {info.note && <p className="text-white/40">{info.note}</p>}
+      {info.note && <p className="text-white/55">{info.note}</p>}
       {err && <p role="alert" className="text-mcz-ember">{err}</p>}
     </div>
   );

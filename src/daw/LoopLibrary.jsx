@@ -80,7 +80,7 @@ export default function LoopLibrary({ daw, bpm, busy: working, onSend }) {
             <div key={l.id} className={`flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1.5 text-xs ${allowed ? "" : "opacity-50"}`}>
               <span className="min-w-0 flex-1 truncate">{l.label}{allowed ? "" : " — upgrade"}</span>
               {playing === l.id
-                ? <button className="re-btn !w-auto px-2" onClick={stop}><Square size={12} /></button>
+                ? <button aria-label="Stop" className="re-btn !w-auto px-2" onClick={stop}><Square size={12} /></button>
                 : <button className="re-btn !w-auto px-2" disabled={!allowed} onClick={() => hear(l)} aria-label={`Hear ${l.label}`}><Play size={12} /></button>}
               <button className="re-btn !w-auto px-2" disabled={!allowed || !!sending || !!working} onClick={() => send(l)} aria-label={`Add ${l.label}`}>
                 <Send size={12} /> {sending === l.id ? "…" : "Add"}</button>
@@ -89,7 +89,7 @@ export default function LoopLibrary({ daw, bpm, busy: working, onSend }) {
         })}
       </div>
       {cap != null && (
-        <p className="text-[11px] text-white/45">The first {cap} of each family on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+        <p className="text-[11px] text-white/60">The first {cap} of each family on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
           <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium has 6; StatZ has the whole library</button></p>
       )}
       {err && <p className="text-xs text-mcz-ember">{err}</p>}

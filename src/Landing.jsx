@@ -93,7 +93,7 @@ function TrialDoors({ coaches }) {
   );
   return (
     <div className="mt-8">
-      <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-white/60">
         🚪 Try it without an account
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
@@ -149,7 +149,7 @@ function Compare({ coaches }) {
   ];
   return (
     <div className="mt-6 text-left" data-tour="landing-compare">
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-widest text-white/60">
         🔀 What you do now → what this does
       </p>
       {coaches.length > 1 && (
@@ -166,7 +166,7 @@ function Compare({ coaches }) {
       <div className="divide-y divide-white/[0.06] overflow-hidden rounded-xl border border-white/10">
         {rows.map(([now, here], i) => (
           <div key={i} className="grid gap-1 p-3 sm:grid-cols-2 sm:gap-4">
-            <p className="text-[13px] text-white/45"><span className="sm:hidden text-white/30">Now: </span>{now}</p>
+            <p className="text-[13px] text-white/60"><span className="sm:hidden text-white/30">Now: </span>{now}</p>
             <p className="text-[13px] text-emerald-200"><span className="sm:hidden text-emerald-300/70">Here: </span>{here}</p>
           </div>
         ))}
@@ -228,7 +228,7 @@ function UpgradeCTAs({ tiers }) {
         )}
       </Link>
 
-      <p className="text-center text-xs text-white/40">
+      <p className="text-center text-xs text-white/55">
         🆓 Prefer to start free? <Link to="/register" className="text-white/55 underline hover:text-white">Create a free account</Link>
         {" "}— <Link to="/register?tier=premium" className="text-white/55 underline hover:text-white">or Premium</Link>, upgrade whenever.
       </p>
@@ -283,7 +283,7 @@ export default function Landing() {
           🎤 Score my take — free, no account
         </Link>
         )}
-        <p className="mt-2 text-[11px] text-white/40">
+        <p className="mt-2 text-[11px] text-white/55">
           📤 Upload a clip you already have, or record one. Sign up after and it saves to your account.
         </p>
 
@@ -346,7 +346,7 @@ export default function Landing() {
             {build.emoji} Download for {build.key === "android" ? "Android (.apk)" : "Windows (.exe)"}
           </span>
           <span className="ml-1.5 text-emerald-300">Free</span>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">
             ℹ️ {build.note} {build.key === "android"
               ? "You'll need to allow installs from this source."
               : "Unsigned build — SmartScreen: More info → Run anyway."}

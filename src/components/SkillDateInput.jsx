@@ -48,7 +48,7 @@ export default function SkillDateInput({ start = "", precision = "", onChange, m
                className={inputClass} />
       )}
       <button type="button" onClick={yearMode ? toDate : toYear}
-              className={buttonClass || "text-[10px] text-white/45 underline hover:text-mcz-cyan"}>
+              className={buttonClass || "text-[10px] text-white/60 underline hover:text-mcz-cyan"}>
         {yearMode ? "I know the date" : "Just the year"}
       </button>
     </span>

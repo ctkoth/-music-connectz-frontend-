@@ -64,7 +64,7 @@ export default function ProgressPanel({ appKey }) {
   }
 
   if (!data && !err) {
-    return <p className="flex items-center gap-2 text-white/40">
+    return <p className="flex items-center gap-2 text-white/55">
       <Loader2 className="animate-spin" size={14} /> Loading your history…</p>;
   }
   // A failed fetch renders the reason rather than an empty progress screen —
@@ -88,7 +88,7 @@ export default function ProgressPanel({ appKey }) {
       <CoachingBoard appKey={appKey} coaching={data.coaching} recap={data.recap} />
       <header className="flex items-baseline gap-2">
         <h3 className="font-display text-lg font-bold">Your history</h3>
-        <span className="text-[12px] text-white/40">
+        <span className="text-[12px] text-white/55">
           {data.total_takes} coached take{data.total_takes === 1 ? "" : "s"}
         </span>
       </header>
@@ -122,16 +122,16 @@ export default function ProgressPanel({ appKey }) {
           about you. */}
       {ranges.length > 0 && (
         <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3" data-tour={`${appKey}:goal`}>
-          <p className="text-[11px] uppercase tracking-wide text-white/40">Range</p>
+          <p className="text-[11px] uppercase tracking-wide text-white/55">Range</p>
           <p className="text-[12px] text-white/70">
             {detected.range
               ? <>Your takes read as <b>{bridge.from_label || detected.range}</b>
-                  {detected.low && detected.high && <span className="text-white/45"> ({detected.low}–{detected.high})</span>}</>
-              : <span className="text-white/45">{detected.why}</span>}
+                  {detected.low && detected.high && <span className="text-white/60"> ({detected.low}–{detected.high})</span>}</>
+              : <span className="text-white/60">{detected.why}</span>}
           </p>
           {bridge.why && <p className="text-[12px] text-white/50">{bridge.why}</p>}
           <div className="grid gap-2 sm:grid-cols-2">
-            <label className="text-[11px] text-white/45">
+            <label className="text-[11px] text-white/60">
               What you are now
               <select value={declared.confirmed_range || ""} disabled={saving}
                       onChange={(e) => declare({ confirmed_range: e.target.value })}
@@ -140,7 +140,7 @@ export default function ProgressPanel({ appKey }) {
                 {ranges.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
               </select>
             </label>
-            <label className="text-[11px] text-white/45">
+            <label className="text-[11px] text-white/60">
               What you're working towards
               <select value={declared.goal_range || ""} disabled={saving}
                       onChange={(e) => declare({ goal_range: e.target.value })}
@@ -150,7 +150,7 @@ export default function ProgressPanel({ appKey }) {
               </select>
             </label>
           </div>
-          <p className="text-[11px] text-white/35">
+          <p className="text-[11px] text-white/50">
             Set a goal and every take is scored against it without picking one each time.
           </p>
         </div>
@@ -185,7 +185,7 @@ export default function ProgressPanel({ appKey }) {
             </select>
             {current?.result && <p className="text-[12px] leading-relaxed text-white/75">{current.result}</p>}
             {strain.why && <p className="text-[11px] leading-relaxed text-white/60"><b className="text-white/75">Right now:</b> {strain.why}</p>}
-            {rule.never && <p className="text-[11px] leading-relaxed text-white/40">{rule.never}</p>}
+            {rule.never && <p className="text-[11px] leading-relaxed text-white/55">{rule.never}</p>}
           </div>
         );
       })()}
@@ -193,29 +193,29 @@ export default function ProgressPanel({ appKey }) {
       {/* The weak spot, and the way to work on it. Two weeks of takes, not one
           — one take's worst score is a bad day. */}
       <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-        <p className="text-[11px] uppercase tracking-wide text-white/40">Weakest lately</p>
+        <p className="text-[11px] uppercase tracking-wide text-white/55">Weakest lately</p>
         {weakest.key ? (
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm">
               <b>{weakest.label}</b>
-              <span className="text-white/45"> · {weakest.average} / 10 across {weakest.takes} takes</span>
+              <span className="text-white/60"> · {weakest.average} / 10 across {weakest.takes} takes</span>
             </p>
             {!IN_SHELL && <button onClick={() => goToSpot(appKey, `${appKey}-drills`)}
                     className="flex items-center gap-1 rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">
               Drill it <ArrowRight size={12} />
             </button>}
           </div>
-        ) : <p className="text-[12px] text-white/45">{weakest.why}</p>}
+        ) : <p className="text-[12px] text-white/60">{weakest.why}</p>}
       </div>
 
       <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Movement</p>
+        <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/55">Movement</p>
         {trend.rows?.length ? (
           <ul className="space-y-1">
             {asList(trend.rows).map((r) => (
               <li key={r.key} className="flex items-center gap-2 text-[12px]">
                 <span className="w-28 shrink-0 truncate text-white/70">{r.label}</span>
-                <span className={r.change > 0 ? "text-emerald-300" : r.change < 0 ? "text-mcz-ember" : "text-white/40"}>
+                <span className={r.change > 0 ? "text-emerald-300" : r.change < 0 ? "text-mcz-ember" : "text-white/55"}>
                   {r.change > 0 ? <TrendingUp size={12} className="inline" /> :
                    r.change < 0 ? <TrendingDown size={12} className="inline" /> : null}
                   {" "}{r.was} → {r.now}
@@ -226,7 +226,7 @@ export default function ProgressPanel({ appKey }) {
               </li>
             ))}
           </ul>
-        ) : <p className="text-[12px] text-white/45">{trend.why}</p>}
+        ) : <p className="text-[12px] text-white/60">{trend.why}</p>}
       </div>
 
       <RecentTakes takes={takes} dimensions={asList(data.dimensions)} appKey={appKey}

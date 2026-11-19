@@ -236,12 +236,12 @@ export default function Lilith() {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[12px]">
         <span className="text-white/60">
           Coin today: <b className="text-emerald-300">{today.self_paid ?? 0}</b>
-          <span className="text-white/40"> / {today.self_cap ?? 0} {SPINAZ}</span>
+          <span className="text-white/55"> / {today.self_cap ?? 0} {SPINAZ}</span>
         </span>
         <span className="text-white/60">
           Done today: <b>{today.done ?? 0}</b>
           {today.combo_at && (today.done ?? 0) < today.combo_at && (
-            <span className="text-white/40">
+            <span className="text-white/55">
               {" "}· {today.combo_at - (today.done ?? 0)} more for the combo
             </span>
           )}
@@ -262,8 +262,8 @@ export default function Lilith() {
             <li key={r.key} className="flex flex-wrap items-baseline gap-x-2 text-[12px]">
               <Gain spinaz={r.spinaz} energy={r.energy} xp={r.xp} />
               <span className="text-white/75">{r.what}</span>
-              {r.cap && <span className="text-white/40">({r.cap})</span>}
-              {r.why && <p className="w-full pl-1 text-[11px] text-white/35">{r.why}</p>}
+              {r.cap && <span className="text-white/55">({r.cap})</span>}
+              {r.why && <p className="w-full pl-1 text-[11px] text-white/50">{r.why}</p>}
             </li>
           ))}
         </ul>
@@ -301,7 +301,7 @@ export default function Lilith() {
               <IconImg icon={BUCKET_ICON[b.key]} alt="" className="h-4 w-4 rounded" />
             )}
             {b.label}
-            <span className="text-white/35">{asList(buckets[b.key]).length}</span>
+            <span className="text-white/50">{asList(buckets[b.key]).length}</span>
           </button>
         ))}
       </div>
@@ -336,7 +336,7 @@ export default function Lilith() {
       {asList(board?.suggestions).length > 0 && (
         <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
           <h3 className="text-[12px] font-semibold text-white/70">Something to do</h3>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             Lilith suggests these to keep your activity varied. XP for engaging, nothing more.
           </p>
           <div className="space-y-1.5">
@@ -345,7 +345,7 @@ export default function Lilith() {
                    className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{s.title}</p>
-                  <p className="text-[11px] text-white/40">{s.note}</p>
+                  <p className="text-[11px] text-white/55">{s.note}</p>
                 </div>
                 <span className="whitespace-nowrap text-[11px] text-emerald-300">
                   +{s.xp} {XP}
@@ -357,14 +357,14 @@ export default function Lilith() {
       )}
 
       {bucket === "trash" && rows.length > 0 && (
-        <p className="flex items-center gap-2 text-[11px] text-white/45">
+        <p className="flex items-center gap-2 text-[11px] text-white/60">
           🗑️ Emptied for good after {board?.trash_days || 30} days.
           <button onClick={emptyTrash} className="ml-auto text-mcz-ember hover:underline">Empty the Trash now</button>
         </p>
       )}
       <ul className="space-y-1.5">
         {rows.length === 0 && (
-          <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/40">
+          <li className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-[12px] text-white/55">
             Nothing in here.
           </li>
         )}
@@ -385,10 +385,10 @@ export default function Lilith() {
               </button>
             )}
             <div className="min-w-0 flex-1">
-              <p className={`truncate text-sm ${t.done_at ? "text-white/35 line-through" : ""}`}>
+              <p className={`truncate text-sm ${t.done_at ? "text-white/50 line-through" : ""}`}>
                 {t.title}
               </p>
-              <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-white/40">
+              <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-white/55">
                 <span>{kinds.find((k) => k.key === t.kind)?.label || t.kind}</span>
                 {/* What ticking THIS one pays — on the row, before it is
                     ticked, because six sources pay six different things and
@@ -430,7 +430,7 @@ export default function Lilith() {
               {/* Header with close button */}
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">{expandedTask.title}</h3>
-                <button onClick={() => setExpandedTask(null)} className="text-white/40 hover:text-white/70">
+                <button onClick={() => setExpandedTask(null)} className="text-white/55 hover:text-white/70">
                   <span className="text-2xl">×</span>
                 </button>
               </div>
@@ -454,7 +454,7 @@ export default function Lilith() {
                            placeholder="0" className="neon-input !w-24" />
                     <input name="cat" defaultValue={expandedTask.budget_category || "Gear"} maxLength={40} className="neon-input !w-28" />
                     <button className="pill !text-[11px]">Save</button>
-                    <span className="text-[11px] text-white/40">BudgetZ can say yes and bring it to Today when it fits.</span>
+                    <span className="text-[11px] text-white/55">BudgetZ can say yes and bring it to Today when it fits.</span>
                   </form>
                 )}
               </div>
@@ -463,7 +463,7 @@ export default function Lilith() {
               <div className="space-y-2">
                 <h4 className="text-[13px] font-semibold text-white">Tagged with</h4>
                 {tags.length === 0 ? (
-                  <p className="text-[11px] text-white/40">No tags yet. Add one below.</p>
+                  <p className="text-[11px] text-white/55">No tags yet. Add one below.</p>
                 ) : (
                   <ul className="space-y-1.5">
                     {tags.map((tag) => (
@@ -472,7 +472,7 @@ export default function Lilith() {
                                 className="flex-1 text-left text-mcz-cyan hover:underline truncate">
                           {tag.to_app_key}: {tag.to_target}
                         </button>
-                        <span className="ml-2 text-white/40 text-[10px]">{tag.visibility}</span>
+                        <span className="ml-2 text-white/55 text-[10px]">{tag.visibility}</span>
                         <button onClick={() => removeTag(tag.id)} className="ml-2 text-white/30 hover:text-mcz-ember">
                           <Trash2 size={12} />
                         </button>
@@ -529,7 +529,7 @@ export default function Lilith() {
         <h3 className="flex items-center gap-2 font-display text-sm font-bold">
           <Flame size={15} className="text-mcz-ember" /> Routines
         </h3>
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Keeping one is the only thing here nobody can fake by typing, which is why
           it pays the most — at milestones, once for life.
         </p>
@@ -558,7 +558,7 @@ export default function Lilith() {
       {/* What the tiers buy here is HOW MANY, never access — said plainly,
           because a free member has a working task manager and should be told
           that is not the thing being sold. */}
-      <p className="text-[11px] text-white/35">
+      <p className="text-[11px] text-white/50">
         Your tier: {board?.tier}. {limits.routines != null ? `${limits.routines} routines, ` : ""}{limits.active_tasks} open tasks —{" "}
         <button type="button" onClick={() => goToSpot("membershipz")} className="underline">
           a tier up raises each

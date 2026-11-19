@@ -160,7 +160,7 @@ export default function ImageConnectZ() {
               <button key={x.key} type="button" onClick={() => setKind(kind === x.key ? "" : x.key)}
                       className={`rounded-xl border p-2.5 text-left transition ${kind === x.key ? "border-mcz-cyan bg-mcz-cyan/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
                 <span className="block text-sm font-semibold">{x.emoji} {x.label}</span>
-                <span className="block text-[10px] text-white/45">{x.aspect}</span>
+                <span className="block text-[10px] text-white/60">{x.aspect}</span>
               </button>
             ))}
           </div>
@@ -236,7 +236,7 @@ export default function ImageConnectZ() {
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Wand2 size={15} />} Make {k ? `my ${k.label.toLowerCase()}` : "it"}
           </button>
           {info && <Price amount={info.cost_cents} emoji={PROMPTZ} />}
-          <span className="text-white/40">{info?.cost_note || "Not charged if it fails"}</span>
+          <span className="text-white/55">{info?.cost_note || "Not charged if it fails"}</span>
         </div>
         {busy && <p className="text-[11px] text-white/50">Drawing — usually under a minute.</p>}
         {info?.configured === false && <p className="text-[11px] text-mcz-gold">Image ConnectZ isn't switched on yet.</p>}
@@ -244,7 +244,7 @@ export default function ImageConnectZ() {
         {made?.image && (
           <div className="space-y-2">
             <img src={made.image} alt={k?.label || "Generated"} className="w-full max-w-md rounded-xl" />
-            <p className="text-[11px] text-white/45">AI-generated. Kept in Your pictures below and in FileZ.</p>
+            <p className="text-[11px] text-white/60">AI-generated. Kept in Your pictures below and in FileZ.</p>
             <UseIt work={made.work || {}} kinds={kinds} src={made.image} />
             <div className="flex flex-wrap gap-2 text-xs">
               <button className="re-btn !w-auto px-3" title="Open it in ImageZ to edit in layers — free"
@@ -257,7 +257,7 @@ export default function ImageConnectZ() {
                   👄 Lip-sync it to your track</button>
               )}
             </div>
-            {k?.likeness && <p className="text-[11px] text-white/45">Lip-sync is StatZ's (or the daily free sample) and free to use: in VideoZ the mouth follows the loudness and tone of your track — the sound, not the words. Export it and it's a video you can post or open in Video ConnectZ's library.</p>}
+            {k?.likeness && <p className="text-[11px] text-white/60">Lip-sync is StatZ's (or the daily free sample) and free to use: in VideoZ the mouth follows the loudness and tone of your track — the sound, not the words. Export it and it's a video you can post or open in Video ConnectZ's library.</p>}
             {made.work?.id && <ShareIt kind="image" refId={made.work.id} />}
           </div>
         )}
@@ -279,7 +279,7 @@ export default function ImageConnectZ() {
                 <a key={i.id} href={i.url} target="_blank" rel="noreferrer" className="block space-y-1">
                   <img src={i.url} alt={i.prompt} title={i.prompt}
                        className={`w-full rounded-lg object-cover ${ASPECT_CLASS[ik?.aspect] || "aspect-square"}`} />
-                  <span className="block truncate text-[10px] text-white/45">{ik ? `${ik.emoji} ${ik.label}` : "Free-form"} · {i.prompt}</span>
+                  <span className="block truncate text-[10px] text-white/60">{ik ? `${ik.emoji} ${ik.label}` : "Free-form"} · {i.prompt}</span>
                 </a>
               );
             })}

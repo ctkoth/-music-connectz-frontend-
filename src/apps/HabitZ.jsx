@@ -73,7 +73,7 @@ export default function HabitZ() {
         <IconImg icon="habitz.png" alt="HabitZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">{active?.label || "HabitZ"}</h2>
-          <p className="text-xs text-white/45">{active?.blurb}</p>
+          <p className="text-xs text-white/60">{active?.blurb}</p>
         </div>
       </header>
 
@@ -112,7 +112,7 @@ export default function HabitZ() {
             <button onClick={() => setOrder(order === "desc" ? "asc" : "desc")} className="pill">
               {order === "desc" ? "Most repeated first" : "Least repeated first"}
             </button>
-            <span className="text-white/35">
+            <span className="text-white/50">
               {data?.significant || 0} worth noting · {data?.threshold}+ repeats counts
             </span>
             <button onClick={forgetAll} className="ml-auto flex items-center gap-1 text-mcz-ember/70 hover:text-mcz-ember">
@@ -122,14 +122,14 @@ export default function HabitZ() {
 
           <div className="neon-frame divide-y divide-white/[0.06]" data-tour="habitz-list">
             {rows.length === 0 && (
-              <p className="p-4 text-sm text-white/45">
+              <p className="p-4 text-sm text-white/60">
                 Nothing noticed yet {busy ? "…" : "— it needs a few repeats before anything shows."}
               </p>
             )}
             {rows.map((r) => (
               <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5">
                 <span className={`w-12 shrink-0 text-right font-bold tabular-nums ${
-                  r.significant ? "text-mcz-cyan" : "text-white/35"}`}>×{r.count}</span>
+                  r.significant ? "text-mcz-cyan" : "text-white/50"}`}>×{r.count}</span>
                 <span className="flex-1 text-[12px] text-white/75">{r.label}</span>
                 {r.significant && (
                   <span className="pill !text-mcz-gold text-[10px]">significance {r.significance}/10</span>

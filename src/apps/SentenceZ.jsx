@@ -53,7 +53,7 @@ export default function SentenceZ() {
           Your lyrics, scored on {Object.values(s.dimensions).join(", ")} — each with the reason and the one fix.
           Anything under {s.fix_below} opens the Sentence ConnectZ writer for that, with your words.
         </p>
-        <p className="text-[11px] text-white/40">{s.caveat}</p>
+        <p className="text-[11px] text-white/55">{s.caveat}</p>
       </div>
 
       <div className="re-card space-y-2" data-tour="sentencez-editor">
@@ -61,7 +61,7 @@ export default function SentenceZ() {
                value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" />
         <textarea className="neon-input min-h-[14rem] font-mono text-sm" placeholder="Write or paste your lyrics…"
                   value={text} onChange={(e) => setText(e.target.value)} aria-label="Lyrics" />
-        <p className={`text-[11px] ${over ? "text-mcz-ember" : "text-white/35"}`}>{text.length.toLocaleString()} / {s.max_chars.toLocaleString()}</p>
+        <p className={`text-[11px] ${over ? "text-mcz-ember" : "text-white/50"}`}>{text.length.toLocaleString()} / {s.max_chars.toLocaleString()}</p>
         <div className="flex flex-wrap items-center gap-2">
           <button className="neon-btn-primary !w-auto px-5" disabled={busy || !text.trim() || over || !s.configured || !s.affordable} onClick={score}>
             {busy ? <Loader2 size={15} className="animate-spin" /> : <PenLine size={15} />} Score my writing
@@ -69,7 +69,7 @@ export default function SentenceZ() {
           <span className="text-[11px]">
             <Price amount={s.cost_cents} emoji={PROMPTZ} freeToday={s.free_today} /> <AiEnergy />{" "}
             <span className="text-emerald-300">+{Math.round(10 * m)}–{Math.round(60 * m)} ⭐</span>
-            <span className="text-white/40"> · an unreadable answer isn't charged</span>
+            <span className="text-white/55"> · an unreadable answer isn't charged</span>
           </span>
         </div>
         {!s.configured && <p className="text-xs text-mcz-ember">The writing coach isn't switched on yet.</p>}

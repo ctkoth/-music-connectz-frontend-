@@ -27,14 +27,14 @@ function Chips({ dial, value, onChange, disabled }) {
           </button>
         ))}
       </div>
-      {opt && <p className="mt-1 text-[11px] text-white/40">{opt.result}</p>}
+      {opt && <p className="mt-1 text-[11px] text-white/55">{opt.result}</p>}
     </div>
   );
 }
 
 function Count({ text, cap }) {
   const c = countAgainst(text, cap);
-  return <span className={`text-[11px] ${c.over ? "text-mcz-ember" : "text-white/35"}`}>{c.label}</span>;
+  return <span className={`text-[11px] ${c.over ? "text-mcz-ember" : "text-white/50"}`}>{c.label}</span>;
 }
 
 export default function VoiceZ() {
@@ -84,9 +84,9 @@ export default function VoiceZ() {
   const price = (
     <span className="text-[11px]">
       {d.free_today
-        ? <span className="text-emerald-300">Free today <span className="text-white/45">— uses 1 of your {d.daily_remaining} free prompts left</span></span>
+        ? <span className="text-emerald-300">Free today <span className="text-white/60">— uses 1 of your {d.daily_remaining} free prompts left</span></span>
         : <span className="text-mcz-ember">−{d.preview_cost_cents} {PROMPTZ}</span>} <AiEnergy />
-      <span className="text-white/40"> · A reply that fails isn't charged.</span>
+      <span className="text-white/55"> · A reply that fails isn't charged.</span>
     </span>
   );
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -108,7 +108,7 @@ export default function VoiceZ() {
         {d.surfaces.map((s) => (
           <div key={s.key} className="space-y-1">
             <label className="text-sm font-semibold text-white/80" htmlFor={`vz-${s.key}`}>{s.label}</label>
-            <p className="text-[11px] text-white/45">{s.desc}</p>
+            <p className="text-[11px] text-white/60">{s.desc}</p>
             <select data-nomemo="true" id={`vz-${s.key}`} className="neon-input w-full" value={s.choice} onChange={(e) => pick(s.key, e.target.value)}>
               {s.options.map((o) => <option key={o.choice} value={o.choice}>{o.label}</option>)}
             </select>
@@ -124,8 +124,8 @@ export default function VoiceZ() {
         {!d.voices.length && <p className="text-xs text-white/50">None yet. Make one below.</p>}
         {d.voices.map((v) => (
           <div key={v.id} className="rounded-lg border border-white/10 p-3">
-            <p className="font-semibold">{v.name} <span className="text-[11px] font-normal text-white/45">{v.summary}</span></p>
-            {v.used_by.length > 0 && <p className="text-[11px] text-white/45">Speaking on: {v.used_by.join(", ")}. Deleting it sends those back to your style.</p>}
+            <p className="font-semibold">{v.name} <span className="text-[11px] font-normal text-white/60">{v.summary}</span></p>
+            {v.used_by.length > 0 && <p className="text-[11px] text-white/60">Speaking on: {v.used_by.join(", ")}. Deleting it sends those back to your style.</p>}
             <div className="mt-2 flex flex-wrap items-center gap-3">
               {can && <button className="re-btn !w-auto px-3" onClick={() => setForm({ id: v.id, ...fromVoice(v) })}>Edit</button>}
               <button className="re-btn !w-auto px-3" onClick={() => remove(v)}>Delete</button>
@@ -160,23 +160,23 @@ export default function VoiceZ() {
               <label className="block text-sm">Name <Count text={f.name} cap={d.caps.name} />
                 <input className="neon-input mt-1 w-full" value={f.name} onChange={(e) => set("name", e.target.value)} /></label>
               <label className="block text-sm">Who is talking? <Count text={f.bio} cap={d.caps.bio} />
-                <span className="block text-[11px] text-white/45">A character, or you. Never a real person you aren't.</span>
+                <span className="block text-[11px] text-white/60">A character, or you. Never a real person you aren't.</span>
                 <textarea className="neon-input mt-1 min-h-20 w-full" value={f.bio} onChange={(e) => set("bio", e.target.value)} /></label>
               <PersonalitieZ value={f.personality} onChange={(c) => set("personality", c)} />
               {d.letter_styles && /[A-Z]/.test(f.personality || "") && (
                 <ul className="space-y-0.5 text-[11px] text-white/60" aria-label="What these letters make the voice do">
-                  <li className="text-white/45">The letters drive how this voice writes:</li>
+                  <li className="text-white/60">The letters drive how this voice writes:</li>
                   {[...String(f.personality)].filter((x) => d.letter_styles[x]).map((x) => <li key={x}>• {d.letter_styles[x]}</li>)}
                 </ul>
               )}
               {d.dials.map((dl) => <Chips key={dl.key} dial={dl} value={f.spec[dl.key] ?? dl.default} onChange={(v) => setSpec(dl.key, v)} disabled={readOnly} />)}
               <label className="block text-sm">Signature phrases (one per line, up to {d.caps.phrases})
-                <span className="block text-[11px] text-white/45">Used at most once per reply, never forced.</span>
+                <span className="block text-[11px] text-white/60">Used at most once per reply, never forced.</span>
                 <textarea className="neon-input mt-1 w-full" value={f.phrases} onChange={(e) => set("phrases", e.target.value)} /></label>
               <label className="block text-sm">Words to avoid (one per line, up to {d.caps.avoid})
                 <textarea className="neon-input mt-1 w-full" value={f.avoid} onChange={(e) => set("avoid", e.target.value)} /></label>
               <label className="block text-sm">Paste something you wrote <Count text={f.sample} cap={d.caps.sample} />
-                <span className="block text-[11px] text-white/45">Used only to match tone. Private to you, and deleted with the voice.</span>
+                <span className="block text-[11px] text-white/60">Used only to match tone. Private to you, and deleted with the voice.</span>
                 <textarea className="neon-input mt-1 min-h-24 w-full" value={f.sample} onChange={(e) => set("sample", e.target.value)} /></label>
               {!readOnly && (
                 <div className="flex flex-wrap items-center gap-3">
@@ -204,7 +204,7 @@ function SampleBox({ s }) {
   return (
     <div className="mt-2 rounded-lg bg-white/5 p-3 text-sm text-white/80">
       <p>{s.text}</p>
-      <p className="mt-1 text-[11px] text-white/40">{s.note} {s.free_prompt ? "Used a free prompt." : `Charged ${s.charged_cents} ${PROMPTZ}.`}</p>
+      <p className="mt-1 text-[11px] text-white/55">{s.note} {s.free_prompt ? "Used a free prompt." : `Charged ${s.charged_cents} ${PROMPTZ}.`}</p>
     </div>
   );
 }

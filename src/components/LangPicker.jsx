@@ -42,7 +42,7 @@ export default function LangPicker({ corner = false }) {
                  aria-label="Search languages" className="neon-input mb-2 !py-1.5 text-sm" />
           {note && <p className="mb-2 px-1 text-[11px] text-white/50"><span className="text-emerald-300">Free.</span> {note}</p>}
           {failed && !list?.length && <p className="px-1 text-xs text-mcz-ember">Couldn't load the languages. Try again in a moment.</p>}
-          {list?.length > 0 && <p className="mb-1 px-1 text-[11px] text-white/40">{list.length} languages</p>}
+          {list?.length > 0 && <p className="mb-1 px-1 text-[11px] text-white/55">{list.length} languages</p>}
           <ul role="listbox" aria-label="Display language" className="max-h-72 overflow-y-auto">
             {(list || []).filter((l) => langMatches(l, q)).map((l) => {
               const on = (lang ? lang.code : "en") === l.code;
@@ -52,7 +52,7 @@ export default function LangPicker({ corner = false }) {
                           className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm ${on ? "bg-mcz-cyan/20 text-white" : "text-white/80 hover:bg-white/10"}`}>
                     <span aria-hidden="true">{l.flag}</span>
                     <span className="min-w-0 flex-1 truncate">{l.own}</span>
-                    <span className="shrink-0 text-[11px] text-white/40">{l.name}</span>
+                    <span className="shrink-0 text-[11px] text-white/55">{l.name}</span>
                   </button>
                 </li>
               );

@@ -45,11 +45,11 @@ export default function BadgeHolders({ badgeKey, onClose }) {
           <>
             <p className="text-sm text-emerald-300/90">{b.effect_note}</p>
             <p className="mt-1 text-xs text-white/60">{b.how}</p>
-            <p className="mt-4 mb-1 text-[11px] font-semibold uppercase tracking-widest text-white/40">
+            <p className="mt-4 mb-1 text-[11px] font-semibold uppercase tracking-widest text-white/55">
               Wearing it · {d.count}
             </p>
             {d.holders.length === 0
-              ? <p className="text-xs text-white/40">Nobody is showing this one yet.</p>
+              ? <p className="text-xs text-white/55">Nobody is showing this one yet.</p>
               : (
                 <ul className="flex flex-wrap gap-2 text-xs">
                   {d.holders.map((h) => (
@@ -60,7 +60,7 @@ export default function BadgeHolders({ badgeKey, onClose }) {
                 </ul>
               )}
             {d.mine?.held && !d.mine.visible && (
-              <p className="mt-3 text-[11px] text-white/45">You hold it too, hidden — switch it on in BadgeZ to be listed.</p>
+              <p className="mt-3 text-[11px] text-white/60">You hold it too, hidden — switch it on in BadgeZ to be listed.</p>
             )}
           </>
         )}

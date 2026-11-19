@@ -29,7 +29,7 @@ function Allowance({ label, used, cap }) {
     <span className="whitespace-nowrap text-[11px] text-white/55">
       {label}{" "}
       <b className={left ? "text-emerald-300" : "text-mcz-ember"}>{left}</b>
-      <span className="text-white/35"> of {cap} left</span>
+      <span className="text-white/50"> of {cap} left</span>
     </span>
   );
 }
@@ -53,7 +53,7 @@ export default function KarmaRewards({ open: openDefault = false, className = ""
 
   if (data === false) return null;
   if (!data) {
-    return <p className={`flex items-center gap-2 text-[11px] text-white/35 ${className}`}>
+    return <p className={`flex items-center gap-2 text-[11px] text-white/50 ${className}`}>
       <Loader2 className="animate-spin" size={11} /> …
     </p>;
   }
@@ -65,7 +65,7 @@ export default function KarmaRewards({ open: openDefault = false, className = ""
     <div className={`rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 ${className}`}
          data-tour="karma-rewards">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-white/45">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-white/60">
           Today
         </span>
         <Allowance label="Ratings" used={today.rated} cap={today.rate_cap} />
@@ -90,12 +90,12 @@ export default function KarmaRewards({ open: openDefault = false, className = ""
                 +{r.energy} {ENERGY}{r.per ? ` / ${r.per}` : ""}
               </span>
               <span className="text-white/75">{r.what}</span>
-              {r.cap && <span className="text-white/40">({r.cap})</span>}
+              {r.cap && <span className="text-white/55">({r.cap})</span>}
               {/* The reason each one is what it is. Written beside the numbers
                   on the server; a rule whose reason lives only in the code is
                   one the next person rewords into something that no longer has
                   one. */}
-              {r.why && <p className="w-full text-[11px] text-white/35">{r.why}</p>}
+              {r.why && <p className="w-full text-[11px] text-white/50">{r.why}</p>}
             </li>
           ))}
         </ul>

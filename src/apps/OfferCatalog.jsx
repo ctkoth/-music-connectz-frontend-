@@ -57,7 +57,7 @@ function Row({ o }) {
               : <Circle size={13} className="shrink-0 text-white/20" />}
             {o.title}
           </p>
-          <p className="pt-0.5 text-xs text-white/45">{o.cta} → {o.tab}:{o.target}</p>
+          <p className="pt-0.5 text-xs text-white/60">{o.cta} → {o.tab}:{o.target}</p>
         </div>
         <span className="shrink-0 whitespace-nowrap text-sm">
           {o.cost?.map((l, i) => <Line key={`c${i}`} line={l} />)}
@@ -72,9 +72,9 @@ function Row({ o }) {
       </div>
 
       {/* The reason, in the owner's face rather than in a file. */}
-      <p className="pt-1.5 text-xs italic leading-relaxed text-white/40">{o.why}</p>
+      <p className="pt-1.5 text-xs italic leading-relaxed text-white/55">{o.why}</p>
 
-      <div className="flex flex-wrap items-center gap-3 pt-1.5 text-[10px] text-white/35">
+      <div className="flex flex-wrap items-center gap-3 pt-1.5 text-[10px] text-white/50">
         <button className="underline decoration-white/20 hover:text-white/70"
                 onClick={() => goToSpot(o.tab, o.target)}>
           See where it lands
@@ -105,7 +105,7 @@ export default function OfferCatalog() {
   if (err) return <p className="text-xs text-mcz-ember">{err}</p>;
   if (!data) {
     return (
-      <p className="flex items-center gap-2 text-xs text-white/40">
+      <p className="flex items-center gap-2 text-xs text-white/55">
         <Loader2 className="animate-spin" size={12} /> Loading the offers…
       </p>
     );
@@ -116,10 +116,10 @@ export default function OfferCatalog() {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
           The offers — what the platform springs, and when
         </p>
-        <p className="pt-1 text-xs text-white/45">
+        <p className="pt-1 text-xs text-white/60">
           {data.offers.length} offers, {live} true for you right now. A member is
           shown at most {data.max_shown} at a time. {data.base_note}
         </p>

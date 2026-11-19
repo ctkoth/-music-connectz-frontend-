@@ -18,7 +18,7 @@ export default function RuleNote({ rule: ruleKey, detail = false, className = ""
       <p className="text-[12px] font-semibold text-white/80">
         <span className="mr-1.5">{rule.emoji}</span>{rule.rule}
       </p>
-      {rule.note && <p className="mt-1 text-[11px] leading-relaxed text-white/45">{rule.note}</p>}
+      {rule.note && <p className="mt-1 text-[11px] leading-relaxed text-white/60">{rule.note}</p>}
       {detail && (
         <>
           <p className="mt-2 text-[11px] leading-relaxed text-white/55">{rule.why}</p>

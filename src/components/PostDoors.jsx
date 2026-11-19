@@ -32,7 +32,7 @@ export function Price({ cost }) {
   return (
     <span className={cost.affordable ? "text-mcz-ember" : "text-mcz-ember/60"}>
       −{cost.amount} {PROMPTZ}
-      {!cost.affordable && <span className="text-white/35"> · not enough</span>}
+      {!cost.affordable && <span className="text-white/50"> · not enough</span>}
     </span>
   );
 }
@@ -51,10 +51,10 @@ export function OpenIn({ post, busy, onGo }) {
   return (
     <div className="mt-3 space-y-2 rounded-xl border border-white/[0.06] bg-black/20 p-3"
          data-tour="postz-open-in">
-      <p className="text-[11px] uppercase tracking-widest text-white/45">
+      <p className="text-[11px] uppercase tracking-widest text-white/60">
         Open this post in
       </p>
-      <p className="text-[11px] leading-relaxed text-white/40">
+      <p className="text-[11px] leading-relaxed text-white/55">
         The track, the words and the cover travel with it — nothing gets
         attached twice.
       </p>
@@ -70,7 +70,7 @@ export function OpenIn({ post, busy, onGo }) {
                         || !!(d.cost?.amount && !d.cost.affordable && !d.cost.free_today)}
               className={`text-[13px] font-semibold ${d.available
                 ? "text-white hover:text-mcz-gold"
-                : "cursor-not-allowed text-white/35"}`}>
+                : "cursor-not-allowed text-white/50"}`}>
               {d.label}
             </button>
             <span className="text-[11px]"><Price cost={d.cost} /></span>
@@ -78,10 +78,10 @@ export function OpenIn({ post, busy, onGo }) {
               <span className="text-[11px] text-emerald-300/70">→ {d.gain.what}</span>
             )}
             {d.count > 0 && (
-              <span className="text-[10px] text-white/35">· {d.count} so far</span>
+              <span className="text-[10px] text-white/50">· {d.count} so far</span>
             )}
           </div>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{d.what}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">{d.what}</p>
           {/* Why it can't go yet — on the row, not hidden behind the attempt. */}
           {!d.available && (
             <p className="mt-1 text-[11px] text-mcz-ember/80">Needs {d.needs.join("; ")}.</p>
@@ -89,7 +89,7 @@ export function OpenIn({ post, busy, onGo }) {
         </div>
       ))}
       {busy && (
-        <p className="flex items-center gap-2 text-[11px] text-white/45">
+        <p className="flex items-center gap-2 text-[11px] text-white/60">
           <Loader2 className="animate-spin" size={12} /> Handing it over…
         </p>
       )}

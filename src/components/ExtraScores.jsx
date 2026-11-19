@@ -27,8 +27,8 @@ export default function ExtraScores({ scores, neverCounted = [], value, onChange
     ...Object.fromEntries(countable.map((k) => [k, { on: true, count }])) });
   return (
     <fieldset className="space-y-1 text-[11px] text-white/60" disabled={disabled}>
-      <legend className="text-white/75">Extra scores <span className="text-white/35">(optional)</span></legend>
-      <p className="text-white/35">
+      <legend className="text-white/75">Extra scores <span className="text-white/50">(optional)</span></legend>
+      <p className="text-white/50">
         Pick any. Each shows beside your overall score and leaves it alone — tick
         "counts in overall" on the ones you want inside it. Judged on the words the coach
         can actually make out; a style that doesn't ask for one reads "—". Mainstream Appeal is
@@ -53,7 +53,7 @@ export default function ExtraScores({ scores, neverCounted = [], value, onChange
                 <span className="text-white/80">{label}</span>
               </label>
               {neverCounted.includes(k) ? (
-                <span className="text-white/35">beside overall</span>
+                <span className="text-white/50">beside overall</span>
               ) : (
                 <label className={`flex cursor-pointer items-center gap-1 ${v.on ? "" : "opacity-30"}`}>
                   <input type="checkbox" checked={v.count} disabled={!v.on}

@@ -97,14 +97,14 @@ export default function LabelZ() {
       )}
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">Labels</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">Labels</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {labels.map((l) => (
             <div key={l.id} className="neon-frame p-4">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-semibold">{l.name} {l.i_own && <span className="pill ml-1 text-[10px]">yours</span>}</p>
                 {l.i_own && (
-                  <button className="shrink-0 text-white/40 hover:text-white" onClick={() => startEdit(l)} aria-label="Edit label">
+                  <button className="shrink-0 text-white/55 hover:text-white" onClick={() => startEdit(l)} aria-label="Edit label">
                     <Pencil size={13} />
                   </button>
                 )}
@@ -129,7 +129,7 @@ export default function LabelZ() {
               )}
             </div>
           ))}
-          {labels.length === 0 && <p className="text-sm text-white/45">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
+          {labels.length === 0 && <p className="text-sm text-white/60">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
         </div>
       </div>
 
@@ -153,19 +153,19 @@ export default function LabelZ() {
 
       {contracts && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">My contracts</h3>
-          {asArtist.length + asOwner.length === 0 && <p className="text-sm text-white/45">None yet — a contract a label offers you, or one your label offers, lands here to read and sign.</p>}
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">My contracts</h3>
+          {asArtist.length + asOwner.length === 0 && <p className="text-sm text-white/60">None yet — a contract a label offers you, or one your label offers, lands here to read and sign.</p>}
           {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
               <div className="flex items-start justify-between">
                 <p className="font-medium">
-                  {c.title} <span className="text-xs text-white/40">· {c.label} → </span>
-                  <button className="text-xs text-white/40 hover:text-white hover:underline" onClick={() => openMember(c.artist)}>{c.artist}</button>
+                  {c.title} <span className="text-xs text-white/55">· {c.label} → </span>
+                  <button className="text-xs text-white/55 hover:text-white hover:underline" onClick={() => openMember(c.artist)}>{c.artist}</button>
                 </p>
                 <span className="pill uppercase">{c.status}</span>
               </div>
               <pre className="whitespace-pre-wrap rounded-lg bg-black/30 p-3 text-xs text-white/70">{c.terms_text}</pre>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/55">
                 {c.advance_display && <>Advance: {c.advance_display} (off-platform) · </>}
                 Doc hash {c.doc_sha256?.slice(0, 12)}… ·
                 {c.owner_signed_name && <> Label signed: {c.owner_signed_name}</>}

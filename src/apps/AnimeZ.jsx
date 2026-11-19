@@ -63,16 +63,16 @@ export default function AnimeZ() {
       <div className="re-card space-y-2" data-tour="animez-add">
         <p className="re-label">Add scenes</p>
         <div className="space-y-1 text-sm">
-          <p className="text-[11px] text-white/45">From MangaZ — every drawn panel, one subtitled beat per line:</p>
-          {pages === null ? <p className="text-[11px] text-white/40">Loading…</p> : pages.length ? (
+          <p className="text-[11px] text-white/60">From MangaZ — every drawn panel, one subtitled beat per line:</p>
+          {pages === null ? <p className="text-[11px] text-white/55">Loading…</p> : pages.length ? (
             <div className="flex flex-wrap gap-1.5">
               {pages.map((pg) => (
                 <button key={pg.id} className="pill text-[12px]" onClick={() => add(scenesFromPage(pg), `"${pg.title}"`)}>📚 {pg.title}</button>
               ))}
             </div>
           ) : <button className="re-link text-[12px]" onClick={() => goToSpot("mangaz", "mangaz-new")}>Make a manga page first</button>}
-          <p className="pt-1 text-[11px] text-white/45">From Anime ConnectZ — your finished pieces:</p>
-          {pieces === null ? <p className="text-[11px] text-white/40">Loading…</p> : pieces.length ? (
+          <p className="pt-1 text-[11px] text-white/60">From Anime ConnectZ — your finished pieces:</p>
+          {pieces === null ? <p className="text-[11px] text-white/55">Loading…</p> : pieces.length ? (
             <div className="flex flex-wrap gap-1.5">
               {pieces.map((w) => (
                 <button key={w.id} className="pill text-[12px]" onClick={() => add([sceneFromVideo({ url: w.video_url, name: w.title, seconds: w.seconds })], `"${w.title}"`)}>
@@ -91,14 +91,14 @@ export default function AnimeZ() {
                  onChange={(e) => setEp({ ...ep, title: e.target.value })} />
           <span className="text-[11px] text-white/50">{ep.scenes.length} scenes · {mmss(total)}</span>
         </div>
-        {ep.scenes.length === 0 && <p className="text-sm text-white/45">No scenes yet — add a manga page or an anime piece above.</p>}
+        {ep.scenes.length === 0 && <p className="text-sm text-white/60">No scenes yet — add a manga page or an anime piece above.</p>}
         {ep.scenes.map((s, i) => (
           <div key={s.id} className="flex gap-2 rounded-lg bg-white/5 p-2">
             {s.kind === "image"
               ? <img src={s.url} alt="" className="h-16 w-16 shrink-0 rounded object-cover" />
               : <video src={s.url} className="h-16 w-16 shrink-0 rounded object-cover" muted />}
             <div className="min-w-0 flex-1 space-y-1 text-[11px]">
-              <p className="truncate text-white/70">{i + 1}. {s.name} {s.kind === "video" && <span className="text-white/40">· video · {mmss(s.seconds)}</span>}</p>
+              <p className="truncate text-white/70">{i + 1}. {s.name} {s.kind === "video" && <span className="text-white/55">· video · {mmss(s.seconds)}</span>}</p>
               <input className="neon-input !py-1 text-xs" value={s.caption} maxLength={80} placeholder="Subtitle (optional)" aria-label={`Scene ${i + 1} subtitle`}
                      onChange={(e) => set(i, { caption: e.target.value })} />
               {s.kind === "image" && (
@@ -117,7 +117,7 @@ export default function AnimeZ() {
             <div className="flex shrink-0 flex-col gap-1">
               <button aria-label="Move up" className="text-white/50 hover:text-white" onClick={() => setEp({ ...ep, scenes: moveScene(ep.scenes, i, -1) })}><ArrowUp size={13} /></button>
               <button aria-label="Move down" className="text-white/50 hover:text-white" onClick={() => setEp({ ...ep, scenes: moveScene(ep.scenes, i, 1) })}><ArrowDown size={13} /></button>
-              <button aria-label="Remove" className="text-white/40 hover:text-mcz-ember" onClick={() => setEp({ ...ep, scenes: ep.scenes.filter((_, k) => k !== i) })}><Trash2 size={13} /></button>
+              <button aria-label="Remove" className="text-white/55 hover:text-mcz-ember" onClick={() => setEp({ ...ep, scenes: ep.scenes.filter((_, k) => k !== i) })}><Trash2 size={13} /></button>
             </div>
           </div>
         ))}

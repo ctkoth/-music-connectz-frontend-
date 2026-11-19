@@ -317,7 +317,7 @@ export default function PostZ() {
         <IconImg icon="postz.png" alt="PostZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">PostZ</h2>
-          <p className="text-xs text-white/45">Community rating &amp; comments open on a timer.</p>
+          <p className="text-xs text-white/60">Community rating &amp; comments open on a timer.</p>
         </div>
         <button className="rounded-lg p-2 text-white/50 hover:bg-white/[0.06] hover:text-white"
                 onClick={() => load()} title="Refresh feed">
@@ -343,7 +343,7 @@ export default function PostZ() {
           value={description}
           onChange={(e) => setDescription(cl.clamp(e.target.value))}
         />
-        <div className="text-right text-[10px] text-white/35">
+        <div className="text-right text-[10px] text-white/50">
           {description.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
         </div>
 
@@ -397,7 +397,7 @@ export default function PostZ() {
                     : "!border-white/20 !text-white/50 hover:!border-white/40"
                 } transition`}
               >
-                {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+                {label} <span className={value === "public" ? "text-emerald-300" : "text-white/55"}>{bonus}</span>
               </button>
             ))}
           </div>
@@ -418,12 +418,12 @@ export default function PostZ() {
         {/* Record it or attach it. The same component CollabZ and BattleZ use,
             so the three composers can't drift apart. */}
         <MediaFields value={work} onChange={setWork} label="Audio, video, image or lyrics" />
-        {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
+        {storage && <p className="text-[10px] text-white/50">{storageNote(storage)}</p>}
         {/* 2.2 required this on every example, and it's what makes a post
             matchable to the people who have those skills. */}
         <SkillsUsed value={skillsUsed} onChange={setSkillsUsed} label="Skills used on this" />
         {cost && (
-          <p className="text-[10px] leading-relaxed text-white/35">
+          <p className="text-[10px] leading-relaxed text-white/50">
             {cost.cost.amount > 0 ? (
               <>Posting costs <span className="text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
                 {" — "}
@@ -472,7 +472,7 @@ export default function PostZ() {
           </div>
         )}
 
-        <p className="text-[11px] leading-relaxed text-white/40">
+        <p className="text-[11px] leading-relaxed text-white/55">
           Rating unlocks <span className="text-white/70">30s</span> after posting (other members only) ·
           comments unlock <span className="text-white/70">60s</span> after.
           {rewardLine() && <> Raters earn <span className="text-emerald-300">{rewardLine()}</span>.</>}
@@ -803,9 +803,9 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
           <div className="truncate text-sm font-bold">
             <MemberName username={post.author} />
             <ThoroughMark mark={post.author_mark} />
-            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/40">you</span>}
+            {post.mine && <span className="ml-2 text-[10px] font-normal text-white/55">you</span>}
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/40">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/55">
             <span>{relTime}</span>
             {post.genre && <span>· {genreLabel(post.genre)}</span>}
             {post.freestyle && <span className="text-mcz-gold">· 🆓 Freestyle</span>}
@@ -846,7 +846,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-white/60">🎯 BattleZ</span>
-                    <span className="text-white/40">{progression.battle.current} of {progression.battle.needed}</span>
+                    <span className="text-white/55">{progression.battle.current} of {progression.battle.needed}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-mcz-gold/60"
@@ -858,7 +858,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-white/60">🤝 CollabZ</span>
-                    <span className="text-white/40">{progression.collab.current.toFixed(1)} of {progression.collab.needed.toFixed(1)}</span>
+                    <span className="text-white/55">{progression.collab.current.toFixed(1)} of {progression.collab.needed.toFixed(1)}</span>
                   </div>
                   <div className="h-1.5 rounded-full bg-white/10">
                     <div className="h-full rounded-full bg-emerald-300/60"
@@ -873,7 +873,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
           {canEdit && (
             <button onClick={() => setEditing((v) => !v)} disabled={busy}
                     title={post.mine ? "Edit this post" : "Edit as platform owner"}
-                    className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-cyan">
+                    className="rounded-lg p-1.5 text-white/55 hover:bg-white/[0.06] hover:text-mcz-cyan">
               {editing ? <XIcon size={15} /> : <Pencil size={15} />}
             </button>
           )}
@@ -888,19 +888,19 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
           {canEdit && (
             <button onClick={remove} disabled={busy}
                     title={post.mine ? "Delete this post" : "Delete as platform owner"}
-                    className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-pink">
+                    className="rounded-lg p-1.5 text-white/55 hover:bg-white/[0.06] hover:text-mcz-pink">
               <Trash2 size={15} />
             </button>
           )}
           <button onClick={share} title="Share this post"
-                  className="rounded-lg p-1.5 text-white/40 hover:bg-white/[0.06] hover:text-mcz-ember">
+                  className="rounded-lg p-1.5 text-white/55 hover:bg-white/[0.06] hover:text-mcz-ember">
             <Share2 size={15} className={shared ? "text-mcz-cyan" : ""} />
           </button>
           <div className="text-right">
             <div className="flex items-center gap-1 text-sm font-bold text-mcz-ember">
-              <Flame size={14} /> {rating != null ? rating : "—"}<span className="text-white/35">/10</span>
+              <Flame size={14} /> {rating != null ? rating : "—"}<span className="text-white/50">/10</span>
             </div>
-            <div className="text-[10px] text-white/35">
+            <div className="text-[10px] text-white/50">
               {social?.rating_count ?? 0} rating{(social?.rating_count ?? 0) !== 1 ? "s" : ""}
             </div>
           </div>
@@ -913,7 +913,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             {post.mine ? "Editing your post" : `Editing @${post.author}'s post as owner`}
           </p>
           {!post.mine && (
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               This gets recorded on the post and @{post.author} is notified. Their
               name is on it, so the edit says yours is too.
             </p>
@@ -927,7 +927,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                     placeholder="Say more about it…" />
           {/* `cl` lives in the composer's scope, not this card's — the card
               is handed the resolved limit, so it counts against that. */}
-          <div className="text-right text-[10px] text-white/35">
+          <div className="text-right text-[10px] text-white/50">
             {eDesc.length.toLocaleString()} / {charLimit ? charLimit.toLocaleString() : "∞"}
           </div>
           {/* The whole point of editing an old post: attach the take that
@@ -950,7 +950,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                   title={showOpen ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
                   className="group block max-w-full text-left text-sm font-semibold text-white hover:text-mcz-gold">
             <span className="break-words" data-ugc="true">{post.title}</span>
-            <span className={`ml-1.5 text-[10px] font-normal ${showOpen ? "text-mcz-gold" : "text-white/35 group-hover:text-mcz-gold"}`}>
+            <span className={`ml-1.5 text-[10px] font-normal ${showOpen ? "text-mcz-gold" : "text-white/50 group-hover:text-mcz-gold"}`}>
               {showOpen ? "▴ options" : "▾ options"}
             </span>
           </button>
@@ -977,7 +977,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
           A post carries its author's name; an unmarked edit by somebody else
           is the platform putting words in their mouth. */}
       {post.edited_by && (
-        <p className="mt-1 text-[11px] text-white/35">
+        <p className="mt-1 text-[11px] text-white/50">
           ✏️ Edited by @{post.edited_by}
         </p>
       )}
@@ -1023,11 +1023,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
 
       <div className="mt-3 flex items-center gap-3 border-t border-white/[0.06] pt-3 text-xs">
         <button onClick={() => react(social?.my === 1 ? 0 : 1)}
-                className={`flex items-center gap-1 ${social?.my === 1 ? "text-emerald-300" : "text-white/40 hover:text-white"}`}>
+                className={`flex items-center gap-1 ${social?.my === 1 ? "text-emerald-300" : "text-white/55 hover:text-white"}`}>
           <ThumbsUp size={13} /> {social?.up ?? 0}
         </button>
         <button onClick={() => react(social?.my === -1 ? 0 : -1)}
-                className={`flex items-center gap-1 ${social?.my === -1 ? "text-mcz-ember" : "text-white/40 hover:text-white"}`}>
+                className={`flex items-center gap-1 ${social?.my === -1 ? "text-mcz-ember" : "text-white/55 hover:text-white"}`}>
           <ThumbsDown size={13} /> {social?.down ?? 0}
         </button>
 
@@ -1035,13 +1035,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             nothing else. Every app that can do something with this post now
             lives in the panel below, from the server's own list. */}
         <button onClick={() => setShowOpen((v) => !v)}
-                className={`ml-auto flex items-center gap-1 ${showOpen ? "text-mcz-gold" : "text-white/40 hover:text-mcz-gold"}`}
+                className={`ml-auto flex items-center gap-1 ${showOpen ? "text-mcz-gold" : "text-white/55 hover:text-mcz-gold"}`}
                 title="Coach it, collab on it, put it in a playlist, enter it in a battle">
           <Handshake size={13} /> {showOpen ? "Close" : "Open it in…"}
         </button>
         {post.collab_count > 0 && (
           <button onClick={() => goToSpot("collabz", "collabz-deals")}
-                  className="text-white/35 hover:text-mcz-gold"
+                  className="text-white/50 hover:text-mcz-gold"
                   title="Deals that grew out of this post">
             {post.collab_count} collab{post.collab_count === 1 ? "" : "s"}
           </button>
@@ -1082,7 +1082,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
         {canRate && !skipped ? (
           <div className="space-y-2">
             <div className="re-label">Rate this track</div>
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-white/55">
               It curates the ChartZ. The author is told who rated their post. Private (the default) pays the standard ⚡; Public pays +25% and counts toward the public leaderboards.{" "}
               {rewardLine() && <span className="text-emerald-300">{rewardLine()}</span>}
             </p>
@@ -1102,7 +1102,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                       : "!border-white/20 !text-white/50 hover:!border-white/40"
                   } transition`}
                 >
-                  {label} <span className={value === "public" ? "text-emerald-300" : "text-white/40"}>{bonus}</span>
+                  {label} <span className={value === "public" ? "text-emerald-300" : "text-white/55"}>{bonus}</span>
                 </button>
               ))}
             </div>
@@ -1131,7 +1131,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             </div>
           </div>
         ) : (
-          <div className="re-label flex items-center gap-1.5 !text-white/40">
+          <div className="re-label flex items-center gap-1.5 !text-white/55">
             <Lock size={12} />
             {skipped ? "Rating skipped"
               : post.mine ? "You can't rate your own post"
@@ -1145,7 +1145,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
         {/* The gain, visible: it lived only in each vote button's hover title, which a
             phone never shows. */}
         {comments.length > 0 && (
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             Voting on someone else's comment pays <Gain amount={1} emoji={ENERGY} />, up or down — once per comment, up to a daily cap.
           </p>
         )}
@@ -1187,7 +1187,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 title={`+1 ${ENERGY} for voting`}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${
                   c.my_vote === 1 ? "bg-emerald-400/15 text-emerald-300"
-                                  : "text-white/40 hover:bg-white/10 hover:text-white/70"}`}>
+                                  : "text-white/55 hover:bg-white/10 hover:text-white/70"}`}>
                 <ThumbsUp size={11} /> {c.up ?? 0}
               </button>
               <button
@@ -1195,7 +1195,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 title={`+1 ${ENERGY} for voting — a downvote pays the same`}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 transition-colors ${
                   c.my_vote === -1 ? "bg-mcz-ember/15 text-mcz-ember"
-                                   : "text-white/40 hover:bg-white/10 hover:text-white/70"}`}>
+                                   : "text-white/55 hover:bg-white/10 hover:text-white/70"}`}>
                 <ThumbsDown size={11} /> {c.down ?? 0}
               </button>
               {!c.my_vote && (
@@ -1211,7 +1211,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                   open by this device's clock. Free: no cost to state. */}
               {canEditComment(c, user?.username) && editingComment?.id !== c.id
                 && editWindowLeft(c.at, editWindow, now) > 0 && (
-                <button className="ml-auto text-white/40 hover:text-mcz-cyan"
+                <button className="ml-auto text-white/55 hover:text-mcz-cyan"
                         title={`Editable for ${editWindowLeft(c.at, editWindow, now)}s more`}
                         onClick={() => setEditingComment({ id: c.id, draft: c.body })}>
                   Edit · {editWindowLeft(c.at, editWindow, now)}s left
@@ -1234,13 +1234,13 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
                 }}
                 onKeyDown={(e) => e.key === "Enter" && comment()}
               />
-              <button className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
+              <button aria-label="Send" className="re-btn !w-auto px-3" onClick={comment}><Send size={14} /></button>
             </div>
             {social?.comment_cost_energy != null && (
               <p className="mt-1 text-[11px]">
                 {social.comment_cost_energy > 0
                   ? <><span className="text-mcz-ember">−{social.comment_cost_energy} {ENERGY}</span>{" "}
-                      <span className="text-white/45">per comment — your free ones today are used. Not posted means not charged.</span></>
+                      <span className="text-white/60">per comment — your free ones today are used. Not posted means not charged.</span></>
                   : <span className="text-emerald-300/80">
                       {post.mine || post.author === user?.username
                         ? "Free on your own post."
@@ -1260,7 +1260,7 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
             )}
           </div>
         ) : (
-          <div className="re-label flex items-center gap-1.5 !text-white/40">
+          <div className="re-label flex items-center gap-1.5 !text-white/55">
             <Lock size={12} /> <span>Comments open in <span className="text-mcz-ember">{commentLeft}s</span></span>
           </div>
         )}
@@ -1298,7 +1298,7 @@ function BoostButton({ post, onChanged, onFlash }) {
     <span className="relative">
       <button onClick={open ? () => setOpen(false) : show} aria-expanded={open}
               title={`Boost this post: −${cost} ${ENERGY} for a day near the top of the feed`}
-              className="flex items-center gap-1 rounded-lg p-1.5 text-[11px] text-white/45 hover:bg-white/[0.06] hover:text-mcz-ember">
+              className="flex items-center gap-1 rounded-lg p-1.5 text-[11px] text-white/60 hover:bg-white/[0.06] hover:text-mcz-ember">
         <Rocket size={14} /> <span className="text-mcz-ember">−{cost} {ENERGY}</span>
       </button>
       {open && (
@@ -1338,7 +1338,7 @@ function PinButton({ id }) {
     <button onClick={toggle} disabled={busy}
             title={err || (pinned ? "Pinned to your profile — click to unpin" : "Pin to your profile")}
             aria-pressed={pinned}
-            className={`rounded-lg p-1.5 hover:bg-white/[0.06] ${err ? "text-mcz-ember" : pinned ? "text-mcz-cyan" : "text-white/40 hover:text-mcz-cyan"}`}>
+            className={`rounded-lg p-1.5 hover:bg-white/[0.06] ${err ? "text-mcz-ember" : pinned ? "text-mcz-cyan" : "text-white/55 hover:text-mcz-cyan"}`}>
       <Pin size={15} fill={pinned ? "currentColor" : "none"} />
     </button>
   );
@@ -1389,8 +1389,8 @@ function BuyBar({ post, onChanged, onFlash }) {
                    className="w-20 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white" />
             <button onClick={savePrice} disabled={busy}
                     className="rounded-lg bg-mcz-cyan/20 px-2 py-1 text-mcz-cyan">{busy ? "Saving…" : "Save"}</button>
-            <button onClick={() => setDraft(null)} className="text-white/40">Cancel</button>
-            <span className="text-white/35">$1–$500, or 0 for free. Buyers pay everyone credited on it.</span>
+            <button onClick={() => setDraft(null)} className="text-white/55">Cancel</button>
+            <span className="text-white/50">$1–$500, or 0 for free. Buyers pay everyone credited on it.</span>
           </>
         )}
         {err && <span className="text-mcz-ember">{err}</span>}
@@ -1437,7 +1437,7 @@ function BuyBar({ post, onChanged, onFlash }) {
             <div className="flex gap-2">
               <button onClick={buy} disabled={busy}
                       className="rounded-lg bg-mcz-cyan/20 px-3 py-1.5 text-mcz-cyan">{busy ? "Buying…" : `Confirm — pay ${usd(quote.price_cents)}`}</button>
-              <button onClick={() => setQuote(null)} className="text-white/40">Cancel</button>
+              <button onClick={() => setQuote(null)} className="text-white/55">Cancel</button>
             </div>
           )}
         </div>

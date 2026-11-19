@@ -93,7 +93,7 @@ export function BadgeWearList({ badges, title, holders = true, mine = false }) {
   if (!title && list.length === 0) return null;
   return (
     <div className="space-y-1.5">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
         BadgeZ
       </p>
       {title && <p className="text-[13px] font-semibold text-mcz-gold">{title}</p>}

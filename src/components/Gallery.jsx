@@ -36,7 +36,7 @@ export default function Gallery({ username, mine = false, auth = true }) {
     if (!mine) return null;
     return (
       <div className="space-y-1" data-tour="gallery">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40"><Images size={12} /> Gallery</p>
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/55"><Images size={12} /> Gallery</p>
         <p className="text-xs text-white/55">
           Images you post publicly show here, each opening its post.{" "}
           <button className="re-link" onClick={() => goToSpot("filez", "filez-list")}>Post one from FileZ</button>
@@ -47,7 +47,7 @@ export default function Gallery({ username, mine = false, auth = true }) {
 
   return (
     <div className="space-y-1.5" data-tour="gallery">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/55">
         <Images size={12} /> Gallery <span className="font-normal normal-case tracking-normal text-white/30">· {images.length}</span>
       </p>
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
@@ -59,7 +59,7 @@ export default function Gallery({ username, mine = false, auth = true }) {
           </button>
         ))}
       </div>
-      {mine && <p className="text-[11px] text-white/35">Your public posts' images. Members-only and private posts stay out of it.</p>}
+      {mine && <p className="text-[11px] text-white/50">Your public posts' images. Members-only and private posts stay out of it.</p>}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4" onClick={() => setOpen(null)}

@@ -41,12 +41,12 @@ function Whys({ title, rows }) {
   if (!rows?.length) return null;
   return (
     <div className="space-y-1">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{title}</p>
       {rows.map((x, i) => (
         <div key={i} className="rounded-lg bg-white/[0.04] p-2 text-[12px]">
           <p className="font-semibold text-white/90">{x.what}</p>
-          {x.why && <p className="text-white/60"><span className="text-white/40">Why: </span>{x.why}</p>}
-          {x.how && <p className="text-white/70"><span className="text-white/40">How: </span>{x.how}</p>}
+          {x.why && <p className="text-white/60"><span className="text-white/55">Why: </span>{x.why}</p>}
+          {x.how && <p className="text-white/70"><span className="text-white/55">How: </span>{x.how}</p>}
         </div>
       ))}
     </div>
@@ -57,7 +57,7 @@ function Lines({ title, rows, tone = "text-white/75" }) {
   if (!rows?.length) return null;
   return (
     <div>
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{title}</p>
       <ul className={`list-disc space-y-0.5 pl-5 text-[12px] ${tone}`}>{rows.map((x, i) => <li key={i}>{x}</li>)}</ul>
     </div>
   );
@@ -75,7 +75,7 @@ export function ReadResult({ row }) {
         <div className="grid gap-1.5 sm:grid-cols-2">
           {Object.keys(labels).map((k) => (
             r.scores?.[k] == null
-              ? <p key={k} className="rounded-lg border border-white/10 p-2 text-[11px] text-white/45">
+              ? <p key={k} className="rounded-lg border border-white/10 p-2 text-[11px] text-white/60">
                   <span className="font-semibold text-white/70">{labels[k]}</span> — not seen from this angle, not guessed.
                 </p>
               : <RatingRow key={k} value={r.scores[k]} label={labels[k]} detail={r.means?.[k]} />
@@ -86,7 +86,7 @@ export function ReadResult({ row }) {
         <Lines title="Working" rows={r.working} tone="text-emerald-200/90" />
         <Whys title="Cues for the next set" rows={r.cues} />
         <Lines title="Watch for" rows={r.safety} tone="text-mcz-ember" />
-        <p className="text-[10px] text-white/35">{r.caveat}</p>
+        <p className="text-[10px] text-white/50">{r.caveat}</p>
       </div>
     );
   }
@@ -103,7 +103,7 @@ export function ReadResult({ row }) {
       <Whys title="Change" rows={r.change} />
       <Lines title="Your next session" rows={r.next} />
       {r.caution && <p className="text-[12px] text-mcz-ember">⚠ {r.caution}</p>}
-      <p className="text-[10px] text-white/35">{r.caveat}</p>
+      <p className="text-[10px] text-white/50">{r.caveat}</p>
     </div>
   );
 }
@@ -124,7 +124,7 @@ function Actions({ row, onDeleted }) {
       <button className="neon-btn-ghost !w-auto px-2.5 py-1 inline-flex items-center gap-1" onClick={download}>
         <Download size={12} /> Download <span className="text-emerald-300">Free</span>
       </button>
-      <button className="text-white/35 hover:text-mcz-ember" onClick={remove} aria-label="Delete this read"><Trash2 size={13} /></button>
+      <button className="text-white/50 hover:text-mcz-ember" onClick={remove} aria-label="Delete this read"><Trash2 size={13} /></button>
       {msg && <span className="text-mcz-ember">{msg}</span>}
     </div>
   );
@@ -151,7 +151,7 @@ export function AskAI({ scope, id, disabled = false }) {
                 title={state.read_note}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />} AI read
         </button>
-        <ReadPrice /> <span className="text-white/35">· not charged if it can't be done</span>
+        <ReadPrice /> <span className="text-white/50">· not charged if it can't be done</span>
       </span>
       {!state.configured && <p className="text-[11px] text-mcz-gold">The AI coach isn't switched on yet.</p>}
       {!state.affordable && <p className="text-[11px] text-mcz-ember">Today's free prompts are spent and a read costs more than you hold.</p>}
@@ -160,7 +160,7 @@ export function AskAI({ scope, id, disabled = false }) {
         <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-white/[0.03] p-3">
           <ReadResult row={row} />
           <Actions row={row} onDeleted={() => { setRow(null); reload(); }} />
-          <p className="text-[10px] text-white/40">Kept in the AI coach tab.</p>
+          <p className="text-[10px] text-white/55">Kept in the AI coach tab.</p>
         </div>
       )}
     </div>
@@ -207,7 +207,7 @@ export function FormCheck({ exercises }) {
       </select>
       <input type="file" accept="video/*" capture="environment" className="block text-sm text-white/70"
              onChange={(e) => setFile(e.target.files?.[0] || null)} aria-label="Video of one set" />
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-white/55">
         One set, the whole body and the weight in frame, side-on for most lifts. Up to {state.max_mb}MB.
       </p>
       {tooBig && <p className="text-[11px] text-mcz-ember">That video is over {state.max_mb}MB — trim it to one set.</p>}
@@ -223,7 +223,7 @@ export function FormCheck({ exercises }) {
                 onClick={send}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : <Bot size={14} />} Check my form
         </button>
-        <span className="text-[11px]"><ReadPrice /> <span className="text-white/40">· {state.cost_note}</span></span>
+        <span className="text-[11px]"><ReadPrice /> <span className="text-white/55">· {state.cost_note}</span></span>
       </div>
       {busy && <p className="text-[11px] text-white/50">Watching the set — up to two minutes for a long video.</p>}
       {!state.configured && <p className="text-[11px] text-mcz-gold">The AI coach isn't switched on yet.</p>}
@@ -256,7 +256,7 @@ export function AIReads() {
         <div key={r.id} className="rounded-lg bg-white/[0.03]">
           <button className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-white/5"
                   onClick={() => setOpen(open === r.id ? null : r.id)}>
-            <span>{r.title} <span className="text-[11px] text-white/40">· {r.kind_label} · {new Date(r.created_at).toLocaleDateString()}</span></span>
+            <span>{r.title} <span className="text-[11px] text-white/55">· {r.kind_label} · {new Date(r.created_at).toLocaleDateString()}</span></span>
             {r.kind === "form" && r.result?.overall != null && <RatingNumber value={r.result.overall} exact={r.result.overall} size="sm" />}
           </button>
           {open === r.id && (
@@ -267,7 +267,7 @@ export function AIReads() {
           )}
         </div>
       ))}
-      {state.total > reads.length && <p className="text-[11px] text-white/40">Showing the newest {reads.length} of {state.total}.</p>}
+      {state.total > reads.length && <p className="text-[11px] text-white/55">Showing the newest {reads.length} of {state.total}.</p>}
     </div>
   );
 }
@@ -284,7 +284,7 @@ export function AICoachView({ exercises }) {
           <li><span className="text-white/85">AI read</span> — {state?.read_note || "reads what you logged."} It's on every workout and routine in RoutineZ and every muscle in BodyMap.</li>
           <li><span className="text-white/85">Form check</span> — {state?.form_note || "watches one video of one set."}</li>
         </ul>
-        {state && <p className="text-[11px]">One read: <ReadPrice /> <span className="text-white/40">· {state.daily_prompts_left} of {state.daily_prompts} free prompts left today</span></p>}
+        {state && <p className="text-[11px]">One read: <ReadPrice /> <span className="text-white/55">· {state.daily_prompts_left} of {state.daily_prompts} free prompts left today</span></p>}
       </div>
       <FormCheck exercises={exercises} />
       <AIReads />

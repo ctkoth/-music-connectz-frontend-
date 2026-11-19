@@ -31,7 +31,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
         {onRetry && <button className="re-link" onClick={onRetry}>Try again</button>}
       </span>
     ) : (
-      <span className="text-[11px] text-white/40">Checking the price…</span>
+      <span className="text-[11px] text-white/55">Checking the price…</span>
     );
   }
   if (v.state === "off") return null;
@@ -40,7 +40,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
     return (
       <span className="text-[11px] text-emerald-300">
         Free today <AiEnergy />{" "}
-        <span className="text-white/45">
+        <span className="text-white/60">
           — uses 1 of your {v.left} free prompt{v.left === 1 ? "" : "s"} left{v.allowance ? ` (${v.allowance} a day)` : ""}
         </span>
       </span>
@@ -56,7 +56,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
             {v.split.cents > 0 && <>−{money(v.split.cents)} {MONEY}</>}
           </>
         ) : <>−{v.cost} {PROMPTZ}</>} <AiEnergy />{" "}
-        <span className="text-white/35">
+        <span className="text-white/50">
           — {v.freeLeft ? "a free prompt doesn't cover a run this size" : "no free prompts left today"}
           {v.split && v.split.cents > 0 ? `, so ${PROMPTZ} first, then your balance` : ""}
         </span>
@@ -84,7 +84,7 @@ export default function RunPrice({ s, noun = "runs", inShell = false, failed = f
         <button className="re-btn !w-auto px-3 py-1 text-xs" onClick={() => goToSpot("membershipz", "promptz-door")}>
           Get {PROMPTZ} — swap {SPINAZ} or buy
         </button>
-        <span className="text-white/40">Free prompts renew tomorrow.</span>
+        <span className="text-white/55">Free prompts renew tomorrow.</span>
       </div>
       <EarnInstead resource="promptz" title="Or earn some" />
     </div>

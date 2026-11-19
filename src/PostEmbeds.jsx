@@ -56,7 +56,7 @@ function SoundCloudExtras({ post, embed, index, frameRef }) {
     <div className="space-y-1 text-xs">
       {label && <div className="text-white/60">{label}</div>}
       {!mine && (
-        <div className="text-[10px] text-white/35">
+        <div className="text-[10px] text-white/50">
           Listening here for 30 seconds counts as a play on Music ConnectZ. SoundCloud keeps its own count.
         </div>
       )}
@@ -66,7 +66,7 @@ function SoundCloudExtras({ post, embed, index, frameRef }) {
              className="font-semibold text-mcz-cyan underline">
             Listen / follow on SoundCloud
           </a>
-          <span className="ml-2 text-[10px] text-white/35">opens {link.host} in a new tab</span>
+          <span className="ml-2 text-[10px] text-white/50">opens {link.host} in a new tab</span>
         </div>
       )}
     </div>
@@ -111,7 +111,7 @@ function EmbedDisplay({ embed, onRemove, canRemove, busy, post, index }) {
         <button
           onClick={onRemove}
           disabled={busy}
-          className="flex items-center gap-1 text-xs text-white/40 hover:text-mcz-ember"
+          className="flex items-center gap-1 text-xs text-white/55 hover:text-mcz-ember"
         >
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           Remove
@@ -230,7 +230,7 @@ export default function PostEmbeds({ post, canEdit }) {
               <LinkIcon size={14} />
               Add a track or video
               {embedLimit !== null && (
-                <span className="text-white/35 ml-1">({embeds.length}/{embedLimit})</span>
+                <span className="text-white/50 ml-1">({embeds.length}/{embedLimit})</span>
               )}
             </button>
           )}
@@ -291,7 +291,7 @@ function AddEmbedForm({ postId, onAdded, onCancel }) {
         className="neon-input !py-1.5 w-full text-xs"
       />
       {players.length > 0 && (
-        <p className="text-[10px] text-white/35">Plays here: {players.join(" · ")}</p>
+        <p className="text-[10px] text-white/50">Plays here: {players.join(" · ")}</p>
       )}
 
       <input

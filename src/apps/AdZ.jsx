@@ -52,7 +52,7 @@ export default function AdZ() {
         <IconImg icon="adz.png" alt="AdZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">AdZ</h2>
-          <p className="text-xs text-white/45">Watch a short rewarded ad, earn SpinaZ. Powered by AdMob.</p>
+          <p className="text-xs text-white/60">Watch a short rewarded ad, earn SpinaZ. Powered by AdMob.</p>
         </div>
       </header>
 
@@ -96,7 +96,7 @@ export default function AdZ() {
               </p>
             )}
             {!cfg.personalized && (
-              <p className="text-[11px] text-white/40 inline-flex flex-wrap items-center gap-1">
+              <p className="text-[11px] text-white/55 inline-flex flex-wrap items-center gap-1">
                 You'll see family-friendly, non-personalized ads.
                 {cfg.age == null && (
                   <>
@@ -114,7 +114,7 @@ export default function AdZ() {
               Rewarded ads play in the Music ConnectZ mobile app. Install it to watch ads and earn SpinaZ — your balance syncs here automatically.
             </p>
             {cfg.age == null && (
-              <p className="flex items-center gap-1.5 text-[11px] text-white/40">
+              <p className="flex items-center gap-1.5 text-[11px] text-white/55">
                 <Cake size={11} /> Add your birthday so ads match your age —
                 <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>ProfileZ</button>
               </p>

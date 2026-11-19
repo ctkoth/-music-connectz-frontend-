@@ -61,7 +61,7 @@ export default function PianoRoll({ part, onChange, onClose }) {
         <button className="re-btn !w-auto px-2" onClick={() => onChange([])}>Clear</button>
         <button className="re-link ml-auto" onClick={onClose}>Done</button>
       </div>
-      <p className="text-[11px] text-white/45">Click to add a note, click a note to remove it, drag its right edge to lengthen it. {notes.length} notes.</p>
+      <p className="text-[11px] text-white/60">Click to add a note, click a note to remove it, drag its right edge to lengthen it. {notes.length} notes.</p>
       <div className="flex max-h-[420px] overflow-auto">
         <div className="sticky left-0 z-10 shrink-0 bg-black/80">
           {pitches.map((p) => (

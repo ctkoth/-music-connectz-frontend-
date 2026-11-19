@@ -967,7 +967,7 @@ export default function ImageZ() {
             <button className="re-btn !w-auto px-2" title="Zoom in (Ctrl +)" onClick={() => setZoom((z) => Math.min(8, (z || 1) * 1.25))}><ZoomIn size={14} /></button>
             <button className="re-btn !w-auto px-2" title="Fit (Ctrl 0)" onClick={() => setZoom(null)}><Maximize size={14} /></button>
             <button className="re-btn !w-auto px-2" title="Actual pixels (Ctrl 1)" onClick={() => setZoom(1)}>100%</button>
-            <span className="text-white/40">Hold Space and drag to pan · Ctrl while moving turns snapping off</span>
+            <span className="text-white/55">Hold Space and drag to pan · Ctrl while moving turns snapping off</span>
           </div>
           <div ref={scroller} className={`rounded-xl border border-white/10 bg-black/40 p-2 ${zoom ? "max-h-[75vh] overflow-auto" : "flex justify-center"}`}
             onWheel={(e) => { if (e.ctrlKey || e.metaKey) { e.preventDefault(); setZoom((z) => Math.min(8, Math.max(0.05, (z || 1) * (e.deltaY < 0 ? 1.1 : 1 / 1.1)))); } }}>
@@ -1086,7 +1086,7 @@ export default function ImageZ() {
         <aside className="space-y-3">
           <div className="glass-card space-y-2 p-3">
             <div className="flex items-center justify-between">
-              <h3 className="flex items-center gap-1 font-semibold"><Layers size={14} /> Layers <span className="text-xs text-white/40">{cap === undefined ? doc.layers.length : cap === null ? `${doc.layers.length} · unlimited` : `${doc.layers.length}/${cap}`}</span></h3>
+              <h3 className="flex items-center gap-1 font-semibold"><Layers size={14} /> Layers <span className="text-xs text-white/55">{cap === undefined ? doc.layers.length : cap === null ? `${doc.layers.length} · unlimited` : `${doc.layers.length}/${cap}`}</span></h3>
               <div className="flex gap-1">
                 <button className="re-btn !w-auto px-2" title="Paint layer" onClick={() => add({ kind: "paint" })}><Plus size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Text layer" onClick={() => add({ kind: "text", x: Math.round(doc.w * 0.1), y: Math.round(doc.h * 0.1), size: Math.round(doc.h / 10) })}><Type size={14} /></button>
@@ -1102,7 +1102,7 @@ export default function ImageZ() {
                   <li key={`h${l.group}`} className="flex items-center gap-2 rounded-lg border border-mcz-magenta/40 bg-mcz-magenta/10 px-2 py-1 text-sm">
                     <button title={g.open ? "Fold" : "Unfold"} onClick={() => commit((d) => updateGroup(d, l.group, { open: !g.open }))}>{g.open ? <FolderOpenIcon size={14} /> : <Folder size={14} />}</button>
                     <button title={g.visible ? "Hide group" : "Show group"} onClick={() => commit((d) => updateGroup(d, l.group, { visible: !g.visible }))}>
-                      {g.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/40" />}
+                      {g.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/55" />}
                     </button>
                     <input className="min-w-0 flex-1 bg-transparent" value={g.name} onChange={(e) => commit((d) => updateGroup(d, l.group, { name: e.target.value }))} />
                     <input type="number" min="0" max="100" value={g.opacity} title="Group opacity — multiplies each layer's" className="w-11 rounded bg-black/40 px-1 text-right text-xs"
@@ -1124,10 +1124,10 @@ export default function ImageZ() {
                     title="Drag to reorder — top of the list is the front"
                     className={`flex cursor-grab items-center gap-2 rounded-lg border px-2 py-1 text-sm ${g ? "ml-4" : ""} ${sel === l.id ? "border-mcz-cyan bg-mcz-cyan/10" : picked.includes(l.id) ? "border-mcz-magenta bg-mcz-magenta/10" : "border-white/10"} ${eff.visible ? "" : "opacity-60"}`}>
                     <button title={l.visible ? "Hide" : "Show"} onClick={(e) => { e.stopPropagation(); commit((d) => updateLayer(d, l.id, { visible: !l.visible })); }}>
-                      {l.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/40" />}
+                      {l.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/55" />}
                     </button>
                     <I size={14} className="text-white/50" />
-                    <span className={`flex-1 truncate ${l.visible ? "" : "text-white/40"}`}>{l.name}</span>
+                    <span className={`flex-1 truncate ${l.visible ? "" : "text-white/55"}`}>{l.name}</span>
                     <input type="number" min="0" max="100" value={l.opacity} title="Opacity %" aria-label={`${l.name} opacity`}
                       onClick={(e) => e.stopPropagation()}
                       onChange={(e) => commit((d) => updateLayer(d, l.id, { opacity: +e.target.value }))}
@@ -1318,22 +1318,22 @@ export default function ImageZ() {
           )}
 
           <details className="glass-card p-3 text-xs">
-            <summary className="flex cursor-pointer items-center gap-1 font-semibold"><History size={14} /> History <span className="text-white/40">{past.length + 1 + future.length}</span></summary>
+            <summary className="flex cursor-pointer items-center gap-1 font-semibold"><History size={14} /> History <span className="text-white/55">{past.length + 1 + future.length}</span></summary>
             <ol className="mt-2 max-h-48 space-y-0.5 overflow-y-auto">
               {[...past, doc, ...future].map((d, i) => (
                 <li key={i}>
                   <button onClick={() => jumpTo(i)}
-                    className={`w-full truncate rounded px-2 py-0.5 text-left ${i === past.length ? "bg-mcz-cyan/20 text-mcz-cyan" : i > past.length ? "text-white/35" : "hover:bg-white/5"}`}>
+                    className={`w-full truncate rounded px-2 py-0.5 text-left ${i === past.length ? "bg-mcz-cyan/20 text-mcz-cyan" : i > past.length ? "text-white/50" : "hover:bg-white/5"}`}>
                     {i === 0 && !d._label ? "Start" : d._label || "Edit"}
                   </button>
                 </li>
               ))}
             </ol>
-            <p className="mt-1 text-white/40">Click a step to go back to it; the steps after it stay until you make a new edit.</p>
+            <p className="mt-1 text-white/55">Click a step to go back to it; the steps after it stay until you make a new edit.</p>
           </details>
 
           <div className="glass-card space-y-2 p-3 text-xs">
-            <h3 className="flex items-center gap-1 font-semibold"><BoxSelect size={14} /> Selection {liveSel() ? <span className="text-mcz-cyan">· active</span> : <span className="text-white/40">· none</span>}</h3>
+            <h3 className="flex items-center gap-1 font-semibold"><BoxSelect size={14} /> Selection {liveSel() ? <span className="text-mcz-cyan">· active</span> : <span className="text-white/55">· none</span>}</h3>
             <div className="flex flex-wrap gap-1">
               <button className="re-btn !w-auto px-2" title="Ctrl+A" onClick={() => setSelection(allSel(doc.w, doc.h))}>All</button>
               <button className="re-btn !w-auto px-2" title="Ctrl+D" disabled={!liveSel()} onClick={() => setSelection(null)}>Deselect</button>
@@ -1365,7 +1365,7 @@ export default function ImageZ() {
                 </button>
               )}
               {cutState && !cutState.configured && <p className="text-white/50">The AI isn&apos;t switched on yet.</p>}
-              <p className="text-white/40">{cutState?.cost_note} Not charged when no subject is found. StatZ.</p>
+              <p className="text-white/55">{cutState?.cost_note} Not charged when no subject is found. StatZ.</p>
             </div>
             <div className="space-y-1 rounded-lg border border-white/10 p-2">
               <p className="font-semibold">Edit with AI</p>
@@ -1381,7 +1381,7 @@ export default function ImageZ() {
               <button className="re-btn" disabled={!!busy || !imgState?.configured} onClick={aiEdit}>
                 Edit with AI <span className="text-mcz-ember">−{imgState?.cost_cents ?? "?"} 🏷️</span>
               </button>
-              <p className="text-white/40">{imgState?.cost_note} {imgState?.edit_note} The result lands as a new layer.</p>
+              <p className="text-white/55">{imgState?.cost_note} {imgState?.edit_note} The result lands as a new layer.</p>
             </div>
           </div>
 
@@ -1399,8 +1399,8 @@ export default function ImageZ() {
             </>}
             {actions.map((a, i) => (
               <div key={i} className="flex items-center gap-1">
-                <button className="re-btn !w-auto flex-1 px-2 text-left" disabled={!actionsOn || !!busy} onClick={() => playAction(a)} title={a.steps.map(describeStep).join(" → ")}>▶ {a.name} <span className="text-white/40">· {a.steps.length}</span></button>
-                <button className="text-white/40" title="Delete" onClick={() => { const n = actions.filter((_, j) => j !== i); setActions(n); saveActions(n); }}><Trash2 size={12} /></button>
+                <button className="re-btn !w-auto flex-1 px-2 text-left" disabled={!actionsOn || !!busy} onClick={() => playAction(a)} title={a.steps.map(describeStep).join(" → ")}>▶ {a.name} <span className="text-white/55">· {a.steps.length}</span></button>
+                <button className="text-white/55" title="Delete" onClick={() => { const n = actions.filter((_, j) => j !== i); setActions(n); saveActions(n); }}><Trash2 size={12} /></button>
               </div>
             ))}
           </div>

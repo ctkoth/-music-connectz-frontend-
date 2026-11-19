@@ -247,7 +247,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
           </a>
         </div>
         {!widely && (
-          <p className="text-[11px] leading-relaxed text-white/45">
+          <p className="text-[11px] leading-relaxed text-white/60">
             The card images are yours to send wherever you like — the setting above only controls what the post's own page shows.
           </p>
         )}
@@ -302,20 +302,20 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
       <div className="space-y-1 text-[12px]" data-testid="post-cost">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="text-mcz-ember">−{sizeLabel(blob?.size || 0)}
-            <span className="text-white/45"> of your storage{store.left != null ? ` (${store.left.toFixed(1)} MB left)` : ""}</span>
+            <span className="text-white/60"> of your storage{store.left != null ? ` (${store.left.toFixed(1)} MB left)` : ""}</span>
           </span>
           {cost > 0
             ? <span className="text-mcz-ember">−{cost} {ENERGY}</span>
             : <span className="text-emerald-300">Free to post</span>}
           {subs && (
             <span className={slotsOut ? "text-mcz-ember" : "text-mcz-ember/80"}>
-              −1 <span className="text-white/45">of {subs.remaining} scored posts left today</span>
+              −1 <span className="text-white/60">of {subs.remaining} scored posts left today</span>
             </span>
           )}
           <span className="text-emerald-300">+ a link anyone can open</span>
           <span className="text-emerald-300">+ the score card, wide and story size</span>
         </div>
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Nothing is charged if the upload or the post fails. The coach's read costs nothing extra.
         </p>
         {storageBlocks && <p className="text-mcz-ember">{store.refusal}</p>}
@@ -330,7 +330,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
           <button type="button" className="re-btn !w-auto px-3 py-1 text-xs" disabled={buyBusy || subs.buy.energy < subs.buy.cost_energy}
                   onClick={buyMore}>
             +{subs.buy.pack} posts today <span className="text-mcz-ember">−{subs.buy.cost_energy} {ENERGY}</span>
-            <span className="ml-1 text-white/45">(you hold {subs.buy.energy})</span>
+            <span className="ml-1 text-white/60">(you hold {subs.buy.energy})</span>
           </button>
         )}
         {buyMsg && <p className="text-[11px] text-white/55">{buyMsg}</p>}
@@ -346,7 +346,7 @@ function NewPost({ result, blob, appKey, isVideo, takeName, genre, token }) {
               <div className="h-1.5 rounded-full bg-white/10">
                 <div className="h-full rounded-full bg-mcz-cyan/70" style={{ width: `${up.pct}%` }} />
               </div>
-              <p className="flex justify-between text-[11px] text-white/45">
+              <p className="flex justify-between text-[11px] text-white/60">
                 <span>
                   {up.pct}% · {sizeLabel(up.loaded)} of {sizeLabel(up.total)}
                   {up.bytesPerSecond ? ` · ${sizeLabel(up.bytesPerSecond)}/s` : ""}

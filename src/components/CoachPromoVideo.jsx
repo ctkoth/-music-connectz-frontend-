@@ -165,7 +165,7 @@ export default function CoachPromoVideo({ review, onClose }) {
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Clapperboard size={13} />} {busy ? "Recording…" : "Make the video"}
           </button>
           {!review.media_url && <p className="text-[11px] text-mcz-gold">This take wasn't kept, so there's nothing to put under the read. Tick "Keep this take" next time.</p>}
-          <p className="text-[10px] text-white/35">Saves as {mime.startsWith("video/mp4") ? "MP4" : mime ? "WebM" : "—"}{mime.startsWith("video/webm") ? " (TikTok's web upload takes it; some phone apps want MP4)" : ""}.</p>
+          <p className="text-[10px] text-white/50">Saves as {mime.startsWith("video/mp4") ? "MP4" : mime ? "WebM" : "—"}{mime.startsWith("video/webm") ? " (TikTok's web upload takes it; some phone apps want MP4)" : ""}.</p>
           {out && (
             <a className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1"
                href={out.url} download={`coach-review-promo.${out.ext}`}>

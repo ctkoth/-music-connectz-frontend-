@@ -146,7 +146,7 @@ export default function FileZ() {
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div className={`h-full ${pct > 90 ? "bg-mcz-ember" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
             </div>
-            <p className="mt-1 text-[11px] text-white/45">
+            <p className="mt-1 text-[11px] text-white/60">
               {used.toFixed(1)}MB used. {storageNote(data)} Up to {data.upload_mb}MB a file.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function FileZ() {
               {checking ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />} Check my files{" "}
               <span className="text-emerald-300">Free</span>
             </button>
-            <span className="text-[11px] text-white/45">
+            <span className="text-[11px] text-white/60">
               Looks for each file on the server and marks the ones that are gone. Nothing is deleted.
             </span>
           </div>
@@ -209,7 +209,7 @@ export default function FileZ() {
               <p className="flex items-center gap-2 text-sm">
                 <Icon size={15} className="shrink-0 text-white/50" />
                 <span className="truncate font-semibold text-white" title={u.name}>{u.name}</span>
-                <span className="ml-auto shrink-0 text-[11px] text-white/40">{sizeLabel(u.size_bytes)}</span>
+                <span className="ml-auto shrink-0 text-[11px] text-white/55">{sizeLabel(u.size_bytes)}</span>
               </p>
               <Preview u={u} onFail={() => setFailed((f) => new Set(f).add(u.id))} />
               {isGone(u) && (
@@ -243,7 +243,7 @@ export default function FileZ() {
                     <UserCircle2 size={12} /> Use as profile picture <span className="text-emerald-300">Free</span>
                   </button>
                 )}
-                <button className="ml-auto text-white/45 hover:text-mcz-ember" disabled={busy === u.id}
+                <button className="ml-auto text-white/60 hover:text-mcz-ember" disabled={busy === u.id}
                         onClick={() => remove(u)} title="Delete this file" aria-label={`Delete ${u.name}`}>
                   <Trash2 size={14} />
                 </button>

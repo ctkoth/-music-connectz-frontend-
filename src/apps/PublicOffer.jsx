@@ -82,12 +82,12 @@ export default function PublicOffer() {
           )}
 
           {offer.status && (
-            <div className="text-xs text-white/40 text-center pt-2 border-t border-white/10">
+            <div className="text-xs text-white/55 text-center pt-2 border-t border-white/10">
               Status: <span className="capitalize">{offer.status}</span>
             </div>
           )}
 
-          <div className="text-xs text-white/40 text-center pt-2">
+          <div className="text-xs text-white/55 text-center pt-2">
             <JoinLink owner={offer?.from_username} className="text-mcz-cyan hover:underline">Join Music ConnectZ</JoinLink> to respond to offers
           </div>
         </article>

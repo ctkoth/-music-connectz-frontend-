@@ -59,7 +59,7 @@ function SystemCard() {
             Music ConnectZ runs like an RPG — not as a theme, but as the actual system. Every mechanic serves growth and community both.
           </span>
         </span>
-        <ChevronDown size={16} className={`mt-1 shrink-0 text-white/40 transition ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={16} className={`mt-1 shrink-0 text-white/55 transition ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
         <div className="mt-3 space-y-2.5 border-l-2 border-mcz-ember/30 pl-3">
@@ -214,7 +214,7 @@ export default function OnboardZ() {
         <IconImg icon="onboardz.png" alt="OnboardZ" className="h-11 w-11 rounded-xl" />
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-extrabold">OnboardZ</h2>
-          <p className="text-xs text-white/45">Your guided first session — {complete}/{steps.length} done.</p>
+          <p className="text-xs text-white/60">Your guided first session — {complete}/{steps.length} done.</p>
         </div>
       </header>
 
@@ -286,13 +286,13 @@ export default function OnboardZ() {
                     <Detail label="What">{s.what}</Detail>
                     <Detail label="Why">{s.why}</Detail>
                     <Detail label="How">{s.how}</Detail>
-                    <button className="text-[11px] text-white/35 hover:text-white/60"
+                    <button className="text-[11px] text-white/50 hover:text-white/60"
                             onClick={() => setDetailOpen((d) => ({ ...d, [s.key]: false }))}>
                       Hide the detail
                     </button>
                   </div>
                 ) : (
-                  <button className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-mcz-ember"
+                  <button className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-white/55 hover:text-mcz-ember"
                           onClick={() => setDetailOpen((d) => ({ ...d, [s.key]: true }))}>
                     <Info size={11} /> What is this, and why?
                   </button>
@@ -307,7 +307,7 @@ export default function OnboardZ() {
                     ) : personaSkillRows(me?.personas).map((r) => (
                       <div key={r.key} className="flex items-center gap-2 text-[12px]">
                         <span className="min-w-0 flex-1 truncate text-white/80">{r.label}</span>
-                        <span className={r.count ? "text-emerald-300" : "text-white/45"}>
+                        <span className={r.count ? "text-emerald-300" : "text-white/60"}>
                           {r.count ? `${r.count} skill${r.count === 1 ? "" : "s"}` : "no skills yet"}
                         </span>
                         <button type="button" className="text-mcz-ember hover:underline"
@@ -330,7 +330,7 @@ export default function OnboardZ() {
                         {copied ? <Check size={14} /> : <Copy size={14} />}
                       </button>
                     </div>
-                    <div className="text-[11px] text-white/45">
+                    <div className="text-[11px] text-white/60">
                       {ref?.count ?? 0} joined · {ref?.spinaz_earned ?? 0} {SPINAZ} earned
                     </div>
                   </div>
@@ -365,7 +365,7 @@ export default function OnboardZ() {
                 {s.tab && (
                   <button
                     className={`mt-2 flex items-center gap-1 text-xs font-semibold hover:brightness-125 ${
-                      s.done ? "text-white/40 hover:text-mcz-ember" : "text-mcz-ember"}`}
+                      s.done ? "text-white/55 hover:text-mcz-ember" : "text-mcz-ember"}`}
                     onClick={() => go(s)}>
                     {s.done ? "Open it again" : s.cta} <ArrowRight size={13} />
                   </button>

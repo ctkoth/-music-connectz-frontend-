@@ -553,7 +553,7 @@ export default function Workspace({ workflow }) {
       {/* The helpers a session needs beside it — each opens as a mini pane next to the DAW, which stays
           open and keeps playing or recording. Tap again to close. Free at every tier. */}
       <div className="flex flex-wrap items-center gap-1.5 text-xs" data-tour="daw-helpers">
-        <span className="text-white/45">Keep open beside it:</span>
+        <span className="text-white/60">Keep open beside it:</span>
         {[["metz", "🎚️ MetZ"], ["tunerz", "🎯 TunerZ"], ["chordz", "🎼 ChordZ"], ["sentenceconnectz", "✍️ Sentence ConnectZ"]].map(([k, label]) => (
           <button key={k} type="button" className="pill text-[11px]" onClick={() => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}>{label}</button>
         ))}
@@ -564,7 +564,7 @@ export default function Workspace({ workflow }) {
         uploaded until you press Save to FileZ{storage?.storage_free_mb != null ? <> (counts against your storage — {storage.storage_free_mb} MB free)</> : " (counts against your storage)"}.
         Use headphones when you record, so the playback doesn't get into the mic.
       </p>
-      {note && <p className="text-[11px] text-white/45">🔌 {note}</p>}
+      {note && <p className="text-[11px] text-white/60">🔌 {note}</p>}
       {storeErr && <p className="text-xs text-amber-200">{storeErr}</p>}
       {missing > 0 && <p className="text-xs text-amber-200">{missing} recording{missing === 1 ? "" : "s"} in this session couldn't be found on this device, so {missing === 1 ? "it plays" : "they play"} as silence.</p>}
 
@@ -642,7 +642,7 @@ export default function Workspace({ workflow }) {
             <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(400, z * 1.5))}><Plus size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Undo" onClick={undo} disabled={!past.current.length}><Undo2 size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Redo" onClick={redo} disabled={!future.current.length}><Redo2 size={13} /></button>
-            <span className="text-white/40">{MODE_LABEL[session.editMode].what}</span>
+            <span className="text-white/55">{MODE_LABEL[session.editMode].what}</span>
           </>
         )}
       </div>
@@ -735,12 +735,12 @@ export default function Workspace({ workflow }) {
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge earlier" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, -1))}><ChevronLeft size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge later" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, 1))}><ChevronRight size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2 text-mcz-ember" onClick={del}><Trash2 size={13} /> Delete</button>
-          <span className="text-white/40">Nudge moves by one grid step. Drag the edges to trim.</span>
+          <span className="text-white/55">Nudge moves by one grid step. Drag the edges to trim.</span>
         </div>
       )}
 
       {view === "edit" && session.tracks.some((t) => t.playlists.length > 1) && (
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           <ArrowLeftRight size={11} className="mr-1 inline" />Each track's menu switches between its takes. Only the take shown plays.
           {session.tracks.filter((t) => t.playlists.length > 1).map((t) => (
             <button key={t.id} type="button" className="ml-2 underline" onClick={() => { if (window.confirm(`Delete "${t.playlists[t.active].name}" on ${t.name}?`)) commit((s) => deletePlaylist(s, t.id)); }}>

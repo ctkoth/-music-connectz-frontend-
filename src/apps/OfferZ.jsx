@@ -53,7 +53,7 @@ export default function OfferZ() {
         <IconImg icon="offerz.png" alt="OfferZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">OfferZ</h2>
-          <p className="text-xs text-white/45">Complete offers — surveys, sign-ups, installs — and earn SpinaZ.</p>
+          <p className="text-xs text-white/60">Complete offers — surveys, sign-ups, installs — and earn SpinaZ.</p>
         </div>
       </header>
 

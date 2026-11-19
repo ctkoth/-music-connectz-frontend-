@@ -75,7 +75,7 @@ export default function SocialConnectZ() {
         <IconImg icon="social_connectz.png" alt="Social ConnectZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">Social ConnectZ</h2>
-          <p className="text-xs text-white/45">Who's here — filter by NationalitieZ heritage.</p>
+          <p className="text-xs text-white/60">Who's here — filter by NationalitieZ heritage.</p>
         </div>
       </header>
 
@@ -86,7 +86,7 @@ export default function SocialConnectZ() {
           reach is measured from verified social sources. */}
       <div className="re-card space-y-3" data-tour="social-feed">
         <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-black/40 px-3">
-          <Search size={16} className="text-white/40" />
+          <Search size={16} className="text-white/55" />
           <input className="w-full bg-transparent py-2 text-sm text-white placeholder-white/30 outline-none" placeholder="Search name, persona, region…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
       <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
@@ -127,7 +127,7 @@ export default function SocialConnectZ() {
               {m.avatar
                 ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
                 : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5">
-                    <UserRound size={18} className="text-white/40" />
+                    <UserRound size={18} className="text-white/55" />
                   </div>}
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
@@ -137,7 +137,7 @@ export default function SocialConnectZ() {
               </div>
             </div>
             {(m.regions || []).length > 0 && (
-              <div className="mb-2 flex items-center gap-1 text-[11px] text-white/45">
+              <div className="mb-2 flex items-center gap-1 text-[11px] text-white/60">
                 <MapPin size={11} /> {m.regions.join(", ")}
               </div>
             )}
@@ -162,7 +162,7 @@ export default function SocialConnectZ() {
           </div>
         ))}
         {!loading && !error && filtered.length === 0 && (
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-white/60">
             {rows.length === 0 ? "No members yet." : "No creators match that heritage yet."}
           </p>
         )}

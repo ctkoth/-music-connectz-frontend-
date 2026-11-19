@@ -92,7 +92,7 @@ function ReportReply({ id, saved, ensureSaved }) {
   if (done) return <p className="text-[11px] text-white/55">{done}</p>;
   if (!open) {
     return (
-      <button type="button" className="inline-flex items-center gap-1 text-[11px] text-white/45 hover:text-white"
+      <button type="button" className="inline-flex items-center gap-1 text-[11px] text-white/60 hover:text-white"
               onClick={() => setOpen(true)}>
         <Flag size={11} /> Report this reply
       </button>
@@ -119,7 +119,7 @@ function ReportReply({ id, saved, ensureSaved }) {
              placeholder="Anything we should know (optional)" value={note}
              onChange={(e) => setNote(e.target.value)} />
       {!saved && (
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Sending this also keeps the reply in your WorkZ, so the owner can read the whole of it.
         </p>
       )}
@@ -166,7 +166,7 @@ function ReplyCard({ m, onChoose, onKept }) {
   return (
     <li className="space-y-2 rounded-xl border border-mcz-cyan/20 bg-mcz-cyan/[0.04] p-3">
       <Reply text={m.text} onChoose={onChoose} />
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         {m.meta.engine_emoji} {m.meta.engine_name}
         {" · "}
         {m.meta.free_prompt
@@ -307,7 +307,7 @@ export default function OccChat({ onKept }) {
         </p>
       )}
       {!state && !stateErr && (
-        <p className="flex items-center gap-2 text-[11px] text-white/40">
+        <p className="flex items-center gap-2 text-[11px] text-white/55">
           <Loader2 className="animate-spin" size={12} /> Checking the engines and the price…
         </p>
       )}
@@ -333,7 +333,7 @@ export default function OccChat({ onKept }) {
                   {r.emoji} {r.name}
                   {!r.allowed && <Lock size={10} className="text-mcz-ember" />}
                 </span>
-                <span className="block text-[10px] leading-relaxed text-white/45">{r.blurb}</span>
+                <span className="block text-[10px] leading-relaxed text-white/60">{r.blurb}</span>
                 <span className="block text-[10px]">
                   {r.allowed ? (
                     <>
@@ -349,7 +349,7 @@ export default function OccChat({ onKept }) {
           </div>
           {pickErr && <p role="alert" className="text-[11px] text-mcz-ember">{pickErr}</p>}
           {!IN_SHELL && state.models.some((r) => !r.allowed) && (
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               A tier buys which engines, never whether you can chat.{" "}
               <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>
                 See the tiers
@@ -444,12 +444,12 @@ export default function OccChat({ onKept }) {
             <RunClock running={busy} budgetSeconds={Number(state?.chat_budget_seconds) || null}
                       what="Waiting for OCC" />
             {draft.length > limit * 0.8 && (
-              <span className={`text-[10px] ${over ? "text-mcz-ember" : "text-white/35"}`}>
+              <span className={`text-[10px] ${over ? "text-mcz-ember" : "text-white/50"}`}>
                 {draft.length.toLocaleString()} / {limit.toLocaleString()}
               </span>
             )}
           </div>
-          <p className="text-[10px] leading-relaxed text-white/40">
+          <p className="text-[10px] leading-relaxed text-white/55">
             {NOT_CHARGED_IF_FAILS}
             {price.note && price.kind !== "locked" ? ` ${price.note}` : ""}
           </p>

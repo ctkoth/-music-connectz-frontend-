@@ -50,7 +50,7 @@ export default function SendTo({ item, kind = "", from = "", label = "Send to an
                value={q} onChange={(e) => setQ(e.target.value)} />
         <button className="text-xs text-white/50 hover:text-white" onClick={() => setOpen(false)}>Close</button>
       </div>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         Free. ✓ opens with it; the others open the app. Last and most used count sends from this device.
       </p>
       <div className="grid max-h-72 grid-cols-2 gap-1 overflow-y-auto sm:grid-cols-3">
@@ -62,7 +62,7 @@ export default function SendTo({ item, kind = "", from = "", label = "Send to an
             {r.carries && <span className="text-emerald-300" title="Opens with it">✓</span>}
           </button>
         ))}
-        {rows.length === 0 && <p className="col-span-full text-xs text-white/40">No app matches that.</p>}
+        {rows.length === 0 && <p className="col-span-full text-xs text-white/55">No app matches that.</p>}
       </div>
     </div>
   );

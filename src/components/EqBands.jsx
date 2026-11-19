@@ -48,7 +48,7 @@ export default function EqBands({ bands, onChange, gainMax = 12, cap, nextCap, n
               </span>
             )}
           </label>
-          <button className="justify-self-end text-white/40 hover:text-mcz-ember" aria-label={`Remove ${name} band ${i + 1}`}
+          <button className="justify-self-end text-white/55 hover:text-mcz-ember" aria-label={`Remove ${name} band ${i + 1}`}
             onClick={() => onChange(bands.filter((_, k) => k !== i))}><X size={14} /></button>
         </div>
       ))}
@@ -65,7 +65,7 @@ export default function EqBands({ bands, onChange, gainMax = 12, cap, nextCap, n
             {cap != null && !IN_SHELL && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>}
           </span>
         )}
-        {note && <span className="text-white/40">{note}</span>}
+        {note && <span className="text-white/55">{note}</span>}
       </div>
     </div>
   );

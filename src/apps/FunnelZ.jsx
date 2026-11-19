@@ -28,7 +28,7 @@ function Headline({ rows }) {
     <div className={`grid gap-3 ${rows.length > 3 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
       {rows.map((r) => (
         <div key={r.key} className="re-card space-y-1">
-          <p className="text-[10px] uppercase tracking-widest text-white/40">{r.label}</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/55">{r.label}</p>
           {/* `pct` is null when nobody reached the top of the step. A 0%
               against no visitors reads as a broken product; it is an empty
               measurement, and the two need opposite responses. */}
@@ -40,10 +40,10 @@ function Headline({ rows }) {
           </p>
           {/* The denominator travels with the rate. 100% of two people is not
               a working funnel, and a bare percentage cannot say so. */}
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             {r.to.toLocaleString()} of {r.from.toLocaleString()}
           </p>
-          <p className="text-[11px] leading-relaxed text-white/35">{r.note}</p>
+          <p className="text-[11px] leading-relaxed text-white/50">{r.note}</p>
         </div>
       ))}
     </div>
@@ -72,7 +72,7 @@ function SrcLink() {
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">Make a tagged link</p>
-      <p className="text-[11px] leading-relaxed text-white/35">
+      <p className="text-[11px] leading-relaxed text-white/50">
         Name where you are posting it (instagram-bio, tiktok, flyer). Everyone who arrives through the link is counted under that name above.
       </p>
       <div className="flex flex-wrap gap-2">
@@ -107,12 +107,12 @@ function Breakdown({ title, blurb, rows, field, note, steps }) {
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">{title}</p>
-      <p className="text-[11px] leading-relaxed text-white/35">{blurb}</p>
+      <p className="text-[11px] leading-relaxed text-white/50">{blurb}</p>
       {rows?.length ? (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] text-left text-[12px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-widest text-white/35">
+              <tr className="text-[10px] uppercase tracking-widest text-white/50">
                 <th className="py-1 pr-3 font-semibold">{field}</th>
                 {COLS.map(([k, l]) => (
                   <th key={k} className="py-1 pr-3 text-right font-semibold">{l}</th>
@@ -136,7 +136,7 @@ function Breakdown({ title, blurb, rows, field, note, steps }) {
       ) : (
         // An empty table has to say WHICH nothing it is. "No traffic" and
         // "nothing tagged" are different problems and look identical here.
-        <p className="text-[11px] text-white/35">{note}</p>
+        <p className="text-[11px] text-white/50">{note}</p>
       )}
     </div>
   );
@@ -155,18 +155,18 @@ function WhoJoined({ members }) {
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">
         Who joined · {total.toLocaleString()} {total === 1 ? "account" : "accounts"}
       </p>
-      <p className="text-[11px] leading-relaxed text-white/35">{members.note}</p>
+      <p className="text-[11px] leading-relaxed text-white/50">{members.note}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         {[["Gender", genders, "gender"], ["Age", ages, "band"]].map(([label, rows, key]) => (
           <div key={label} className="space-y-1.5">
-            <p className="text-[10px] uppercase tracking-widest text-white/35">{label}</p>
+            <p className="text-[10px] uppercase tracking-widest text-white/50">{label}</p>
             {rows.filter((r) => r.members > 0 || r[key] === "unset").map((r) => (
               <div key={r[key]} className="space-y-1">
                 <div className="flex items-center justify-between text-[12px]">
-                  <span className={r[key] === "unset" ? "text-white/40" : "text-white/80"}>
+                  <span className={r[key] === "unset" ? "text-white/55" : "text-white/80"}>
                     {r[key]}
                   </span>
-                  <span className="text-white/45">{r.members}</span>
+                  <span className="text-white/60">{r.members}</span>
                 </div>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
                   <div className={`h-full rounded-full ${r[key] === "unset" ? "bg-white/20" : "bg-mcz-cyan"}`}
@@ -221,9 +221,9 @@ function ByDoor({ doors, note }) {
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/50">By door</p>
-      <p className="text-[11px] leading-relaxed text-white/35">{note}</p>
+      <p className="text-[11px] leading-relaxed text-white/50">{note}</p>
       {!anyTraffic ? (
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           No door has opened a trial yet in this window.
         </p>
       ) : (
@@ -238,7 +238,7 @@ function ByDoor({ doors, note }) {
                 <div className="grid grid-cols-4 gap-1 text-center">
                   {DOOR_COLS.map(([k, l]) => (
                     <div key={k}>
-                      <p className="text-[9px] uppercase tracking-wide text-white/35">{l}</p>
+                      <p className="text-[9px] uppercase tracking-wide text-white/50">{l}</p>
                       <p className={`text-sm font-semibold ${s[k] ? "text-white" : "text-white/25"}`}>
                         {s[k] || 0}
                       </p>
@@ -246,13 +246,13 @@ function ByDoor({ doors, note }) {
                   ))}
                 </div>
                 {d.has_recorder ? (
-                  <p className="text-[10px] text-white/35">
+                  <p className="text-[10px] text-white/50">
                     {s.try_send || 0} sent to the coach
                     {s.try_failed ? ` · ${s.try_failed} came back with no score` : ""}
                     {s.try_mic_denied ? ` · ${s.try_mic_denied} refused the mic` : ""}
                   </p>
                 ) : (
-                  <p className="text-[10px] text-white/35">
+                  <p className="text-[10px] text-white/50">
                     No recorder — "scored" means a logged set or a built week.
                   </p>
                 )}
@@ -298,13 +298,13 @@ function Reasons({ reasons }) {
   return (
     <div className="space-y-2">
       <h3 className="text-sm font-bold">Why, where it was recorded</h3>
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-white/55">
         Unique browsers per cause. One browser retrying counts once.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         {shown.map(([kind, rows]) => (
           <div key={kind} className="re-card space-y-1">
-            <p className="text-[10px] uppercase tracking-widest text-white/40">{REASON_TITLES[kind] || kind}</p>
+            <p className="text-[10px] uppercase tracking-widest text-white/55">{REASON_TITLES[kind] || kind}</p>
             {rows.map((r) => (
               <p key={r.why} className="flex justify-between text-sm">
                 <span className="text-white/70">{REASON_LABELS[r.why] || r.why}</span>
@@ -331,7 +331,7 @@ function ExcludeThisBrowser({ data, onChanged }) {
     if (!id) return;
     api(`/api/auth/funnel/exclude/?anon_id=${encodeURIComponent(id)}`).then(setState).catch(() => {});
   }, [id]);
-  if (!id) return <p className="text-[11px] text-white/35">This browser blocks storage, so it has no funnel id to exclude.</p>;
+  if (!id) return <p className="text-[11px] text-white/50">This browser blocks storage, so it has no funnel id to exclude.</p>;
   const excluded = !!state?.excluded;
   async function toggle() {
     setBusy(true); setErr("");
@@ -345,7 +345,7 @@ function ExcludeThisBrowser({ data, onChanged }) {
     }
   }
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/45">
+    <div className="flex flex-wrap items-center gap-3 text-[11px] text-white/60">
       <button className="pill hover:text-white" onClick={toggle} disabled={busy || !state}>
         {excluded ? "Count this browser again" : "Don't count this browser"}
       </button>
@@ -388,7 +388,7 @@ export default function FunnelZ() {
     return (
       <div className="neon-frame space-y-3 p-5 text-sm text-white/65">
         <p className="flex items-center gap-2 font-semibold text-white/80">
-          <Lock size={16} className="shrink-0 text-white/40" /> FunnelZ is the platform's own sign-up numbers
+          <Lock size={16} className="shrink-0 text-white/55" /> FunnelZ is the platform's own sign-up numbers
         </p>
         <p>It counts how many visitors try the free coach and how many join — it is the owner's screen, and none of it is about you. Your own numbers — who viewed your posts and links, and what they did — are in ViewZ.</p>
         <button className="neon-btn-primary !w-auto px-5" onClick={() => goToSpot("viewz", "")}>Open my numbers in ViewZ →</button>
@@ -407,7 +407,7 @@ export default function FunnelZ() {
         <IconImg icon="funnelz.png" alt="FunnelZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">FunnelZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Both halves of the funnel: the join path measured — landing → trial → register,
             real events and real unique visitors, nothing modeled — and every offer the
             platform springs on a member, with the reason it exists.
@@ -448,21 +448,21 @@ export default function FunnelZ() {
       {steps && !loading && data.direct_trial > 0 && (
         <p className="re-card text-[12px] leading-relaxed text-white/70">
           <b className="text-white">{data.direct_trial.toLocaleString()}</b> more opened a trial by a link
-          straight to a trial door. <span className="text-white/45">They never saw the landing page, so the first rate above cannot count them.</span>
+          straight to a trial door. <span className="text-white/60">They never saw the landing page, so the first rate above cannot count them.</span>
         </p>
       )}
       {steps && !loading && <ShareStats endpoint="/api/economy/funnel/share/" membersToggle defaultDays={[1, 7, 14, 30, 90].includes(days) ? days : 30} />}
       {/* The other no-account door, read the same way: same browser, test then account. */}
       {steps && !loading && data.quiz && (
         <div className="space-y-1">
-          <p className="text-[11px] uppercase tracking-widest text-white/40">PersonalitieZ test</p>
+          <p className="text-[11px] uppercase tracking-widest text-white/55">PersonalitieZ test</p>
           <Headline rows={[data.quiz]} />
         </div>
       )}
 
       {steps && !loading && (
         <div className="space-y-2">
-          <p className="text-[11px] text-white/35">
+          <p className="text-[11px] text-white/50">
             Last {data.days} days · percentages are unique visitors relative to{" "}
             <span className="text-white/55">{baseLabel}</span>
           </p>
@@ -470,7 +470,7 @@ export default function FunnelZ() {
             <div key={kind} className="re-card space-y-1.5">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-semibold text-white">{s.label}</span>
-                <span className="text-white/45">
+                <span className="text-white/60">
                   {s.unique.toLocaleString()} people · {s.events.toLocaleString()} events
                 </span>
               </div>
@@ -480,7 +480,7 @@ export default function FunnelZ() {
                   style={{ width: `${Math.max(2, (s.unique / maxUnique) * 100)}%` }}
                 />
               </div>
-              <p className="text-[11px] text-white/40">{s.pct_of_base}% of {baseLabel}</p>
+              <p className="text-[11px] text-white/55">{s.pct_of_base}% of {baseLabel}</p>
             </div>
           ))}
           {/* A step cannot have more people than the step it is reached
@@ -508,7 +508,7 @@ export default function FunnelZ() {
             );
           })}
           {Object.values(steps).every((s) => s.events === 0) && (
-            <p className="text-[11px] text-white/35">
+            <p className="text-[11px] text-white/50">
               Nothing logged yet in this window — either there's no traffic, or the frontend build
               carrying the tracking calls hasn't reached everyone yet.
             </p>

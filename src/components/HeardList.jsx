@@ -18,14 +18,14 @@ export default function HeardList({ result, labels }) {
               <li key={i} className="leading-relaxed">
                 {r.time && <span className="mr-1 font-mono text-white/70">{r.time}</span>}
                 {r.what}
-                {r.dim && <span className="ml-1 text-white/40">· {r.dim}</span>}
+                {r.dim && <span className="ml-1 text-white/55">· {r.dim}</span>}
                 {r.possible && <span className="ml-1 rounded bg-white/10 px-1 text-[10px] uppercase">possible</span>}
               </li>
             ))}
           </ul>
         </details>
       )}
-      {line && <p className="mt-1 text-white/40">{line}</p>}
+      {line && <p className="mt-1 text-white/55">{line}</p>}
     </div>
   );
 }

@@ -76,7 +76,7 @@ function Library({ onAdd, onClose }) {
                 <input type="checkbox" checked={pick.includes(r.key)} onChange={() => toggle(r.key)} />
                 {pick.includes(r.key) && <span className="rounded bg-mcz-cyan/30 px-1 tabular-nums">{pick.indexOf(r.key) + 1}</span>}
                 <span className="truncate">{r.name}</span>
-                <span className="ml-auto shrink-0 text-white/40">{r.kind} · {r.from}</span>
+                <span className="ml-auto shrink-0 text-white/55">{r.kind} · {r.from}</span>
               </label>
             </li>
           ))}
@@ -432,7 +432,7 @@ export default function VideoZ() {
       <Timeline project={project} t={t} zoom={zoom} selected={selected} snapOn={snapOn} length={length}
         onSelect={setSelected} onSeek={seek} onClipDrag={onClipDrag} onClipDone={settle} onTrack={onTrack} />
       <div className="flex flex-wrap gap-2 text-xs">
-        <span className="text-white/45">Upper video tracks play over lower ones. Overlap two clips on one track to crossfade. S splits at the playhead, Space plays.</span>
+        <span className="text-white/60">Upper video tracks play over lower ones. Overlap two clips on one track to crossfade. S splits at the playhead, Space plays.</span>
         {bottomVideo && clipsOn(project, bottomVideo).length > 1 && (
           <>
             <button className="re-link" onClick={() => commit((p) => orderByTaken(p, bottomVideo))}>Put {trackName(project, bottomVideo)} in the order they were taken</button>
@@ -495,7 +495,7 @@ export default function VideoZ() {
         )}
         {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
         {note && <p role="status" className="text-sm text-emerald-300">{note} <button className="re-link" onClick={() => setNote("")}>OK</button></p>}
-        <p className="text-[11px] text-white/40">Up to {clock(MAX_SECONDS)} per export. The editor is free at every tier. Tracks, filters and transitions: the first {count ?? "…"} on {tierName} (Premium 6, StatZ all); 2× export is Premium; lip-sync is StatZ.</p>
+        <p className="text-[11px] text-white/55">Up to {clock(MAX_SECONDS)} per export. The editor is free at every tier. Tracks, filters and transitions: the first {count ?? "…"} on {tierName} (Premium 6, StatZ all); 2× export is Premium; lip-sync is StatZ.</p>
       </div>
 
       {lib && <Library onAdd={addFromLibrary} onClose={() => setLib(false)} />}

@@ -78,9 +78,9 @@ export default function ShotDirector({ trackId, startAt, count, look, reference,
               {plan ? "Plan the shots again" : `Plan ${count} shots to fit the song`}
             </button>
             <span className="text-[11px] text-mcz-ember">{cost}</span>
-            <span className="text-[11px] text-white/45">— not charged if it fails. Rendering is priced below, per shot.</span>
+            <span className="text-[11px] text-white/60">— not charged if it fails. Rendering is priced below, per shot.</span>
           </div>
-          {!trackId && <p className="text-[11px] text-white/45">Pick your track first: the coach plans by listening to it.</p>}
+          {!trackId && <p className="text-[11px] text-white/60">Pick your track first: the coach plans by listening to it.</p>}
           <StatzSample what="Direct" />
         </>
       )}
@@ -108,7 +108,7 @@ export default function ShotDirector({ trackId, startAt, count, look, reference,
             <div key={sl.slot} className="space-y-1 rounded-lg border border-white/10 p-2">
               <p className="text-xs text-white/80">
                 <span className="font-mono text-mcz-cyan">Shot {sl.slot} · {sl.at}</span>
-                {sl.heard && <> — heard: {sl.heard}</>}{sl.mood && <span className="text-white/45"> · {sl.mood}</span>}
+                {sl.heard && <> — heard: {sl.heard}</>}{sl.mood && <span className="text-white/60"> · {sl.mood}</span>}
               </p>
               {sl.options.map((o, j) => (
                 <label key={j} className={`flex cursor-pointer items-start gap-2 rounded px-2 py-1 text-xs ${picked[i] === j ? "bg-white/10" : ""}`}>
@@ -116,7 +116,7 @@ export default function ShotDirector({ trackId, startAt, count, look, reference,
                     onChange={() => { setMode("develop"); apply(picked.map((p, k) => (k === i ? j : p))); }} />
                   <span>
                     <span className="text-white/85">{o.shot}</span>
-                    <span className="block text-white/45">Goes with {o.ties_label}{o.why ? ` — ${o.why}` : ""}</span>
+                    <span className="block text-white/60">Goes with {o.ties_label}{o.why ? ` — ${o.why}` : ""}</span>
                     {sl.pick === j && (
                       <span className="block text-mcz-gold">🎬 Coach's pick{sl.pick_why ? ` — ${sl.pick_why}` : ""}</span>
                     )}
@@ -125,7 +125,7 @@ export default function ShotDirector({ trackId, startAt, count, look, reference,
               ))}
             </div>
           ))}
-          <p className="text-[11px] text-white/45">The picks are in the shot fields below — change any of them before you make the video.</p>
+          <p className="text-[11px] text-white/60">The picks are in the shot fields below — change any of them before you make the video.</p>
         </div>
       )}
     </div>

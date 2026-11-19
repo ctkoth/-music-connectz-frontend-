@@ -125,7 +125,7 @@ export default function ConnectionZ({ connections, onChange }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         Sign-ins linked to this account
       </p>
 
@@ -174,7 +174,7 @@ export default function ConnectionZ({ connections, onChange }) {
               {c.blocked_reason ? (
                 <p className="pt-2 text-xs text-mcz-ember">{c.blocked_reason}</p>
               ) : (
-                <p className="pt-2 text-xs text-white/40">
+                <p className="pt-2 text-xs text-white/55">
                   You'll stop being able to sign in with {name(c.provider)}. Your
                   account, posts and balances are untouched, and you can link it
                   again any time.
@@ -191,7 +191,7 @@ export default function ConnectionZ({ connections, onChange }) {
           on the signup screen already follow. */}
       {cfg && linkable.length > 0 && (
         <div className="pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
             Add a sign-in
           </p>
           <div className="flex flex-wrap gap-2">
@@ -211,7 +211,7 @@ export default function ConnectionZ({ connections, onChange }) {
               </button>
             ))}
           </div>
-          <p className="pt-1.5 text-[11px] text-white/40">
+          <p className="pt-1.5 text-[11px] text-white/55">
             You'll be sent to the provider to authorize it, then straight back here.
           </p>
         </div>

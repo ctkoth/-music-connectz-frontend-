@@ -54,7 +54,7 @@ export default function KeepOnScreen({ session, on, onChange, onKept }) {
         {price?.cost && <span className="text-xs font-semibold text-mcz-ember">{price.cost}</span>}
         {price?.text && <span className="text-xs text-emerald-300">{price.text}</span>}
       </div>
-      {price && !blocked && <p className="text-[11px] text-white/45">{price.free} Open any app and a bar shows your rest and the next lift; the session keeps running.</p>}
+      {price && !blocked && <p className="text-[11px] text-white/60">{price.free} Open any app and a bar shows your rest and the next lift; the session keeps running.</p>}
       {blocked && <p className="text-[11px] text-amber-300/90">{blocked}</p>}
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
     </div>

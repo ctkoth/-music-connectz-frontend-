@@ -53,7 +53,7 @@ export default function DawZ() {
           another. Open the ones that are built; vote for which gets built next —
           a vote costs nothing and earns nothing.
         </p>
-        {state.plugin_note && <p className="mt-2 text-xs text-white/45">🔌 {state.plugin_note}</p>}
+        {state.plugin_note && <p className="mt-2 text-xs text-white/60">🔌 {state.plugin_note}</p>}
       </div>
 
       <div className="space-y-3">
@@ -79,7 +79,7 @@ export default function DawZ() {
                     not built yet
                   </span>
                 )}
-                <span className="text-[10px] text-white/35">our knockoff of {d.knockoff}</span>
+                <span className="text-[10px] text-white/50">our knockoff of {d.knockoff}</span>
               </div>
               <p className="mt-1 text-[13px] leading-snug text-white/65">{d.desc}</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -101,7 +101,7 @@ export default function DawZ() {
                   {d.my_vote ? "You voted ✓ (tap to undo)" : "Vote to build this"}
                 </button>}
                 {!d.built && (
-                  <span className="text-[11px] text-white/45">
+                  <span className="text-[11px] text-white/60">
                     {d.votes} vote{d.votes === 1 ? "" : "s"} so far
                   </span>
                 )}
@@ -110,7 +110,7 @@ export default function DawZ() {
           </div>
         ))}
         {!state.daws.length && (
-          <p className="p-6 text-center text-sm text-white/40">Couldn't load DawZ right now.</p>
+          <p className="p-6 text-center text-sm text-white/55">Couldn't load DawZ right now.</p>
         )}
       </div>
     </div>

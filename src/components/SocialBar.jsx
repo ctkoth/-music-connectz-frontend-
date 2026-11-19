@@ -57,7 +57,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
       <div className="flex flex-wrap items-center gap-2">
         {/* 1 · Karma — the up/down vote. Free. */}
         <span className="inline-flex items-center gap-1" aria-label="Karma">
-          <span className="text-white/45">Karma</span>
+          <span className="text-white/60">Karma</span>
           <button className={`${CHIP} ${d.my === 1 ? "bg-emerald-500/20 text-emerald-200" : "bg-white/5 text-white/70"}`}
                   onClick={() => act("react", { value: d.my === 1 ? 0 : 1 })} aria-label="Like"><ThumbsUp size={12} /> {d.up}</button>
           <button className={`${CHIP} ${d.my === -1 ? "bg-mcz-ember/20 text-mcz-ember" : "bg-white/5 text-white/70"}`}
@@ -82,7 +82,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
         {/* 3 · Comment — free or priced, said before it is pressed. */}
         <button className={`${CHIP} ${on("comment")}`} aria-label="Comment" onClick={() => toggle("comment")}>
           <MessageSquare size={12} /> {d.comments.length}
-          {price.kind === "cost" ? <span className="text-mcz-ember">−{price.cost} {ENERGY}</span> : <span className="text-white/40">{price.text}</span>}
+          {price.kind === "cost" ? <span className="text-mcz-ember">−{price.cost} {ENERGY}</span> : <span className="text-white/55">{price.text}</span>}
         </button>
         {/* 4 · Share as a link — free. */}
         <button className={`${CHIP} ${on("share")}`} disabled={!!off("share")} title={off("share")} aria-label="Share" onClick={() => toggle("share")}>
@@ -106,7 +106,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
             ))}
             <span className="text-emerald-300">Free</span>
           </div>
-          <p className="text-white/40">How it made you feel. One mood each; press yours again to clear it. It pays nothing and never changes a rating.</p>
+          <p className="text-white/55">How it made you feel. One mood each; press yours again to clear it. It pays nothing and never changes a rating.</p>
         </div>
       )}
 
@@ -140,7 +140,7 @@ export default function SocialBar({ item, canRate = true, compact = false }) {
                    value={body} onChange={(e) => setBody(e.target.value)} />
             <button className="neon-btn-ghost !w-auto px-2 py-1 text-xs" disabled={!body.trim()}
                     onClick={async () => { if (await act("comment", { body: body.trim() })) setBody(""); }}>Comment</button>
-            <span className={price.kind === "cost" ? "text-mcz-ember" : "text-white/40"}>
+            <span className={price.kind === "cost" ? "text-mcz-ember" : "text-white/55"}>
               {price.kind === "cost" ? `−${price.cost} ${ENERGY}` : price.text}
             </span>
           </div>

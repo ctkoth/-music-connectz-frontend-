@@ -117,7 +117,7 @@ export default function BudgetZ() {
             {!!d.banks.length && <button className="pill" disabled={busy} onClick={sync}>Import new</button>}
           </div>
         )}
-        {!!d.banks.length && <p className="text-[11px] text-white/40">A bank line you delete comes back on the next import.</p>}
+        {!!d.banks.length && <p className="text-[11px] text-white/55">A bank line you delete comes back on the next import.</p>}
       </div>
 
       <div className="space-y-1">
@@ -126,11 +126,11 @@ export default function BudgetZ() {
             <span className="text-white/70">{l.on.slice(5)} · {l.category}{l.note ? ` · ${l.note}` : ""}{l.source === "bank" ? " 🏦" : ""}</span>
             <span className="flex items-center gap-2">
               <span className={l.kind === "income" ? "text-emerald-300" : "text-mcz-ember"}>{l.kind === "income" ? "+" : "−"}{usd(l.amount_cents)}</span>
-              <button type="button" aria-label="Delete" onClick={() => del(l.id)}><Trash2 size={13} className="text-white/40" /></button>
+              <button type="button" aria-label="Delete" onClick={() => del(l.id)}><Trash2 size={13} className="text-white/55" /></button>
             </span>
           </div>
         ))}
-        {!d.lines.length && <p className="text-[12px] text-white/40">Nothing this month yet.</p>}
+        {!d.lines.length && <p className="text-[12px] text-white/55">Nothing this month yet.</p>}
       </div>
     </div>
   );

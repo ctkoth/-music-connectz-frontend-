@@ -54,7 +54,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
 
   return (
     <div className="mt-3 rounded-xl border border-white/[0.06] bg-black/20 p-3">
-      <p className="text-[11px] uppercase tracking-widest text-white/45">
+      <p className="text-[11px] uppercase tracking-widest text-white/60">
         Read off this take
       </p>
 
@@ -69,7 +69,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
               {acc}%
             </span>
           </div>
-          <p className="mt-1 text-[11px] text-white/40">
+          <p className="mt-1 text-[11px] text-white/55">
             of the notes you actually sang landed within 5 cents. Silence isn't counted.
           </p>
         </div>
@@ -77,7 +77,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
 
       {weak.length > 0 && (
         <div className="mt-3">
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             Consistently out of tune — drilling one is free.
           </p>
           <div className="mt-1.5 space-y-1.5">
@@ -85,7 +85,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
               <div key={n.note}
                    className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-white/[0.03] px-2.5 py-1.5">
                 <span className="text-[13px] font-bold text-mcz-cyan">{n.note}</span>
-                <span className="text-[11px] text-white/40">
+                <span className="text-[11px] text-white/55">
                   {n.cents_off > 0 ? "sharp" : "flat"} by {Math.abs(n.cents_off)} cents
                 </span>
                 <button onClick={() => goDrill(n)}
@@ -99,7 +99,7 @@ export default function TakeAnalysisDisplay({ uploadId, mine }) {
       )}
 
       {(rushing > 0 || dragging > 0) && (
-        <p className="mt-2 text-[11px] text-white/45">
+        <p className="mt-2 text-[11px] text-white/60">
           Timing · {rushing > 0 && <>{rushing} rushed</>}
           {rushing > 0 && dragging > 0 && " · "}
           {dragging > 0 && <>{dragging} dragged</>}

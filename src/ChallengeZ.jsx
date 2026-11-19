@@ -86,7 +86,7 @@ export function ChallengeButton({ post, onSent }) {
             <button type="button" className="neon-btn-primary !w-auto px-4 py-2 text-xs" onClick={send} disabled={busy}>
               {busy ? <Loader2 className="animate-spin" size={14} /> : <Swords size={14} />} Send challenge {cost ? <Cost n={cost} /> : null}
             </button>
-            <span className="text-white/45">Refunded if they decline. Free if their filters turn it away.</span>
+            <span className="text-white/60">Refunded if they decline. Free if their filters turn it away.</span>
           </div>
         </div>
       )}
@@ -132,14 +132,14 @@ function Filters({ filters, onSaved }) {
       <input className="neon-input !py-2 text-xs" placeholder="Muted usernames, comma separated"
         value={f.mutedText} onChange={(e) => setF({ ...f, mutedText: e.target.value })} />
       {/* Auto-accept is an automation, and automations are StatZ's (the server decides: auto_accept_allowed). */}
-      <label className={`flex items-start gap-2 text-xs ${f.auto_accept_allowed === false ? "text-white/40" : "text-white/80"}`} data-tour="challengez-filters">
+      <label className={`flex items-start gap-2 text-xs ${f.auto_accept_allowed === false ? "text-white/55" : "text-white/80"}`} data-tour="challengez-filters">
         <input type="checkbox" className="mt-0.5" checked={!!f.auto_accept} disabled={f.auto_accept_allowed === false && !f.auto_accept}
                onChange={(e) => setF({ ...f, auto_accept: e.target.checked })} />
         <span>Auto-accept anything that clears these filters — it opens straight away, and accepting costs you nothing.
           {f.auto_accept_allowed === false && f.auto_accept && " It's switched on but resting: it works again on StatZ."}</span>
       </label>
       {f.auto_accept_allowed === false && <StatzSample what="Auto-accept" />}
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         A challenge outside your filters never reaches you, and the challenger is told before they are charged.
       </p>
       <div className="flex items-center gap-3">
@@ -224,7 +224,7 @@ export default function ChallengeZ({ onOpen }) {
       {err && <p className="text-xs text-mcz-gold">{err}</p>}
       {showFilters && <Filters filters={d.filters} onSaved={(filters) => setD({ ...d, filters })} />}
       {rows.length === 0
-        ? <p className="text-xs text-white/45">{tab === "incoming" ? "Nobody is waiting on you." : "You have no live challenges out."}</p>
+        ? <p className="text-xs text-white/60">{tab === "incoming" ? "Nobody is waiting on you." : "You have no live challenges out."}</p>
         : rows.map((c) => <Row key={c.id} c={c} mode={tab} onAnswer={answer} onOpen={onOpen} />)}
     </section>
   );

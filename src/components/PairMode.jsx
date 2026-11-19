@@ -36,14 +36,14 @@ export default function PairMode({ value, onChange, disabled = false, className 
           </button>
         ))}
       </div>
-      {chosen && <p className="text-[11px] text-white/50">{chosen.what} <span className="text-white/35">e.g. {chosen.example}</span></p>}
+      {chosen && <p className="text-[11px] text-white/50">{chosen.what} <span className="text-white/50">e.g. {chosen.example}</span></p>}
       {!allowed && (
         <div className="space-y-1">
           <StatzSample what="Planner supersets" />
-          <p className="text-[11px] text-white/45">{offer.manual} Use the link control on a lift's row.</p>
+          <p className="text-[11px] text-white/60">{offer.manual} Use the link control on a lift's row.</p>
         </div>
       )}
-      {allowed && <p className="text-[11px] text-white/35">Free · the Planner adds a partner only where a lift has none, and says which.</p>}
+      {allowed && <p className="text-[11px] text-white/50">Free · the Planner adds a partner only where a lift has none, and says which.</p>}
     </div>
   );
 }

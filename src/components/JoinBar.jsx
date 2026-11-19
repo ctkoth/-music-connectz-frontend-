@@ -38,7 +38,7 @@ export default function JoinBar() {
             <button type="button" className="text-xs text-white/50 underline" onClick={() => navigate("/register")}>Or sign up with email</button>
           </div>
         )}
-        <button type="button" aria-label="Close" className="shrink-0 text-white/40 hover:text-white" onClick={close}><X size={16} /></button>
+        <button type="button" aria-label="Close" className="shrink-0 text-white/55 hover:text-white" onClick={close}><X size={16} /></button>
       </div>
     </div>
     </>

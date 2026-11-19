@@ -110,7 +110,7 @@ export default function SoundCloudEngagement() {
         <div className="mb-4 grid grid-cols-3 gap-2">
           {["like", "repost", "comment"].map((k) => (
             <div key={k} className="rounded bg-white/[0.03] p-2 text-center">
-              <p className="text-[11px] uppercase tracking-widest text-white/40">
+              <p className="text-[11px] uppercase tracking-widest text-white/55">
                 {k === "like"
                   ? "👍"
                   : k === "repost"
@@ -204,7 +204,7 @@ export default function SoundCloudEngagement() {
 
         {/* Reward display */}
         <div className="mt-3 rounded bg-white/[0.03] p-2">
-          <p className="text-[11px] uppercase tracking-widest text-white/40 mb-1">
+          <p className="text-[11px] uppercase tracking-widest text-white/55 mb-1">
             Rewards for {kind}
           </p>
           <div className="flex gap-2 text-sm font-bold">
@@ -221,7 +221,7 @@ export default function SoundCloudEngagement() {
       {/* Recent Engagements */}
       {state.recent_engagements?.length > 0 && (
         <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-          <p className="text-xs uppercase tracking-widest text-white/40 mb-2">
+          <p className="text-xs uppercase tracking-widest text-white/55 mb-2">
             Recent Engagements
           </p>
           <div className="space-y-1 max-h-40 overflow-y-auto">

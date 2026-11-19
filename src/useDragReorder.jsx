@@ -60,7 +60,7 @@ export function useDragReorder(name, onMove, canDrop = () => true) {
 export function DragGrip({ label = "Drag to reorder", size = 15, ...props }) {
   return (
     <button type="button" aria-label={label} title={label}
-            className="shrink-0 cursor-grab touch-none select-none rounded p-1 text-white/35 hover:text-white active:cursor-grabbing"
+            className="shrink-0 cursor-grab touch-none select-none rounded p-1 text-white/50 hover:text-white active:cursor-grabbing"
             {...props}>
       <GripVertical size={size} />
     </button>

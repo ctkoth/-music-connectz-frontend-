@@ -250,7 +250,7 @@ export default function InstrumentalConnectZ() {
           aria-label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} />
 
         <div>
-          <p className="mb-2 text-sm text-white/70">Instruments <span className="text-white/40">(up to {s?.max_tracks ?? 6})</span></p>
+          <p className="mb-2 text-sm text-white/70">Instruments <span className="text-white/55">(up to {s?.max_tracks ?? 6})</span></p>
           <div className="flex flex-wrap gap-2">
             {(s?.instruments || []).map((i) => (
               <button key={i.id} onClick={() => toggle(i.id)} aria-pressed={picked.includes(i.id)}
@@ -287,7 +287,7 @@ export default function InstrumentalConnectZ() {
             mood is the StatZ convenience on top, below. */}
         {s?.keys?.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[11px] text-white/45">Every key and its mood — tap one to pick it.</p>
+            <p className="text-[11px] text-white/60">Every key and its mood — tap one to pick it.</p>
             <ul className="max-h-60 space-y-0.5 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-1">
               {s.keys.map((k) => (
                 <li key={k.key}>
@@ -329,7 +329,7 @@ export default function InstrumentalConnectZ() {
         {IN_SHELL ? (
           // CharLimit's upgrade link goes to MembershipZ, which a shell does not have.
           cl.ready && !cl.unlimited && (
-            <p className={`text-[11px] ${cl.state(brief) === "ok" ? "text-white/35" : cl.state(brief) === "near" ? "text-mcz-gold" : "text-mcz-ember"}`}>
+            <p className={`text-[11px] ${cl.state(brief) === "ok" ? "text-white/50" : cl.state(brief) === "near" ? "text-mcz-gold" : "text-mcz-ember"}`}>
               {brief.length.toLocaleString()} / {cl.limit.toLocaleString()}{cl.state(brief) === "full" && " · limit reached"}
             </p>
           )
@@ -346,7 +346,7 @@ export default function InstrumentalConnectZ() {
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Music size={16} />} Compose it
           </button>
           <RunPrice s={s} noun="compositions" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
-          <span className="text-[11px] text-white/40">
+          <span className="text-[11px] text-white/55">
             An answer with no usable loop isn't charged. If only some of the parts you asked for come back, it says which are missing and whether that run was charged.
           </span>
           <RunClock running={busy} budgetSeconds={budgetOf(s)} what="Composing" />
@@ -377,7 +377,7 @@ export default function InstrumentalConnectZ() {
               Open in Arsenal <span className="text-emerald-300">free</span></button>}
           </div>
           {toDaw && <p className="text-xs text-white/60">{toDaw}</p>}
-          <p className="text-[11px] text-white/40">The preview uses simple built-in sounds. Load the .mid into your DAW for the real instruments.</p>
+          <p className="text-[11px] text-white/55">The preview uses simple built-in sounds. Load the .mid into your DAW for the real instruments.</p>
           {!IN_SHELL && pct != null && <UseIn source="instrumental" sourceId={work.id} pct={pct} />}
         </div>
       )}
@@ -388,7 +388,7 @@ export default function InstrumentalConnectZ() {
           {s.works.map((w) => (
             <button key={w.id} onClick={() => { stop(); setWork(w); }}
               className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
-              {w.genre ? genreLabel(w.genre) : "Instrumental"} <span className="text-white/45">— {w.key}, {w.bpm} BPM</span>
+              {w.genre ? genreLabel(w.genre) : "Instrumental"} <span className="text-white/60">— {w.key}, {w.bpm} BPM</span>
             </button>
           ))}
         </div>

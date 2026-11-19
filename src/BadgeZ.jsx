@@ -74,7 +74,7 @@ export default function BadgeZ({ username, onWear }) {
       {msg && <p className="rounded-lg bg-white/5 px-3 py-2 text-xs text-mcz-gold">{msg}</p>}
 
       {held.length === 0 ? (
-        <p className="text-[12px] text-white/40">
+        <p className="text-[12px] text-white/55">
           None yet. Everything below is earned from what you actually do.
         </p>
       ) : (
@@ -85,7 +85,7 @@ export default function BadgeZ({ username, onWear }) {
               <div className="min-w-0 flex-1">
                 <p className="text-[13px] font-semibold text-white/85">
                   {b.name}
-                  {b.gifted && <span className="ml-2 text-[10px] text-white/35">gifted</span>}
+                  {b.gifted && <span className="ml-2 text-[10px] text-white/50">gifted</span>}
                   {/* A badge that can lapse says so. Losing one you thought
                       was permanent is a worse surprise than knowing it tracks
                       a live number. */}
@@ -93,7 +93,7 @@ export default function BadgeZ({ username, onWear }) {
                     <span className="ml-2 text-[10px] text-mcz-gold">while you hold it</span>
                   )}
                 </p>
-                <p className="text-[11px] leading-relaxed text-white/45">{b.desc}</p>
+                <p className="text-[11px] leading-relaxed text-white/60">{b.desc}</p>
                 {/* How it was earned and what it does, labelled, on the page. */}
                 {b.how && <p className="mt-1 text-[11px] text-white/55"><b className="text-white/70">Earned:</b> {b.how}</p>}
                 <p className="mt-0.5 text-[11px] text-emerald-300"><b>Does:</b> {b.effect_note}</p>
@@ -113,7 +113,7 @@ export default function BadgeZ({ username, onWear }) {
 
       {data.mine && asList(data.titles).length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[10px] uppercase tracking-widest text-white/35">Title you wear</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/50">Title you wear</p>
           <div className="flex flex-wrap gap-1.5">
             {asList(data.titles).map((t) => (
               <button key={t} disabled={busy}
@@ -123,7 +123,7 @@ export default function BadgeZ({ username, onWear }) {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             Only badges you hold and show can be worn. Hiding one takes its title
             down too.
           </p>
@@ -132,7 +132,7 @@ export default function BadgeZ({ username, onWear }) {
 
       {data.mine && locked.length > 0 && (
         <div className="space-y-1.5 border-t border-white/[0.08] pt-3">
-          <p className="text-[10px] uppercase tracking-widest text-white/35">
+          <p className="text-[10px] uppercase tracking-widest text-white/50">
             Not yours yet
           </p>
           <ul className="space-y-1.5">
@@ -141,11 +141,11 @@ export default function BadgeZ({ username, onWear }) {
                 <Medal badge={c} className="h-9 w-9" />
                 <span className="min-w-0">
                   <span className="text-white/70">{c.name}</span>
-                  {c.gifted && <span className="ml-1 text-[10px] text-white/35">gifted</span>}
+                  {c.gifted && <span className="ml-1 text-[10px] text-white/50">gifted</span>}
                   {/* A penalty is listed so its rule is public, not as something to chase. */}
                   {c.penalty && <span className="ml-1 text-[10px] text-mcz-ember">penalty</span>}
-                  {c.desc && <span className="block leading-relaxed text-white/45">{c.desc}</span>}
-                  <span className="block leading-relaxed text-white/40"><b className="text-white/55">{c.penalty ? "Applies when:" : "Earned:"}</b> {c.how}</span>
+                  {c.desc && <span className="block leading-relaxed text-white/60">{c.desc}</span>}
+                  <span className="block leading-relaxed text-white/55"><b className="text-white/55">{c.penalty ? "Applies when:" : "Earned:"}</b> {c.how}</span>
                   <span className={`block ${c.penalty ? "text-mcz-ember/80" : "text-emerald-300/70"}`}><b>Does:</b> {c.effect_note}</span>
                 </span>
               </li>

@@ -33,7 +33,7 @@ const STATUS_TONE = {
   playable: "text-emerald-300",
   building: "text-mcz-cyan",
   failed: "text-mcz-ember",
-  draft: "text-white/45",
+  draft: "text-white/60",
 };
 
 export default function GameZ() {
@@ -183,7 +183,7 @@ export default function GameZ() {
         <p className="text-[13px] text-white/75">
           {data.storage_used_mb} / {data.storage_mb} MB used
         </p>
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Game assets count against the same storage your tier already gives
           you — there's no second quota to keep track of.
         </p>
@@ -208,14 +208,14 @@ export default function GameZ() {
               <li key={g.id} className="re-card space-y-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-display text-sm font-extrabold">{g.title}</span>
-                  <span className={`text-[11px] ${STATUS_TONE[g.status] || "text-white/45"}`}>
+                  <span className={`text-[11px] ${STATUS_TONE[g.status] || "text-white/60"}`}>
                     {g.status}{g.plays ? ` · ${g.plays} plays` : ""}
                   </span>
                 </div>
                 {g.description && (
                   <p className="text-[12px] text-white/55"><MentionText text={g.description} /></p>
                 )}
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-white/50">
                   {g.files} file{g.files === 1 ? "" : "s"}
                   {g.bundle_mb ? ` · ${g.bundle_mb} MB built` : ""}
                   {g.genre ? ` · ${g.genre}` : ""}
@@ -255,7 +255,7 @@ export default function GameZ() {
                     </button>
                   )}
                   {q?.cost?.per_second > 0 && q.billing_note && (
-                    <span className="basis-full text-[11px] text-white/40">{q.billing_note}</span>
+                    <span className="basis-full text-[11px] text-white/55">{q.billing_note}</span>
                   )}
                   <label className="re-btn re-btn-emerald !w-auto cursor-pointer px-4">
                     <Upload size={15} /> Add asset
@@ -277,7 +277,7 @@ export default function GameZ() {
                   // The rate, the balance and the two caveats, before the
                   // button is pressed — the price here is per second, so a
                   // single number would have been a guess.
-                  <p className="text-[11px] leading-relaxed text-white/45">
+                  <p className="text-[11px] leading-relaxed text-white/60">
                     {q.cost?.per_second} {ENERGY} per second of build time. You have{" "}
                     <b className="text-white/70">{q.energy} {ENERGY}</b>. {q.billing_note}
                     {!q.allowed && q.reason ? ` — ${q.reason}` : ""}

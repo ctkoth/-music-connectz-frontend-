@@ -89,10 +89,10 @@ export default function Timeline({ project, t, zoom, selected, snapOn, onSelect,
       <div style={{ width: HEAD + width }} className="relative">
         {/* Ruler */}
         <div className="sticky top-0 z-20 flex h-6 border-b border-white/10 bg-black/70">
-          <div style={{ width: HEAD }} className="sticky left-0 z-30 shrink-0 bg-black/90 px-2 text-[10px] leading-6 text-white/40">Tracks</div>
+          <div style={{ width: HEAD }} className="sticky left-0 z-30 shrink-0 bg-black/90 px-2 text-[10px] leading-6 text-white/55">Tracks</div>
           <div className="relative cursor-pointer" style={{ width }} onPointerDown={scrub}>
             {Array.from({ length: Math.ceil(span / step) + 1 }, (_, i) => i * step).map((s) => (
-              <span key={s} className="absolute top-0 h-full border-l border-white/15 pl-1 text-[10px] text-white/45" style={{ left: s * zoom }}>{label(s)}</span>
+              <span key={s} className="absolute top-0 h-full border-l border-white/15 pl-1 text-[10px] text-white/60" style={{ left: s * zoom }}>{label(s)}</span>
             ))}
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function Timeline({ project, t, zoom, selected, snapOn, onSelect,
                     onChange={(e) => onTrack("set", tk.id, { level: Number(e.target.value) })} />
                   <button title="Move up" disabled={idx === 0} onClick={() => onTrack("move", tk.id, -1)} className="text-white/50 disabled:opacity-20"><ArrowUp size={10} /></button>
                   <button title="Move down" disabled={idx === same.length - 1} onClick={() => onTrack("move", tk.id, 1)} className="text-white/50 disabled:opacity-20"><ArrowDown size={10} /></button>
-                  <button title="Remove track" disabled={isVideo && videoCount <= 1} onClick={() => onTrack("remove", tk.id)} className="text-white/40 hover:text-mcz-ember disabled:opacity-20"><Trash2 size={10} /></button>
+                  <button title="Remove track" disabled={isVideo && videoCount <= 1} onClick={() => onTrack("remove", tk.id)} className="text-white/55 hover:text-mcz-ember disabled:opacity-20"><Trash2 size={10} /></button>
                 </div>
               </div>
               <div data-lane={tk.id} className="relative" style={{ width }} onPointerDown={scrub}>

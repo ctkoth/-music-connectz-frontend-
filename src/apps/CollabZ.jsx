@@ -139,7 +139,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
             </span>
           )}
           {canEdit && !editing && (
-            <button className="text-white/40 hover:text-white" onClick={startEdit} title="Fix a typo in the title, brief or worth">
+            <button className="text-white/55 hover:text-white" onClick={startEdit} title="Fix a typo in the title, brief or worth">
               Edit
             </button>
           )}
@@ -163,7 +163,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
             <button className="neon-btn-primary !w-auto px-3 py-1.5 text-xs" onClick={saveEdit} disabled={busy}>Save</button>
             <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" onClick={() => setEditing(false)}>Cancel</button>
           </div>
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             This stays editable only until someone else accepts the deal or funds their share — once they have, the numbers are theirs too and this door closes.
           </p>
         </div>
@@ -181,7 +181,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
             <span className="block truncate text-[12px] text-white/80">
               From “{deal.source_post.title}”
             </span>
-            <span className="block text-[10px] text-white/35">@{deal.source_post.author} · in PostZ</span>
+            <span className="block text-[10px] text-white/50">@{deal.source_post.author} · in PostZ</span>
           </span>
           <ArrowRight size={12} className="shrink-0 text-white/25" />
         </button>
@@ -199,7 +199,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
           {deal.image_url && <img src={deal.image_url} alt="" className="w-full rounded-lg" />}
           {deal.lyrics && (
             <details>
-              <summary className="cursor-pointer text-[11px] text-white/45">Lyrics / script</summary>
+              <summary className="cursor-pointer text-[11px] text-white/60">Lyrics / script</summary>
               <p className="mt-1 whitespace-pre-wrap text-[12px] text-white/70">{deal.lyrics}</p>
             </details>
           )}
@@ -211,7 +211,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-mcz-gold">
             <Scale size={12} /> Split by contribution rating
           </p>
-          <p className="mt-1 text-[10px] leading-relaxed text-white/45">
+          <p className="mt-1 text-[10px] leading-relaxed text-white/60">
             At release the pot is re-cut by what people outside the deal judged each person
             contributed. It needs {deal.rating_min_raters} raters — under that it pays the agreed
             worth instead. Nobody on the deal can rate it.
@@ -226,7 +226,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
       {deal.i_am_participant && <CollabFiles dealId={deal.id} onFlash={onFlash} />}
 
       {deal.i_am_participant && (deal.media_url || deal.image_url) && (
-        <button className="flex items-center gap-1.5 text-[11px] text-white/45 hover:text-mcz-cyan"
+        <button className="flex items-center gap-1.5 text-[11px] text-white/60 hover:text-mcz-cyan"
                 onClick={() => onDistribute(deal.id)}
                 title="Fill a release from this deal — the master, cover and lyrics are already here">
           <Disc3 size={12} /> Distribute this
@@ -488,7 +488,7 @@ export default function CollabZ() {
       {deals === null ? (
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       ) : deals.length === 0 ? (
-        <p className="text-sm text-white/45">
+        <p className="text-sm text-white/60">
           No deals yet. Start one below — or open a track in PostZ and take it straight here.
         </p>
       ) : (
@@ -503,7 +503,7 @@ export default function CollabZ() {
 
       <div className="neon-frame space-y-3 p-5">
         <h3 className="font-semibold">Start a deal</h3>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Each side names what their contribution is worth. Everyone pays an equal share of everyone
           else's worth, and the total is held until it's released — nobody hands money to a stranger
           on trust.
@@ -517,7 +517,7 @@ export default function CollabZ() {
             <option value="spinaz">SpinaZ {SPINAZ}</option>
           </select>
 <UsualHint field="collabz.currency" value={form.currency} onUse={(v) => { remember("collabz.currency", v); setForm({ ...form, currency: v }); }} />
-          <p className="text-[11px] text-white/45 sm:col-span-2">
+          <p className="text-[11px] text-white/60 sm:col-span-2">
             {form.currency === "spinaz"
               ? `Each payer's share is held in escrow in ${SPINAZ} SpinaZ, not cash. (Escrow: money held by the platform until the work is delivered and released.)`
               : `Each payer's share is held in escrow in real cash ${MONEY} from their balance.`}
@@ -535,7 +535,7 @@ export default function CollabZ() {
 
         {/* The work, in the same format PostZ uses. */}
         <MediaFields value={work} onChange={setWork} label="The work" />
-        {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
+        {storage && <p className="text-[10px] text-white/50">{storageNote(storage)}</p>}
 
         {/* Who can be on it — the same five ranges search and BattleZ use. */}
         <RangeGates value={gates} onChange={setGates} title="Who can be on this deal" />
@@ -560,7 +560,7 @@ export default function CollabZ() {
             <span className="ml-1 text-mcz-ember">−{cost.cost.amount} {ENERGY}</span>
           )}
         </button>
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           {/* This used to read "Drafting costs nothing" flatly, and naming a
               skill now makes that false. The money half is unchanged — ⚡ is
               what starting it costs you, escrow is still untouched until you

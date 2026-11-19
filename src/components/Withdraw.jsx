@@ -86,7 +86,7 @@ export default function Withdraw() {
       <div className="re-card space-y-3">
         <p className="text-[13px] text-white/70">
           Spendable balance <b className="text-white">{usd(q.balance_cents)} {MONEY}</b>
-          <span className="text-white/40"> · withdrawals {usd(q.min_cents)}–{usd(q.max_cents)}</span>
+          <span className="text-white/55"> · withdrawals {usd(q.min_cents)}–{usd(q.max_cents)}</span>
         </p>
 
         {!q.connected ? (
@@ -103,7 +103,7 @@ export default function Withdraw() {
             </button>
           </div>
         ) : null}
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Your bank details go to the payout provider, never to Music ConnectZ.
         </p>
 
@@ -114,7 +114,7 @@ export default function Withdraw() {
               <input value={amount} inputMode="decimal" placeholder={(q.balance_cents / 100).toFixed(2)}
                      onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                      className="w-28 rounded-lg border border-white/15 bg-white/5 px-2 py-1 text-white" />
-              <span className="text-white/35">blank = everything</span>
+              <span className="text-white/50">blank = everything</span>
             </label>
             <p className="flex flex-wrap items-center gap-3 text-[13px] font-bold">
               <span className="text-mcz-ember">−{usd(cents)} {MONEY}</span>
@@ -124,7 +124,7 @@ export default function Withdraw() {
             <button className="re-btn re-btn-emerald !w-auto px-4" disabled={!!busy || !q.can_withdraw || !inRange} onClick={withdraw}>
               {busy === "send" ? <Loader2 size={14} className="animate-spin" /> : <Banknote size={14} />} Withdraw {usd(cents - fee)}
             </button>
-            <p className="text-[11px] text-white/40">If the transfer is refused, the full amount comes straight back to your balance.</p>
+            <p className="text-[11px] text-white/55">If the transfer is refused, the full amount comes straight back to your balance.</p>
           </div>
         )}
 
@@ -145,7 +145,7 @@ export default function Withdraw() {
               <li key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
                 <span className="min-w-0 text-[12px]">
                   <span className={`block ${cls}`}>{label}</span>
-                  <span className="block text-[10px] text-white/35">
+                  <span className="block text-[10px] text-white/50">
                     {new Date(p.created_at).toLocaleDateString()}{p.failure_reason ? ` · ${p.failure_reason}` : ""}
                   </span>
                 </span>

@@ -72,7 +72,7 @@ export default function CopyLink({ username, className = "", label = "" }) {
         title={`Copy ${url}`}
         aria-label={`Copy link to @${username}`}
         data-tour="copy-profile-link"
-        className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] text-white/60 transition-colors hover:bg-white/10 hover:text-white"
       >
         {state === "done" ? <Check size={12} className="text-emerald-300" /> : <Copy size={12} />}
         <span>{state === "done" ? "Copied" : (label || "Copy link")}</span>

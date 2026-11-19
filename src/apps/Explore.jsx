@@ -47,7 +47,7 @@ export default function Explore() {
           <li key={p.id}>
             <Link to={p.open} className="block h-full rounded-xl border border-white/10 bg-white/[0.03] p-3 hover:border-mcz-cyan/50">
               <p className="font-semibold text-white">{KIND[p.media_type] || "📝"} {p.title || "Untitled"}</p>
-              <p className="text-[11px] text-white/45">@{p.author}{p.genre ? ` · ${p.genre}` : ""} · {new Date(p.created_at).toLocaleDateString()}</p>
+              <p className="text-[11px] text-white/60">@{p.author}{p.genre ? ` · ${p.genre}` : ""} · {new Date(p.created_at).toLocaleDateString()}</p>
               {p.snippet && <p className="mt-1 text-[12px] text-white/65" data-ugc="true">{p.snippet}</p>}
             </Link>
           </li>

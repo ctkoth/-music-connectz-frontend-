@@ -103,7 +103,7 @@ export default function MerchZ() {
               : <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-white/5"><ShoppingBag className="text-white/30" /></div>}
             <p className="font-semibold">{it.title}</p>
             {it.description && <p className="text-xs text-white/60">{it.description}</p>}
-            <p className="text-[11px] text-white/45">{CATS.find(([k]) => k === it.category)?.[1] || it.category} · {it.sold} sold</p>
+            <p className="text-[11px] text-white/60">{CATS.find(([k]) => k === it.category)?.[1] || it.category} · {it.sold} sold</p>
             <MemberName username={it.seller} />
             {it.mine && it.image_url && <Doors item={{ title: it.title, url: it.image_url, kind: "image", text: it.description || "" }} />}
             {it.mine ? (
@@ -116,7 +116,7 @@ export default function MerchZ() {
               </button>
             )}
             {!it.mine && !it.bought && money != null && money < it.price_cents && (
-              <p className="text-[11px] text-white/45">Your balance is {usd(money)} — top up in your wallet first.</p>
+              <p className="text-[11px] text-white/60">Your balance is {usd(money)} — top up in your wallet first.</p>
             )}
           </div>
         ))}
@@ -186,7 +186,7 @@ function MySales() {
         {sales.map((s) => (
           <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
             <div>
-              <p className="font-medium">{s.item_title} <span className="text-xs text-white/45">to @{s.buyer}</span></p>
+              <p className="font-medium">{s.item_title} <span className="text-xs text-white/60">to @{s.buyer}</span></p>
               <p className="text-xs text-white/55">
                 {s.refunded ? (
                   <span className="text-mcz-ember">Refunded{s.refund_reason ? ` — ${s.refund_reason}` : ""}</span>

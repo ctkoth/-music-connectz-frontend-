@@ -834,7 +834,7 @@ function SoundToggle() {
         if (next) playSoundPreview();
       }}
       className={`rounded-lg p-1.5 transition hover:bg-white/10 ${
-        on ? "text-mcz-cyan" : "text-white/40"}`}
+        on ? "text-mcz-cyan" : "text-white/55"}`}
       title={on ? "SoundZ on — resource changes make a sound" : "SoundZ off — turn sounds on"}
       aria-pressed={on}
     >
@@ -1337,7 +1337,7 @@ function Home() {
               <span className="block truncate text-[11px] font-semibold text-white/70">
                 {active?.label} <span className="text-white/30">ⓘ</span>
               </span>
-              <span className="block truncate text-[9px] text-white/35">{today}</span>
+              <span className="block truncate text-[9px] text-white/50">{today}</span>
             </span>
           </button>
 
@@ -1363,7 +1363,7 @@ function Home() {
 
       {/* pb leaves room for the fixed PickConnectZ dock */}
       <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
-        <p className="mb-4 text-xs text-white/45">
+        <p className="mb-4 text-xs text-white/60">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
         <DesktopSiteHint />
@@ -1392,7 +1392,7 @@ function Home() {
                     </span>
                     <span className="flex items-center gap-1">
                       <button onClick={() => openTab(k)} className="rounded px-1.5 text-[10px] text-white/50 hover:bg-white/10 hover:text-white" title="Open full size">⤢</button>
-                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
+                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/55 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
                     </span>
                   </div>
                   {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
@@ -1435,7 +1435,7 @@ function Home() {
                   SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
                 </span>
                 <button onClick={() => setSplitKey(null)}
-                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+                        className="rounded p-1 text-white/55 hover:bg-white/10 hover:text-white"
                         aria-label="Close SplitZ">
                   <X size={13} />
                 </button>
@@ -1510,14 +1510,14 @@ function Home() {
                           {a.name}
                         </button>
                       ) : (
-                        <span className={a.built ? "text-white/80" : "text-white/40"}>
+                        <span className={a.built ? "text-white/80" : "text-white/55"}>
                           {a.name}
                         </span>
                       )}
                       {!a.built && (
                         <span className="ml-1 text-[10px] text-mcz-gold">not built yet</span>
                       )}
-                      <span className="block text-[11px] leading-relaxed text-white/40">
+                      <span className="block text-[11px] leading-relaxed text-white/55">
                         {a.desc}
                       </span>
                     </span>
@@ -1644,7 +1644,7 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
       </header>
       <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{heading || title}</h1>
       <p className="mb-4 text-sm text-white/55">{blurb ? `${blurb} ` : ""}Free, no account, nothing to install.</p>
-      <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
+      <Suspense fallback={<div className="py-16 text-center text-white/55">Loading…</div>}>{el}</Suspense>
       <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
         <p className="mb-3 text-sm text-white/80">
           {pitch || "The tools are free forever. The coach is the reason people stay — one take, scored, no account needed either."}

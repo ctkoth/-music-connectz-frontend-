@@ -102,7 +102,7 @@ export default function AlbumMaster({ getSettings, inspiration, exportOpts, expo
     <div className="neon-frame space-y-3 p-4" data-tour="mixz-album">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-white/80"><Disc3 size={15} /> Album mastering — one loudness, one tone</h3>
-        <span className="text-[11px] text-white/45">{cap === null ? `${songs.length} songs · unlimited on your plan` : cap !== undefined ? `${songs.length} of ${cap} songs` : `${songs.length} songs`}</span>
+        <span className="text-[11px] text-white/60">{cap === null ? `${songs.length} songs · unlimited on your plan` : cap !== undefined ? `${songs.length} of ${cap} songs` : `${songs.length} songs`}</span>
       </div>
       <p className="text-[11px] text-white/50">
         Add the songs of an EP or album. Each is measured, the album's tone is worked out from all of them, and every song is mastered to that
@@ -116,12 +116,12 @@ export default function AlbumMaster({ getSettings, inspiration, exportOpts, expo
           {songs.map((s, i) => (
             <li key={s.id} className="space-y-1 rounded-md bg-white/5 p-2 text-[11px]">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="w-6 text-white/40 tabular-nums">{trackNumber(i)}</span>
+                <span className="w-6 text-white/55 tabular-nums">{trackNumber(i)}</span>
                 <span className="min-w-0 flex-1 truncate text-xs font-semibold text-white">{s.name}</span>
-                <span className="text-white/45">{mmss(s.before.seconds)} · {neg(s.before.lufs)} LUFS now{albumBalance ? ` · ${r1(toneDistance(s.before.bands, albumBalance) ?? 0)} dB from the album's tone` : ""}</span>
+                <span className="text-white/60">{mmss(s.before.seconds)} · {neg(s.before.lufs)} LUFS now{albumBalance ? ` · ${r1(toneDistance(s.before.bands, albumBalance) ?? 0)} dB from the album's tone` : ""}</span>
                 <button aria-label={`Move ${s.name} up`} className="text-white/50" onClick={() => move(i, -1)}><ArrowUp size={13} /></button>
                 <button aria-label={`Move ${s.name} down`} className="text-white/50" onClick={() => move(i, 1)}><ArrowDown size={13} /></button>
-                <button aria-label={`Remove ${s.name}`} className="text-white/40 hover:text-mcz-ember" disabled={!!busy}
+                <button aria-label={`Remove ${s.name}`} className="text-white/55 hover:text-mcz-ember" disabled={!!busy}
                   onClick={() => { if (s.out?.url) URL.revokeObjectURL(s.out.url); setSongs((xs) => xs.filter((x) => x.id !== s.id)); }}><Trash2 size={13} /></button>
               </div>
               <label className="flex flex-wrap items-center gap-2 text-white/60">
@@ -164,7 +164,7 @@ export default function AlbumMaster({ getSettings, inspiration, exportOpts, expo
         {songs.length > 1 && <span className="text-[11px] text-emerald-300">Free</span>}
         {allOut && <button className="re-btn !w-auto px-3" onClick={() => songs.forEach((s, i) => saveBlob(fileName(s, i), s.out.blob))}><Download size={14} /> Download all</button>}
       </div>
-      {songs.length === 1 && <p className="text-[11px] text-white/45">Add at least one more song: an album master needs two to agree with.</p>}
+      {songs.length === 1 && <p className="text-[11px] text-white/60">Add at least one more song: an album master needs two to agree with.</p>}
       {inspiration && songs.length > 1 && (
         <label className="flex items-center gap-2 text-[11px] text-white/60">
           <input type="checkbox" checked={toInspiration} onChange={(e) => setToInspiration(e.target.checked)} />
@@ -187,10 +187,10 @@ export default function AlbumMaster({ getSettings, inspiration, exportOpts, expo
               {exportCtl.kbpsList.map((k) => <option key={k} value={k}>{k} kbps</option>)}
             </select>
           )}
-          <span className="text-white/40">your plan's WAV ladder, the same as a single master · each song at its own sample rate</span>
+          <span className="text-white/55">your plan's WAV ladder, the same as a single master · each song at its own sample rate</span>
         </div>
       )}
-      <p className="text-[11px] text-white/40">Every song is mastered to {neg(albumLufs(getSettings(), inspiration))} LUFS, less any trim you set.</p>
+      <p className="text-[11px] text-white/55">Every song is mastered to {neg(albumLufs(getSettings(), inspiration))} LUFS, less any trim you set.</p>
       {busy && <p className="text-[11px] text-white/60">{busy}…</p>}
       {report && <div className="space-y-0.5 text-[11px] text-emerald-300">{report.lines.map((l) => <p key={l}>{l}</p>)}</div>}
       {msg && <p className="text-[11px] text-emerald-300">{msg}</p>}

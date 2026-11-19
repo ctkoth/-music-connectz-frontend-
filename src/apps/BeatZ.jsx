@@ -130,7 +130,7 @@ function BeatCard({ beat, onChange }) {
         <span className="text-sm font-bold text-white/85">{usd(beat.price_cents)} {MONEY}</span>
       </div>
       {beat.description && <p className="text-sm text-white/70">{beat.description}</p>}
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/60">
         {LICENSE[beat.license_type] || beat.license_type}
         {beat.license_type === "exclusive" ? (beat.left ? " · still available" : " · sold") : ` · ${beat.sold} licensed`}
       </p>
@@ -141,7 +141,7 @@ function BeatCard({ beat, onChange }) {
           {beat.mine && <Doors item={{ title: beat.title, url: beat.audio_url, kind: "audio", text: beat.description || "" }} />}
         </>
       ) : (
-        <p className="flex items-center gap-1.5 text-xs text-white/45"><Music size={12} /> No preview yet.</p>
+        <p className="flex items-center gap-1.5 text-xs text-white/60"><Music size={12} /> No preview yet.</p>
       )}
 
       {beat.mine ? (
@@ -151,12 +151,12 @@ function BeatCard({ beat, onChange }) {
             <Upload size={12} /> {busy ? "Uploading…" : beat.audio_url ? "Replace audio" : "Attach audio"}
             <input type="file" accept="audio/*" className="hidden" disabled={busy} onChange={(e) => attach(e.target.files?.[0])} />
           </label>
-          <span className="text-white/35">Uses your FileZ storage.</span>
+          <span className="text-white/50">Uses your FileZ storage.</span>
         </div>
       ) : beat.owned_by_me ? (
         <p className="text-xs text-emerald-300">✓ You hold a {beat.license_type} license. The audio above is your file.</p>
       ) : !beat.can_buy ? (
-        <p className="text-xs text-white/45">{beat.why_not}</p>
+        <p className="text-xs text-white/60">{beat.why_not}</p>
       ) : !quote ? (
         <button onClick={openQuote} className="rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 hover:border-mcz-cyan">
           License it <span className="text-mcz-ember">−{usd(beat.price_cents)} {MONEY}</span>
@@ -172,7 +172,7 @@ function BeatCard({ beat, onChange }) {
               <button onClick={buy} disabled={busy} className="rounded-lg bg-mcz-cyan/20 px-3 py-1.5 text-mcz-cyan">
                 {busy ? "Buying…" : `Confirm — pay ${usd(quote.price_cents)}`}
               </button>
-              <button onClick={() => setQuote(null)} className="text-white/40">Cancel</button>
+              <button onClick={() => setQuote(null)} className="text-white/55">Cancel</button>
             </div>
           )}
         </div>
@@ -234,7 +234,7 @@ function SellForm({ onListed }) {
         <option value="exclusive">{LICENSE.exclusive}</option>
       </select>
 <UsualHint field="beatz.license_type" value={f.license_type} onUse={(v) => { remember("beatz.license_type", v); setF({ ...f, license_type: v }); }} />
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/60">
         {f.license_type === "exclusive"
           ? "After one artist buys it, nobody else can: further purchases are refused. The beat stays on your page, marked as sold."
           : "Any number of artists can each buy a license, once each."}
@@ -244,7 +244,7 @@ function SellForm({ onListed }) {
         <input type="file" accept="audio/*" className="mt-1 block text-white/70" onChange={(e) => setFile(e.target.files?.[0] || null)} />
       </label>
       {!file && <p className="text-xs text-mcz-ember">Without audio it's listed but can't be sold until you attach it.</p>}
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/60">
         Listing is free. When it sells you get the price minus the platform fee for your plan, in {MONEY}.
       </p>
       <button disabled={busy} className="rounded-lg bg-mcz-cyan/20 px-4 py-2 text-mcz-cyan">{busy ? "Listing…" : "List it"}</button>

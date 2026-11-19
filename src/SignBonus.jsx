@@ -35,7 +35,7 @@ const EMOJI = { Aries:"♈",Taurus:"♉",Gemini:"♊",Cancer:"♋",Leo:"♌",Vir
 /** `+20 🍥`, in the green the rule asks for, or struck through once it's spent. */
 function Gain({ amount, earned }) {
   return earned
-    ? <span className="inline-flex items-center gap-1 text-white/35 line-through">
+    ? <span className="inline-flex items-center gap-1 text-white/50 line-through">
         +{amount} {SPINAZ}
       </span>
     : <span className="font-semibold text-emerald-300">+{amount} {SPINAZ}</span>;
@@ -46,7 +46,7 @@ function Half({ label, does, amount, earned }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-xl border border-white/10 bg-black/30 p-2.5">
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/35">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/50">{label}</p>
         <p className="text-sm text-white/80">{does}</p>
       </div>
       <div className="shrink-0 whitespace-nowrap text-sm">
@@ -86,7 +86,7 @@ function MineCard({ b, label }) {
       {/* Why THIS sign gets THIS action. Without it the bonus reads as a
           number somebody assigned at random, and a member who thinks it was
           random has no reason to believe the rest are worth the same. */}
-      <p className="text-xs italic leading-relaxed text-white/45">{b.why}</p>
+      <p className="text-xs italic leading-relaxed text-white/60">{b.why}</p>
 
       {/* Cross-pollination: a screen that names an action and leaves you to
           find the app is a read-only surface. */}
@@ -127,7 +127,7 @@ function AllGrid({ rows, field, mineKey, title }) {
                 {EMOJI[name]} {name} — {b.name}
               </p>
               <p className="text-xs text-white/55">{b.does}</p>
-              <p className="text-xs text-white/35">Further: {b.stretch}</p>
+              <p className="text-xs text-white/50">Further: {b.stretch}</p>
             </div>
           );
         })}
@@ -148,7 +148,7 @@ export default function SignBonus({ onOpenBirthday }) {
   if (err) return null;
   if (!data) {
     return (
-      <p className="flex items-center gap-2 text-xs text-white/40">
+      <p className="flex items-center gap-2 text-xs text-white/55">
         <Loader2 className="animate-spin" size={12} /> Loading your sign's bonus…
       </p>
     );
@@ -162,7 +162,7 @@ export default function SignBonus({ onOpenBirthday }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
         ZodiacZ — your bonuses
       </p>
 
@@ -198,7 +198,7 @@ export default function SignBonus({ onOpenBirthday }) {
       )}
 
       <button onClick={() => setShowAll((v) => !v)}
-              className="flex items-center gap-1 text-xs text-white/45 hover:text-white/70">
+              className="flex items-center gap-1 text-xs text-white/60 hover:text-white/70">
         <ChevronDown size={12} className={showAll ? "rotate-180 transition" : "transition"} />
         {showAll ? "Hide" : "See all twenty-four"}
       </button>
@@ -208,7 +208,7 @@ export default function SignBonus({ onOpenBirthday }) {
           {/* The two numbers, said ONCE, rather than repeated on twenty-four
               rows — a figure printed twenty-four times is a figure that will
               read twenty-four ways within a year. */}
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-white/55">
             Every one is worth the same:{" "}
             <span className="text-emerald-300">+{data.base_spinaz} {SPINAZ}</span> for the
             first half and{" "}

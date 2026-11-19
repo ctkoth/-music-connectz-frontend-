@@ -86,7 +86,7 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
         <h3 className="font-semibold">VST3 plugins</h3>
         <p className="text-white/70">Your own VST3 effects run in the <b>Windows app</b> — a web page or a phone can&apos;t load a desktop plugin. In the app, every DAW gets this tab: pick a plugin, set it in its own window, and render a track through it.</p>
         {win && <a className="re-btn !w-auto px-4" href={win.href}><Download size={14} /> {win.label}</a>}
-        <p className="text-[11px] text-white/45">The built-in EQ, compressor, delay, reverb, filter and gain work everywhere, in the Mixer.</p>
+        <p className="text-[11px] text-white/60">The built-in EQ, compressor, delay, reverb, filter and gain work everywhere, in the Mixer.</p>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
           </details>
         )}
       </>}
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         The render is a new take on the track — the original stays in its playlist menu. {track?.name}: {used} plugin render{used === 1 ? "" : "s"}{cap != null ? ` of ${cap} on ${TIER_LABEL[lim?.tier] || "your tier"}` : ""}.
         {cap != null && <> <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium 6, StatZ unlimited</button></>}
       </p>

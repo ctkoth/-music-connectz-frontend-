@@ -46,7 +46,7 @@ function AccountCard({ a, right = null, dim = false }) {
     return (
       <div className={`rounded-xl border border-white/10 bg-white/[0.03] p-3 ${dim ? "opacity-60" : ""}`}>
         <p className="truncate text-[13px] font-semibold text-white/90">@{a.username}</p>
-        <p className="mt-0.5 text-[11px] text-white/45">
+        <p className="mt-0.5 text-[11px] text-white/60">
           Not confirmed as yours yet. You prove it by signing in to it.
         </p>
       </div>
@@ -63,8 +63,8 @@ function AccountCard({ a, right = null, dim = false }) {
               {a.tier}
             </span>
           </p>
-          <p className="truncate text-[11px] text-white/40">{a.email || "no email"}</p>
-          <p className="mt-0.5 text-[11px] text-white/35">
+          <p className="truncate text-[11px] text-white/55">{a.email || "no email"}</p>
+          <p className="mt-0.5 text-[11px] text-white/50">
             joined {(a.joined || "").slice(0, 10)}
             {a.sign_ins?.length > 0 && <> · signs in with {a.sign_ins.join(", ")}</>}
           </p>
@@ -93,7 +93,7 @@ function Signals({ pairs }) {
   const rows = asList(pairs);
   if (!rows.length) return null;
   return (
-    <ul className="mt-2 space-y-0.5 text-[11px] text-white/45">
+    <ul className="mt-2 space-y-0.5 text-[11px] text-white/60">
       {rows.flatMap((p, i) =>
         asList(p.signals).map((s, j) => (
           <li key={`${i}-${j}`}>
@@ -198,7 +198,7 @@ export default function DupeZ() {
 
       {/* What closing one from here takes, in the server's own words. */}
       {!data.owner && data.proof_rule && (
-        <p className="text-[11px] text-white/45">{data.proof_rule}</p>
+        <p className="text-[11px] text-white/60">{data.proof_rule}</p>
       )}
 
       <ClaimsOnMe busy={busy} setBusy={setBusy} setMsg={setMsg} reload={load}
@@ -207,7 +207,7 @@ export default function DupeZ() {
 
       {data.owner && claims.length > 0 && (
         <section className="space-y-3">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
             Claims waiting on you
           </h3>
           {claims.map((c) => (
@@ -255,7 +255,7 @@ export default function DupeZ() {
       )}
 
       {!groups.length && !asList(data.weak_pairs).length && (
-        <p className="text-[12px] text-white/45">
+        <p className="text-[12px] text-white/60">
           {data.owner
             ? "No accounts share a strong signal with another. Nothing to do."
             : "Nothing here looks like a second account of yours."}
@@ -268,7 +268,7 @@ export default function DupeZ() {
 
       {asList(data.weak_pairs).length > 0 && (
         <section className="space-y-3">
-          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+          <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
             Possible matches (weak signals only)
           </h3>
           {asList(data.weak_pairs).map((pair, i) => (
@@ -277,7 +277,7 @@ export default function DupeZ() {
                 <span className="font-semibold">@{pair.a}</span> — <span className="font-semibold">@{pair.b}</span>
               </p>
               <Signals pairs={[pair]} />
-              <p className="text-[11px] text-white/40 mt-2">
+              <p className="text-[11px] text-white/55 mt-2">
                 These accounts share a signal, but it could be a coincidence. Review before taking action.
               </p>
             </div>
@@ -361,7 +361,7 @@ function Group({ g, owner, busy, act, signInTo }) {
 
       {!owner && (
         <div className="mt-3 space-y-2">
-          <p className="flex items-start gap-1.5 text-[11px] text-white/45">
+          <p className="flex items-start gap-1.5 text-[11px] text-white/60">
             <AlertTriangle size={13} className="mt-0.5 shrink-0 text-mcz-gold" />
             Say which one is yours. With proof it goes from here; without, you sign in to
             it and confirm there — nothing is deleted before you do.
@@ -405,7 +405,7 @@ function Group({ g, owner, busy, act, signInTo }) {
                     @{a.username} is also me — file a claim
                   </button>
                   {/* The price before the button: nothing is deleted by filing. */}
-                  <span className="text-[11px] text-white/45">
+                  <span className="text-[11px] text-white/60">
                     Deletes nothing. Then you sign in to it to confirm.
                   </span>
                   <button
@@ -485,7 +485,7 @@ function ClaimsOnMe({ busy, setBusy, setMsg, reload, switchBack, logout, navigat
             Only you can confirm that.
           </p>
           {c.note && <p className="text-[11px] italic text-white/50">“{c.note}”</p>}
-          <p className="text-[11px] text-white/45">Confirming closes this account. It would remove:</p>
+          <p className="text-[11px] text-white/60">Confirming closes this account. It would remove:</p>
           <AccountCard a={c.deletes || {}} />
           <div className="flex flex-wrap gap-2">
             <button
@@ -521,7 +521,7 @@ function MyClaims({ signInTo }) {
   if (!claims.length) return null;
   return (
     <section className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
         Your open claims
       </h3>
       {claims.map((c) => (

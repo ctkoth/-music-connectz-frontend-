@@ -138,7 +138,7 @@ function CardEditor({ card, columns, canEdit, onClose, onSaved }) {
           </button>
         )}
         {card.activities?.length > 0 && (
-          <ul className="space-y-0.5 border-t border-white/10 pt-2 text-[11px] text-white/45">
+          <ul className="space-y-0.5 border-t border-white/10 pt-2 text-[11px] text-white/60">
             {card.activities.map((a) => (
               <li key={a.id}>
                 @{a.user_display || "someone"} {a.action}
@@ -186,11 +186,11 @@ function Members({ board }) {
     <div className="space-y-2 rounded-xl border border-white/10 bg-black/30 p-3 text-xs">
       <p className="font-semibold">Who's on this board</p>
       <ul className="space-y-1">
-        <li className="flex justify-between"><span>@{board.user_display}</span><span className="text-white/45">owner</span></li>
+        <li className="flex justify-between"><span>@{board.user_display}</span><span className="text-white/60">owner</span></li>
         {(perms || []).map((p) => (
           <li key={p.id} className="flex items-center justify-between gap-2">
             <MemberName username={p.user_display} bare />
-            <span className="flex items-center gap-2 text-white/45">{p.role}
+            <span className="flex items-center gap-2 text-white/60">{p.role}
               <button onClick={() => remove(p)} aria-label={`Remove ${p.user_display}`}><X size={12} /></button>
             </span>
           </li>
@@ -204,7 +204,7 @@ function Members({ board }) {
         </select>
         <button className="re-btn !w-auto px-2 py-1 text-xs" disabled={!who.trim()} type="submit"><UserPlus size={12} className="inline" /> Add</button>
       </form>
-      <p className="text-white/40">They get a notification. Editors move and edit cards; viewers only look.</p>
+      <p className="text-white/55">They get a notification. Editors move and edit cards; viewers only look.</p>
       {err && <p role="alert" className="text-mcz-ember">{err}</p>}
     </div>
   );
@@ -270,7 +270,7 @@ function Board({ id, onBack, onGone }) {
             </>
           )}
           {!owner && b.my_role !== "viewer" && (
-            <span className="text-[11px] text-white/40">Shared with you</span>
+            <span className="text-[11px] text-white/55">Shared with you</span>
           )}
         </div>
       </div>
@@ -284,7 +284,7 @@ function Board({ id, onBack, onGone }) {
             onDragOver={(e) => canEdit && drag && e.preventDefault()}
             onDrop={() => { if (drag && drag.column !== col.id) move(drag, col); setDrag(null); }}>
             <div className="flex items-center justify-between gap-1">
-              <p className="truncate text-sm font-semibold">{col.label} <span className="text-white/35">{cardsIn(col.id).length}</span></p>
+              <p className="truncate text-sm font-semibold">{col.label} <span className="text-white/50">{cardsIn(col.id).length}</span></p>
               {canEdit && cols.length > 1 && (
                 <button className="text-white/30 hover:text-mcz-ember" aria-label={`Delete column ${col.label}`}
                   onClick={() => { if (window.confirm(`Delete the column “${col.label}”? Its cards move to “${cols.find((c) => c.id !== col.id).label}”.`)) run(() => api(`${BASE}${b.id}/columns/${col.id}/`, { method: "DELETE" })); }}>
@@ -306,7 +306,7 @@ function Board({ id, onBack, onGone }) {
                   {card.color && <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${SWATCH[card.color]}`} />}
                   <p className="min-w-0 flex-1 break-words">{card.title}</p>
                 </div>
-                <div className="mt-1 flex items-center justify-between gap-1 text-[10px] text-white/45">
+                <div className="mt-1 flex items-center justify-between gap-1 text-[10px] text-white/60">
                   <span>
                     {card.due_date && <span className={new Date(card.due_date) < new Date(new Date().toDateString()) ? "text-mcz-ember" : ""}>due {card.due_date}</span>}
                     {card.open_in && (

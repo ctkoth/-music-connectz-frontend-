@@ -52,10 +52,10 @@ export default function ReligionZ({ value, onChange }) {
   if (!groups.length) return null;
   return (
     <div>
-      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🕊️ ReligionZ
       </p>
-      <p className="mb-2 text-[11px] leading-relaxed text-white/40">
+      <p className="mb-2 text-[11px] leading-relaxed text-white/55">
         A declaration, not a score — no family or branch on this list is ranked above another,
         and picking one never moves a rating or a skill level. It becomes a filter people can
         find you with. Leave it blank and it stays "hasn't said", not a default.
@@ -95,7 +95,7 @@ export function ReligionFilter({ value = [], onChange }) {
     onChange(value.includes(key) ? value.filter((k) => k !== key) : [...value, key]);
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🕊️ ReligionZ {value.length ? `· ${value.length} on` : ""}
       </p>
       <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
@@ -117,7 +117,7 @@ export function ReligionFilter({ value = [], onChange }) {
             </div>
           </div>
         ))}
-        {!shownGroups.length && <p className="text-[11px] text-white/35">No match for that.</p>}
+        {!shownGroups.length && <p className="text-[11px] text-white/50">No match for that.</p>}
       </div>
     </div>
   );

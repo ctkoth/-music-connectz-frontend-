@@ -122,10 +122,10 @@ export default function BugZ() {
           </button>
           {shot && (
             <>
-              <span className="text-[11px] text-white/45">
+              <span className="text-[11px] text-white/60">
                 {shot.name} · {(shot.size / 1024 / 1024).toFixed(1)}MB
               </span>
-              <button type="button" className="re-btn !w-auto px-3 !text-mcz-ember"
+              <button aria-label="Remove screenshot" type="button" className="re-btn !w-auto px-3 !text-mcz-ember"
                       onClick={dropShot} disabled={busy}>
                 <Trash2 size={14} />
               </button>
@@ -148,7 +148,7 @@ export default function BugZ() {
         <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
       ) : (
         <div className="neon-frame divide-y divide-white/5">
-          {bugs.length === 0 && <p className="p-4 text-sm text-white/45">No reports yet — the app is either perfect or unexplored. 😄</p>}
+          {bugs.length === 0 && <p className="p-4 text-sm text-white/60">No reports yet — the app is either perfect or unexplored. 😄</p>}
           {bugs.map((b) => (
             <div key={b.id} className="flex items-start justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
@@ -161,7 +161,7 @@ export default function BugZ() {
                     ? <video src={b.shot_url} controls playsInline className="mt-2 max-h-40 rounded-lg" />
                     : <img src={b.shot_url} alt="" className="mt-2 max-h-40 rounded-lg object-contain" />
                 )}
-                <p className="mt-1 text-[11px] text-white/35">
+                <p className="mt-1 text-[11px] text-white/50">
                   by {b.reporter}
                   {b.paid && <span className="ml-2 text-emerald-300">+{b.bounty_spinaz} {SPINAZ} paid</span>}
                 </p>

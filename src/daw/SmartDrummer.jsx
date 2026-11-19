@@ -72,12 +72,12 @@ export default function SmartDrummer({ app, daw, bpm, busy: working, onSend }) {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-xs text-white/70">
-          <span className="flex justify-between"><span>Simple ↔ Busy</span><span className="text-white/45">{word(set.busy, "simple", "steady", "busy")}</span></span>
+          <span className="flex justify-between"><span>Simple ↔ Busy</span><span className="text-white/60">{word(set.busy, "simple", "steady", "busy")}</span></span>
           <input type="range" min={0} max={1} step={0.01} value={set.busy} className="mt-1 w-full" aria-label="How busy the drummer plays"
                  onChange={(e) => setSet((v) => ({ ...v, busy: Number(e.target.value) }))} />
         </label>
         <label className="block text-xs text-white/70">
-          <span className="flex justify-between"><span>Soft ↔ Hard</span><span className="text-white/45">{word(set.hard, "soft", "solid", "hard")}</span></span>
+          <span className="flex justify-between"><span>Soft ↔ Hard</span><span className="text-white/60">{word(set.hard, "soft", "solid", "hard")}</span></span>
           <input type="range" min={0} max={1} step={0.01} value={set.hard} className="mt-1 w-full" aria-label="How hard the drummer plays"
                  onChange={(e) => setSet((v) => ({ ...v, hard: Number(e.target.value) }))} />
         </label>
@@ -89,7 +89,7 @@ export default function SmartDrummer({ app, daw, bpm, busy: working, onSend }) {
         <label className="flex items-center gap-1 text-white/70">
           <input type="checkbox" checked={set.fills} onChange={(e) => setSet((v) => ({ ...v, fills: e.target.checked }))} /> Fill every 4 bars
         </label>
-        <span className="text-white/40">{bpm} BPM · set the tempo above</span>
+        <span className="text-white/55">{bpm} BPM · set the tempo above</span>
         <span className="ml-auto flex items-center gap-2">
           <label className="flex items-center gap-1 text-white/60">Bars
             <select className="neon-input !w-auto !py-1.5" data-nomemo="true" value={bars} onChange={(e) => setBars(Number(e.target.value))}>
@@ -101,7 +101,7 @@ export default function SmartDrummer({ app, daw, bpm, busy: working, onSend }) {
           </button>
         </span>
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         <span className="text-emerald-300">Free.</span> Send to Tracks puts {bars} bars of this drummer ({Math.round(barSeconds(bpm) * bars)}s) on its own track at the playhead.
         Then arm a track and press Record to sing or play over it. Every sound is made on your device.
       </p>

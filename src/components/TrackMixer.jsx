@@ -189,7 +189,7 @@ function StripPresets({ strip, onApply, name }) {
           {mine.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {!saving && <button className="re-link" onClick={() => { setSaving(true); setMsg(""); setErr(""); }}>Save this strip</button>}
-        <span className="text-white/40">{room.line}</span>
+        <span className="text-white/55">{room.line}</span>
         <span className="text-emerald-300">free</span>
       </div>
       {saving && (
@@ -238,7 +238,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
         <label className="flex items-center gap-2 text-[11px] text-white/70">
           <input type="checkbox" checked={s.comp.on} onChange={(e) => setComp({ on: e.target.checked })} aria-label={`${name} compressor`} />
           Compressor
-          {s.comp.on && gr && <span className="text-white/45">· took off up to {gr.maxGrDb} dB ({gr.avgGrDb} dB on average)</span>}
+          {s.comp.on && gr && <span className="text-white/60">· took off up to {gr.maxGrDb} dB ({gr.avgGrDb} dB on average)</span>}
           {s.comp.on && gr && gr.maxGrDb === 0 && <span className="text-mcz-gold">· never reached the threshold — lower it to hear it work</span>}
         </label>
         {s.comp.on && (
@@ -257,7 +257,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
                     onClick={() => setComp({ speed: k })}>{sp.label}</button>
                 ))}
               </div>
-              <p className="mt-1 text-white/40">{SPEEDS[s.comp.speed].why}.</p>
+              <p className="mt-1 text-white/55">{SPEEDS[s.comp.speed].why}.</p>
             </div>
           </div>
         )}
@@ -265,7 +265,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
       <StripPresets strip={s} name={name} onApply={(strip) => onChange(i, { strip })} />
       <div className="flex flex-wrap items-center gap-2 text-[11px]">
         {pending ? <span className="text-white/50">Updating what you hear…</span>
-          : !stripIsFlat(s) ? <span className="text-white/45">{stripWords(s)}.</span> : <span className="text-white/40">Flat — the track as loaded.</span>}
+          : !stripIsFlat(s) ? <span className="text-white/60">{stripWords(s)}.</span> : <span className="text-white/55">Flat — the track as loaded.</span>}
         {!stripIsFlat(s) && <button className="re-link ml-auto" onClick={() => onChange(i, { strip: FLAT })}>Reset</button>}
       </div>
     </div>
@@ -307,11 +307,11 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
     <div className="space-y-3 rounded-lg border border-white/10 p-3" data-tour="mixz-tracks">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold text-white/80">TrackZ — mix several tracks</h3>
-        <span className="text-[11px] text-white/45">
+        <span className="text-[11px] text-white/60">
           {cap === null ? `${tracks.length} tracks · unlimited on your plan` : cap !== undefined ? `${tracks.length} of ${cap} tracks` : `${tracks.length} tracks`}
         </span>
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         Add your stems — vocal, beat, bass, backing vocals — and set each one's level, place in the stereo field, EQ and
         compression. They are mixed on your device, then mastered as one. Free on every plan: nothing is uploaded and nothing
         is charged — your plan only sets how many tracks.
@@ -321,7 +321,7 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
         {tracks.map((t, i) => (
           <div key={t.id} className="space-y-1 rounded-md bg-white/5 p-2">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="w-full min-w-0 truncate text-xs font-semibold text-white sm:w-auto sm:flex-1">{t.name}{i === 0 && <span className="ml-1 font-normal text-white/40">(your song)</span>}</span>
+              <span className="w-full min-w-0 truncate text-xs font-semibold text-white sm:w-auto sm:flex-1">{t.name}{i === 0 && <span className="ml-1 font-normal text-white/55">(your song)</span>}</span>
               <select className="neon-input !w-auto min-w-0 flex-1 !py-1 text-xs sm:flex-none" aria-label={`What ${t.name} is`} data-nomemo="true" value={t.role}
                 onChange={(e) => onChange(i, { role: e.target.value })}>
                 {Object.entries(ROLES).map(([k, r]) => <option key={k} value={k}>{r.label}</option>)}
@@ -374,7 +374,7 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
         <button className="re-btn !w-auto px-3" disabled={!tracks.length} onClick={live.playing ? live.stop : live.play}>
           {live.playing ? <Pause size={14} /> : <Play size={14} />} {live.playing ? "Stop" : "Hear the mix"}
         </button>
-        {live.total > 0 && <span className="text-[11px] tabular-nums text-white/45">{mmss(live.pos)} / {mmss(live.total)}</span>}
+        {live.total > 0 && <span className="text-[11px] tabular-nums text-white/60">{mmss(live.pos)} / {mmss(live.total)}</span>}
       </div>
 
       {tracks.length > 1 && (
@@ -387,7 +387,7 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
             <span className="text-[11px] text-emerald-300">Free</span>
             {working && <span className="text-[11px] text-white/50">{working}…</span>}
           </div>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             The suggestion measures each track's loudness, tone and width and sets a starting point from what each one is —
             level, pan, and a low cut on parts that don't need lows — with the reason under every track. It is a starting point, not a verdict: move anything, by ear.
           </p>

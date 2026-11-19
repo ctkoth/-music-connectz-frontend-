@@ -60,11 +60,11 @@ export default function MixAI({ song, settings, onApply, allowedIntensities = []
           {p.free_today ? <span className="text-emerald-300">free today (a daily prompt)</span>
             : <span className="text-mcz-ember">−{p.cost_cents} {PROMPTZ}</span>}
           {p.energy ? <span className="text-mcz-ember"> −{p.energy} {ENERGY}</span> : null}
-          <span className="text-white/45"> · not charged if it can't hear it</span>
+          <span className="text-white/60"> · not charged if it can't hear it</span>
         </span>
       </div>
       {!d.configured && <p className="text-[11px] text-mcz-gold">The AI isn't switched on here yet; the genre presets below still work.</p>}
-      <p className="text-[11px] text-white/45">{d.note}</p>
+      <p className="text-[11px] text-white/60">{d.note}</p>
       {busy && <p className="text-[11px] text-white/60">{busy}…</p>}
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
       {got && (
@@ -75,7 +75,7 @@ export default function MixAI({ song, settings, onApply, allowedIntensities = []
             <p key={m.key} className="text-white/75">• <b className="text-white">{MOVE_LABEL[m.key] || m.key} {shown(m.key, m.value)}</b> — {m.why}</p>
           )) : <p className="text-white/60">Nothing to change on top of the preset.</p>}
           {capped(got.settings) && <p className="text-mcz-gold">{capped(got.settings)}</p>}
-          <p className="text-white/45">It's on the controls below — move anything, then press Master it.{got.charged_cents === 0 ? " A daily prompt covered it." : ""}</p>
+          <p className="text-white/60">It's on the controls below — move anything, then press Master it.{got.charged_cents === 0 ? " A daily prompt covered it." : ""}</p>
         </div>
       )}
       <div className="space-y-1">

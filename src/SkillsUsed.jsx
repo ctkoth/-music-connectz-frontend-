@@ -53,7 +53,7 @@ function ProfileSkills({ value = [], onChange, label = "Skills used" }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3" data-tour="skills-used">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{label}</p>
 
       {chosen.size > 0 && (
         <ul className="flex flex-wrap gap-1.5">
@@ -92,7 +92,7 @@ function ProfileSkills({ value = [], onChange, label = "Skills used" }) {
 
       {data && flatSkills(data).length > 0 && (
         <>
-          <p className="text-[10px] leading-relaxed text-white/40">{data.note}</p>
+          <p className="text-[10px] leading-relaxed text-white/55">{data.note}</p>
           {(data.personas || []).map((persona) => (
             <div key={persona.key}>
               <p className="py-1 text-[10px] uppercase tracking-widest text-white/30">
@@ -138,7 +138,7 @@ function SkillRow({ s, picked, onToggle }) {
       {/* Experience is declared (learned date + time since), never blended into the rating. */}
       <p className="mt-1 pl-6 text-[10px] text-white/50">{experienceLine(s)}</p>
       {shown.length > 0 && (
-        <p className="mt-1 pl-6 text-[10px] leading-relaxed text-white/45">
+        <p className="mt-1 pl-6 text-[10px] leading-relaxed text-white/60">
           Rated on:{" "}
           {shown.map((w, i) => (
             <span key={w.id}>
@@ -167,7 +167,7 @@ function CatalogueSkills({ value = [], onChange, label = "Skills used" }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
         {label}
       </p>
 
@@ -224,7 +224,7 @@ function CatalogueSkills({ value = [], onChange, label = "Skills used" }) {
                     </button>
                   ))}
                   {!catOpen && specifics.length > 0 && (
-                    <button type="button" className="pill !text-[10px] !text-white/35"
+                    <button type="button" className="pill !text-[10px] !text-white/50"
                             onClick={() => setOpenCat(`${persona}:${cat}`)}>
                       +{specifics.length} specific
                     </button>

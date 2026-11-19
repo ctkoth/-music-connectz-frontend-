@@ -161,7 +161,7 @@ export default function CoachingBoard({ appKey, coaching, recap }) {
                   <button onClick={() => openDoor(h)} data-door={h.key}
                           className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-[11px] text-mcz-cyan hover:bg-mcz-cyan/20">{h.label}</button>
                   <Cost cost={h.cost} />
-                  <span className="text-[11px] text-white/45">{h.note}</span>
+                  <span className="text-[11px] text-white/60">{h.note}</span>
                 </div>
               ))}
             </div>

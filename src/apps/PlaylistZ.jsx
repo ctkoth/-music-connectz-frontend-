@@ -73,7 +73,7 @@ function Row({ item, onUp, onDown, onRemove, canReorder, shared, dragRow = {}, d
             {item.title || item.url || "Untitled"}
           </span>
         </span>
-        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/35">
+        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/50">
           {item.artist && <span className="truncate">{item.artist}</span>}
           {isPost
             ? <span className="pill !px-1.5 !py-0 !text-[9px]">Music ConnectZ</span>
@@ -212,7 +212,7 @@ function Collaborators({ pl, onChanged }) {
   if (!pl.mine) {
     if (!pl.can_add) return null;
     return (
-      <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45">
+      <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
         <Users size={12} /> You're a collaborator here — add tracks, and{" "}
         <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button> sets the order.
         <button className="pill !text-mcz-ember" onClick={() => remove("")}>
@@ -224,11 +224,11 @@ function Collaborators({ pl, onChanged }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/60">
         <Users size={12} /> Collaborators
       </p>
       {mates.length === 0 ? (
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           Just you. Invite someone and they can add tracks — you still set the running order.
         </p>
       ) : (
@@ -372,7 +372,7 @@ function Detail({ id, onBack, onChanged }) {
       ) : (
         <div>
           <h3 className="font-display text-lg font-extrabold">{pl.title}</h3>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             by <button className="hover:underline" onClick={() => openMember(pl.owner)}>@{pl.owner}</button>
             {" · "}{pl.post_count} from Music ConnectZ · {pl.link_count} outside
             {pl.collaborators?.length > 0 && <> · {pl.collaborators.length} collaborator{pl.collaborators.length === 1 ? "" : "s"}</>}
@@ -380,7 +380,7 @@ function Detail({ id, onBack, onChanged }) {
           </p>
           {pl.description && <p className="mt-1 text-[12px] text-white/60">{pl.description}</p>}
           {pl.mine && (
-            <button className="mt-1 text-[11px] text-white/40 hover:text-mcz-cyan" onClick={startMetaEdit}>
+            <button className="mt-1 text-[11px] text-white/55 hover:text-mcz-cyan" onClick={startMetaEdit}>
               Edit title &amp; description · Free
             </button>
           )}
@@ -394,7 +394,7 @@ function Detail({ id, onBack, onChanged }) {
                   onChange={(e) => setVisibility(e.target.value)}>
             {VISIBILITIES.map(([v, label]) => <option key={v} value={v}>{label}</option>)}
           </select>
-          <span className="text-[11px] text-white/40">
+          <span className="text-[11px] text-white/55">
             {{
               public: "Anyone with the link can open it.",
               restricted: "Any signed-in member can open it.",
@@ -412,7 +412,7 @@ function Detail({ id, onBack, onChanged }) {
       {pl.visibility !== "private" && <SocialBar item={`playlist:${pl.id}`} canRate={!pl.mine} compact />}
 
       {items.length === 0 ? (
-        <p className="text-[12px] text-white/40">Nothing in the set yet.</p>
+        <p className="text-[12px] text-white/55">Nothing in the set yet.</p>
       ) : (
         <ol className="space-y-1.5">
           {items.map((it, i) => (
@@ -470,12 +470,12 @@ function Appearances({ onOpen }) {
   }
 
   if (rows === null) {
-    return <p className="flex items-center gap-2 text-[11px] text-white/40">
+    return <p className="flex items-center gap-2 text-[11px] text-white/55">
       <Loader2 className="animate-spin" size={12} /> Checking…
     </p>;
   }
   if (!rows.length) {
-    return <p className="text-[11px] text-white/35">
+    return <p className="text-[11px] text-white/50">
       None of your work is in anyone else's set yet. When it is, it shows up here —
       with a way to pull it back out.
     </p>;
@@ -490,7 +490,7 @@ function Appearances({ onOpen }) {
             className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px] text-white/85">{r.post}</span>
-            <span className="block truncate text-[10px] text-white/35">
+            <span className="block truncate text-[10px] text-white/50">
               in “{r.playlist}” by <button className="hover:underline" onClick={() => openMember(r.owner)}>@{r.owner}</button>
               {r.added_by && r.added_by !== r.owner && (
                 <> · added by <button className="hover:underline" onClick={() => openMember(r.added_by)}>@{r.added_by}</button></>
@@ -560,12 +560,12 @@ function PendingPost({ lists, onAdded, onDrop }) {
     <div className="re-card space-y-2 border-mcz-gold/30" data-tour="playlistz-add">
       <p className="text-[11px] uppercase tracking-widest text-mcz-gold/90">🎧 From PostZ</p>
       <p className="text-[13px] font-semibold text-white">{post.title}</p>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         by <button className="hover:underline" onClick={() => openMember(post.author)}>@{post.author}</button>
         {post.genre ? ` · ${post.genre}` : ""}
       </p>
       {mine.length === 0 ? (
-        <p className="text-[12px] text-white/45">
+        <p className="text-[12px] text-white/60">
           Name a playlist below first, then this drops straight into it.
         </p>
       ) : (
@@ -619,7 +619,7 @@ export default function PlaylistZ() {
         <IconImg icon="playlistz.png" alt="PlaylistZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">PlaylistZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Your posts and your Spotify, YouTube, SoundCloud and Bandcamp links — one running order.
           </p>
         </div>
@@ -658,7 +658,7 @@ export default function PlaylistZ() {
           {lists === null ? (
             <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
           ) : lists.length === 0 ? (
-            <p className="text-[12px] text-white/40">No playlists yet. Name one above and start dropping tracks in.</p>
+            <p className="text-[12px] text-white/55">No playlists yet. Name one above and start dropping tracks in.</p>
           ) : (
             <ul className="space-y-1.5">
               {lists.map((pl) => (
@@ -669,7 +669,7 @@ export default function PlaylistZ() {
                   >
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] text-white/85">{pl.title}</span>
-                      <span className="block text-[10px] text-white/35">
+                      <span className="block text-[10px] text-white/50">
                         @{pl.owner} · {pl.count} track{pl.count === 1 ? "" : "s"}
                         {pl.collaborators?.length > 0 && <> · shared with {pl.collaborators.length}</>}
                         {!pl.mine && pl.can_add && <span className="text-mcz-cyan"> · you can add</span>}

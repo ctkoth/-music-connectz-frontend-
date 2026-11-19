@@ -78,10 +78,10 @@ export default function LanguageZ({ value = {}, onChange }) {
 
   return (
     <div>
-      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🗣️ LanguageZ ({declared} of {max} declared)
       </p>
-      <p className="mb-2 text-[11px] leading-relaxed text-white/40">
+      <p className="mb-2 text-[11px] leading-relaxed text-white/55">
         The languages you speak, and how well — a declaration, not a score, and it never moves
         a rating or a skill level. Tap once for {levels[0]}, again for each level up, again to
         clear. Leave a language untapped and it stays "hasn't said".
@@ -132,7 +132,7 @@ export function LanguageFilter({ value = [], onChange }) {
     onChange(value.includes(key) ? value.filter((k) => k !== key) : [...value, key]);
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🗣️ LanguageZ {value.length ? `· ${value.length} on` : ""}
       </p>
       <input type="text" value={q} onChange={(e) => setQ(e.target.value)}
@@ -154,7 +154,7 @@ export function LanguageFilter({ value = [], onChange }) {
             </div>
           </div>
         ))}
-        {!shownGroups.length && <p className="text-[11px] text-white/35">No match for that.</p>}
+        {!shownGroups.length && <p className="text-[11px] text-white/50">No match for that.</p>}
       </div>
     </div>
   );

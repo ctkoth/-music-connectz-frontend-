@@ -59,20 +59,20 @@ export default function CollabFiles({ dealId, onFlash }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <button className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-white/45"
+      <button className="flex w-full items-center justify-between text-[11px] font-semibold uppercase tracking-widest text-white/60"
               onClick={() => setOpen(!open)}>
         <span>The work {files?.length ? `· ${files.length} version${files.length === 1 ? "" : "s"}` : ""}</span>
         <span className="text-white/30">{open ? "hide" : "show"}</span>
       </button>
 
       {open && (files === null ? (
-        <p className="flex items-center gap-2 text-[11px] text-white/40">
+        <p className="flex items-center gap-2 text-[11px] text-white/55">
           <Loader2 className="animate-spin" size={12} /> Loading…
         </p>
       ) : (
         <>
           {files.length === 0 ? (
-            <p className="text-[12px] text-white/40">Nothing yet — put the first file up.</p>
+            <p className="text-[12px] text-white/55">Nothing yet — put the first file up.</p>
           ) : (
             <ul className="space-y-1.5">
               {files.map((f) => (
@@ -83,12 +83,12 @@ export default function CollabFiles({ dealId, onFlash }) {
                   <span className="min-w-0 flex-1 truncate text-[11px] text-white/60">
                     {f.name || f.media_type || "file"}
                     <span className="text-white/30"> · @{f.uploader}</span>
-                    {f.note && <span className="text-white/40"> — {f.note}</span>}
+                    {f.note && <span className="text-white/55"> — {f.note}</span>}
                   </span>
                   {/* Everyone on the deal can open every version. A file you
                       can see the name of but not open is not a handoff. */}
                   <a href={f.url} download target="_blank" rel="noreferrer"
-                     className="shrink-0 text-white/40 hover:text-mcz-cyan" title="Download this version">
+                     className="shrink-0 text-white/55 hover:text-mcz-cyan" title="Download this version">
                     <Download size={13} />
                   </a>
                   {f.mine && (

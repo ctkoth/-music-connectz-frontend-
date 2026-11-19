@@ -25,7 +25,7 @@ function Card({ m, freq }) {
       <div className="flex items-center gap-3">
         {m.avatar
           ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-xl object-cover" />
-          : <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5"><UserRound size={18} className="text-white/40" /></div>}
+          : <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5"><UserRound size={18} className="text-white/55" /></div>}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold">{m.display_name || m.username}</p>
           <div className="mt-0.5 flex flex-wrap gap-1 text-[11px]">
@@ -167,11 +167,11 @@ export default function MetricZ({ kind }) {
                   <span className="text-lg font-bold tabular-nums">{o.count}</span>
                 </div>
                 <p className="mt-1 text-sm font-semibold">{o.label}</p>
-                {o.dates && <p className="text-[10px] text-white/45">{o.dates}</p>}
+                {o.dates && <p className="text-[10px] text-white/60">{o.dates}</p>}
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             Counts are members who declared it. {d.undeclared} haven't said
             {kind === "substancez" && d.sober ? `, and ${d.sober} are sober by choice` : ""}.
           </p>
@@ -202,7 +202,7 @@ export default function MetricZ({ kind }) {
                     {chosen.by_frequency.unsaid > 0 && ` · ${chosen.by_frequency.unsaid} haven't said how often`}
                   </p>
                   <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by how often">
-                    <span className="text-[11px] text-white/40">Show:</span>
+                    <span className="text-[11px] text-white/55">Show:</span>
                     {d.frequencies.map((f) => (
                       <button key={f.key} type="button" aria-pressed={freqs.includes(f.key)} title={f.hint}
                               onClick={() => setFreqs((v) => v.includes(f.key) ? v.filter((x) => x !== f.key) : [...v, f.key])}

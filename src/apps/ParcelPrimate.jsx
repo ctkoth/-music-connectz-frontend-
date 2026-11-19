@@ -108,11 +108,11 @@ export default function ParcelPrimate() {
               {Object.entries(AUD).map(([k, [label, hint]]) => (
                 <button key={k} onClick={() => setAudience(k)} title={hint}
                   className={`rounded-lg border px-3 py-1.5 text-xs ${audience === k ? "border-mcz-cyan text-mcz-cyan" : "border-white/15 text-white/70"}`}>
-                  {label} <span className="text-white/45">{d.reach?.[k]?.people ?? d.audiences?.[k] ?? 0}</span>
+                  {label} <span className="text-white/60">{d.reach?.[k]?.people ?? d.audiences?.[k] ?? 0}</span>
                 </button>
               ))}
             </div>
-            <p className="text-[11px] text-white/45">{AUD[audience][1]}. Anyone blocked either way is left out.</p>
+            <p className="text-[11px] text-white/60">{AUD[audience][1]}. Anyone blocked either way is left out.</p>
           </div>
 
           <div className="space-y-1">
@@ -123,7 +123,7 @@ export default function ParcelPrimate() {
                   <input type="checkbox" checked={doors.includes(k)} onChange={() => toggle(k)} className="mt-0.5" />
                   <span>
                     <Icon size={12} className="inline" /> <b>{label}</b>
-                    <span className="block text-white/45">{hint}</span>
+                    <span className="block text-white/60">{hint}</span>
                   </span>
                 </label>
               ))}
@@ -147,7 +147,7 @@ export default function ParcelPrimate() {
                 {q.tier === "free" && <> <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Premium sends one a day</button></>}
               </p>
             )}
-            <p className="text-white/40">Sending costs nothing.</p>
+            <p className="text-white/55">Sending costs nothing.</p>
           </div>
 
           {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
@@ -176,7 +176,7 @@ export default function ParcelPrimate() {
               <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 p-2">
                 <span className="min-w-0">
                   <b className="block truncate">{c.subject}</b>
-                  <span className="text-white/45">{when(c.created_at)} · {AUD[c.audience]?.[0] || c.audience} · {c.recipients} people
+                  <span className="text-white/60">{when(c.created_at)} · {AUD[c.audience]?.[0] || c.audience} · {c.recipients} people
                     {c.messaged ? ` · ${c.messaged} DMs` : ""}{c.emailed ? ` · ${c.emailed} emails` : ""}</span>
                 </span>
                 {c.post && <a className="re-link shrink-0" href={c.post.url}>post <ExternalLink size={10} className="inline" /></a>}

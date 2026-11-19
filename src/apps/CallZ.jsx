@@ -285,7 +285,7 @@ export default function CallZ() {
             <span className={mine.direction === "outgoing" ? "text-mcz-ember" : "text-emerald-300"}>
               {mine.direction === "outgoing" ? "−" : "+"}{usd(mine.cost_cents)} {MONEY}
             </span>
-            <span className="text-[11px] font-normal text-white/40">
+            <span className="text-[11px] font-normal text-white/55">
               {mine.rate_cents_per_min ? `${usd(mine.rate_cents_per_min)}/min` : "free call"}
               {mine.held_cents ? ` · ${usd(mine.held_cents)} held` : ""}
             </span>
@@ -328,7 +328,7 @@ export default function CallZ() {
             <div className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
               {(quote.skills || []).length > 1 && (
                 <div className="space-y-1">
-                  <p className="text-[11px] text-white/45">Call about (each skill they price by the hour):</p>
+                  <p className="text-[11px] text-white/60">Call about (each skill they price by the hour):</p>
                   <div className="flex flex-wrap gap-1.5">
                     {quote.skills.map((s) => (
                       <button key={s.name} type="button" onClick={() => setSkill(s.name)}
@@ -349,7 +349,7 @@ export default function CallZ() {
                       −{usd(perMin)} {MONEY}</span> a minute{picked ? <> for {picked.name}</> : ""}.</>}
               </p>
               {!quote.free && (
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/60">
                   You have {usd(quote.your_money_cents)} {MONEY} — about{" "}
                   <b className="text-white/70">{minutes ?? quote.affordable_minutes} minutes</b>. Up to{" "}
                   {quote.max_escrow_minutes} minutes is held when they answer and the rest
@@ -394,7 +394,7 @@ export default function CallZ() {
                   <span className="block truncate text-[13px] text-white/85">
                     {c.direction === "outgoing" ? "→" : "←"} {c.other}
                   </span>
-                  <span className="block text-[10px] text-white/35">
+                  <span className="block text-[10px] text-white/50">
                     {c.status}{c.billed_seconds || c.elapsed_seconds
                       ? ` · ${mmss(c.elapsed_seconds)}` : ""}
                     {c.end_reason ? ` · ${c.end_reason}` : ""}

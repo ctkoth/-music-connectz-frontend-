@@ -104,7 +104,7 @@ export default function BreathZ() {
               <div className="space-y-1 text-sm">
                 <p className="text-white/85">{pattern.what}</p>
                 <p className="text-[12px] text-white/55">Why: {pattern.why}</p>
-                <p className="text-[12px] text-white/45">
+                <p className="text-[12px] text-white/60">
                   {pattern.rounds} rounds · about {totalSeconds(plan)}s · {pattern.xp} ⭐ XP when you finish (free)
                 </p>
                 {pattern.bpm_based && (

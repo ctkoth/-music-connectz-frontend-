@@ -158,7 +158,7 @@ function MsgList({ title, rows, who, editable }) {
   const ed = editable;
   return (
     <div>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">{title}</h3>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">{title}</h3>
       <div className="neon-frame divide-y divide-white/5">
         {rows.length === 0 && <Empty className="p-4" text="Nothing yet." action="Write one" onAction={() => goToSpot("messagez", "messagez-compose")} />}
         {rows.map((m) => {
@@ -187,7 +187,7 @@ function MsgList({ title, rows, who, editable }) {
               )}
               {m.edited_at && !isEditing && <p className="text-[10px] text-white/30">· edited</p>}
               {ed && m.mine && !isEditing && canEdit && (
-                <button className="mt-1 text-[11px] text-white/40 hover:text-mcz-cyan"
+                <button className="mt-1 text-[11px] text-white/55 hover:text-mcz-cyan"
                         onClick={() => ed.setEditing({ id: m.id, draft: m.body })}>
                   Edit · {left}s left
                 </button>

@@ -24,7 +24,7 @@ export default function ForgotPassword() {
     <AuthShell title="Reset your password" subtitle="Enter your username, email, or phone — we'll email you a reset link.">
       <form onSubmit={submit} className="space-y-3">
         <div className="relative">
-          <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input className="neon-input pl-10" placeholder="Username, email, or phone"
                  value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
         </div>

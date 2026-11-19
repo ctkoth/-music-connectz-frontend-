@@ -271,7 +271,7 @@ function OAuthButtonsInner({ onSuccess, onError, first = false, divider }) {
     <div className="space-y-3">
       {/* `first`: the one-tap doors lead the screen and the divider sits AFTER them ("or with email"). */}
       {!first && (
-        <div className="flex items-center gap-3 text-xs text-white/40">
+        <div className="flex items-center gap-3 text-xs text-white/55">
           <span className="h-px flex-1 bg-white/10" /> {divider || "or continue with"} <span className="h-px flex-1 bg-white/10" />
         </div>
       )}
@@ -373,7 +373,7 @@ function OAuthButtonsInner({ onSuccess, onError, first = false, divider }) {
           <button
             type="button"
             onClick={() => setShowMore((v) => !v)}
-            className="flex w-full items-center justify-center gap-1 py-1 text-xs font-semibold text-white/40 hover:text-white/70"
+            className="flex w-full items-center justify-center gap-1 py-1 text-xs font-semibold text-white/55 hover:text-white/70"
           >
             {showMore ? "Fewer options" : `More sign-in options (${rest.length})`}
             <ChevronDown size={13} className={`transition ${showMore ? "rotate-180" : ""}`} />

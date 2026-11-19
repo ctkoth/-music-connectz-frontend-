@@ -55,7 +55,7 @@ function GetYours({ coach, author, join }) {
             className="inline-block rounded-lg border border-mcz-cyan/40 px-3 py-1.5 text-[12px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/10">
         Get your own take scored — free, no account
       </Link>
-      <p className="text-[11px] leading-relaxed text-white/45">
+      <p className="text-[11px] leading-relaxed text-white/60">
         Upload a clip or record one and the {g.label} coach reads it.{" "}
         {author && join?.joinee_spinaz
           ? <>Join after through @{author}'s link: <span className="text-emerald-300">+{join.joinee_spinaz} {SPINAZ}</span> for you, <span className="text-emerald-300">+{join.referrer_spinaz} {SPINAZ}</span> for them.</>
@@ -90,7 +90,7 @@ function List({ title, items }) {
   if (!items?.length) return null;
   return (
     <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
-      <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">{title}</p>
+      <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">{title}</p>
       <ul className="space-y-1 text-[12px] leading-relaxed text-white/75">
         {items.map((x, i) => <li key={i}>• {x}</li>)}
       </ul>
@@ -102,7 +102,7 @@ function Note({ title, text }) {
   if (!text) return null;
   return (
     <div className="rounded-xl border border-white/[0.08] bg-black/20 p-3">
-      <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">{title}</p>
+      <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">{title}</p>
       <p className="text-[12px] leading-relaxed text-white/75">{text}</p>
     </div>
   );
@@ -128,7 +128,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/80">
             👑 Coach's read · {read.label}
           </p>
-          <p className="text-[10px] text-white/40">
+          <p className="text-[10px] text-white/55">
             {given ? `Given ${given}` : "Given by the coach"}
             {read.coached_by ? ` on @${read.coached_by}'s take` : ""}
             {coach.public ? " · open to anyone with the link" : ""}
@@ -149,7 +149,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
           one take is read as a verdict on the person, and the caveat is the
           sentence that stops that. */}
       {compact && !open && read.caveat && (
-        <p className="mt-2 text-[10px] leading-relaxed text-white/35">{firstSentence(read.caveat, 200)}</p>
+        <p className="mt-2 text-[10px] leading-relaxed text-white/50">{firstSentence(read.caveat, 200)}</p>
       )}
 
       {open && (
@@ -197,7 +197,7 @@ function Shown({ coach, compact, signedIn, onOpen, author }) {
       )}
 
       {open && read.caveat && (
-        <p className="mt-3 text-[11px] leading-relaxed text-white/45">{read.caveat}</p>
+        <p className="mt-3 text-[11px] leading-relaxed text-white/60">{read.caveat}</p>
       )}
 
       {/* Not a dead end. A member opens the coach that gave this read; a
@@ -286,7 +286,7 @@ export function CoachReadSetting({ post, onChanged, onFlash }) {
       </button>
       {open && (
         <div className="mt-2 space-y-2 rounded-xl border border-white/[0.08] bg-black/25 p-3">
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             Who sees the coach's read on this song. It is separate from who can open the post.
           </p>
           {READ_CHOICES.map((c) => {
@@ -312,7 +312,7 @@ export function CoachReadSetting({ post, onChanged, onFlash }) {
             <span className="text-white/70">A member sees:</span> {memberSees(post.visibility, current)}
           </p>
           <div className="border-t border-white/[0.06] pt-2">
-            <p className="text-[11px] leading-relaxed text-white/45">{REMOVE_RESULT}</p>
+            <p className="text-[11px] leading-relaxed text-white/60">{REMOVE_RESULT}</p>
             <button type="button" onClick={remove} disabled={!!busy}
                     className="mt-1 text-[11px] text-mcz-ember hover:underline">
               {busy === "remove" ? "Removing…" : "Remove the read from this post"}

@@ -47,7 +47,7 @@ const TIER_NAME = { free: "Free", premium: "Premium", statz: "StatZ" };
 const STATUS_STYLE = {
   suggested: "!text-mcz-gold", queued: "", running: "!text-mcz-cyan",
   done: "!text-emerald-300", failed: "!text-mcz-ember",
-  undone: "!text-white/40", cancelled: "!text-white/40",
+  undone: "!text-white/55", cancelled: "!text-white/55",
 };
 // The stored word for "on the list" is `queued`, which reads as a claim that
 // something is lined up to run. Nothing is: it is a to-do.
@@ -64,7 +64,7 @@ function Toggle({ toggle, on, allowed, onChange }) {
           {toggle.emoji} {toggle.name}
           {!allowed && <Lock size={11} className="ml-1 inline text-mcz-ember" />}
         </p>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{toggle.desc}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">{toggle.desc}</p>
         {!allowed && (
           <p className="mt-1 text-[10px] text-mcz-ember">
             Needs {toggle.needs} —{" "}
@@ -103,7 +103,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-[13px] text-white/85">{task.title}</p>
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             <span className={`pill !px-1.5 !py-0 !text-[9px] ${STATUS_STYLE[task.status] || ""}`}>
               {STATUS_LABEL[task.status] || task.status}
             </span>{" "}
@@ -114,7 +114,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
             {task.eta_seconds > 0 && task.status === "running" && <> · ~{task.eta_seconds}s left</>}
           </p>
           {task.detail && task.status !== "queued" && (
-            <p className="mt-0.5 text-[10px] text-white/45">{task.detail}</p>
+            <p className="mt-0.5 text-[10px] text-white/60">{task.detail}</p>
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
@@ -163,7 +163,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
           <p><span className="text-mcz-gold">How · </span><span className="text-white/70">{task.how}</span></p>
           {match?.auto_safe && choices.length > 0 && (
             <div className="space-y-0.5 pt-1">
-              <p className="text-[10px] text-white/45">Untick any you want to keep:</p>
+              <p className="text-[10px] text-white/60">Untick any you want to keep:</p>
               {choices.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-[11px] text-white/70">
                   <input type="checkbox" className="h-3.5 w-3.5 accent-cyan-400" checked={!unticked.has(c.id)} onChange={() => flip(c.id)} />
@@ -190,7 +190,7 @@ function Task({ task, match, onDone, onDoIt, onUndo, onCancel, onSendToLilith })
               </button>
             )}
             {!match && (
-              <span className="text-[10px] text-white/40">
+              <span className="text-[10px] text-white/55">
                 Your account has moved on — this one isn't needed any more.
               </span>
             )}
@@ -221,7 +221,7 @@ function Work({ work, onShare, onUnshare, onDelete, onDoor, busy }) {
       <div className="flex items-start justify-between gap-2">
         <button className="min-w-0 flex-1 text-left" onClick={() => setOpen(!open)}>
           <p className="truncate text-[13px] text-white/85">{work.title}</p>
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             {/* "Posted / not posted" is PostZ's vocabulary; a shell has no PostZ. */}
             {!IN_SHELL && (work.shared ? (
               <span className="text-emerald-300">Posted</span>
@@ -285,7 +285,7 @@ function Work({ work, onShare, onUnshare, onDelete, onDoor, busy }) {
             </div>
           )}
           {!IN_SHELL && !work.shared && (
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               <Star size={9} className="mr-0.5 inline" />
               Posting is what makes it rateable — likes, dislikes, comments and a
               rating all land on the post.
@@ -548,7 +548,7 @@ export default function OCC() {
         <IconImg icon="occ.png" alt="OCC" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">Ocular Code ConnectZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             {IN_SHELL ? "Ask OCC, and keep what it makes." : "AI that builds with you — ask it, keep what it makes, run what you write."}
           </p>
         </div>
@@ -584,16 +584,16 @@ export default function OCC() {
               <Plus size={14} /> Add <span className="text-emerald-300">Free</span>
             </button>
           </div>
-          <p className="text-[10px] leading-relaxed text-white/35">
+          <p className="text-[10px] leading-relaxed text-white/50">
             Your own to-do list. OCC doesn't pick these up — the code you run and the
             suggestions you accept add their own rows here as they happen.
             {spec && <> Undo window on your tier: {Math.round((spec.undo_window_seconds || 0) / 60)} minutes,
             for changes OCC can put back.</>}
           </p>
           {tasks === null ? (
-            <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+            <p className="flex items-center gap-2 text-[11px] text-white/55"><Loader2 className="animate-spin" size={12} /> Loading…</p>
           ) : tasks.length === 0 ? (
-            <p className="text-[12px] text-white/40">Nothing on your list.</p>
+            <p className="text-[12px] text-white/55">Nothing on your list.</p>
           ) : (
             <ul className="space-y-2">
               {tasks.map((t) => (
@@ -612,13 +612,13 @@ export default function OCC() {
         <div className="re-card space-y-3" data-tour="occ-run">
           <div className="re-label">▶️ Run it</div>
           {!spec.can_execute ? (
-            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/60">
               <Lock size={12} className="mt-0.5 shrink-0 text-mcz-ember" />
               {spec.execute_note}
             </p>
           ) : (
             <>
-              <p className="text-[11px] leading-relaxed text-white/45">
+              <p className="text-[11px] leading-relaxed text-white/60">
                 A fresh container per run, no network out.{" "}
                 <span className="text-mcz-ember">{perSecondText(spec.execute)}</span>, charged for
                 the seconds it actually ran — a run that never starts costs nothing.
@@ -630,14 +630,14 @@ export default function OCC() {
                   {asList(spec.execute.languages).map((l) => <option key={l} value={l}>{l}</option>)}
                 </select>
 <UsualHint field="occ.lang" value={lang} onUse={setLang} />
-                <span className="text-[10px] text-white/35">
+                <span className="text-[10px] text-white/50">
                   {lim.blocked ? "Can't start a run right now" : `This run: up to ${lim.seconds}s`}
                   {" · "}{spec.execute.seconds_left_today}s of sandbox time left today
                   {" · "}you have {amount(spec.execute.energy ?? 0, ENERGY)}
                 </span>
               </div>
               {!lim.blocked && lim.seconds < spec.execute.per_run_seconds && (
-                <p className="text-[10px] text-white/40">
+                <p className="text-[10px] text-white/55">
                   Your tier allows {spec.execute.per_run_seconds}s a run; today's time and your
                   Energy cap this one at {lim.seconds}s.
                 </p>
@@ -666,7 +666,7 @@ export default function OCC() {
                 </pre>
               )}
               {ran && (
-                <p className="text-[10px] text-white/35">
+                <p className="text-[10px] text-white/50">
                   exit {ran.exit_code} · {ran.seconds}s ·{" "}
                   <span className="text-mcz-ember">{amount(ran.charged, ENERGY, "−")}</span> · kept in
                   WorkZ below, ready to post.
@@ -684,7 +684,7 @@ export default function OCC() {
         <div className="re-label flex items-center gap-2">
           <IconImg icon="workz.png" alt="" className="h-5 w-5 rounded" /> WorkZ
         </div>
-        <p className="text-[11px] leading-relaxed text-white/45">
+        <p className="text-[11px] leading-relaxed text-white/60">
           {IN_SHELL
             ? "What you asked OCC and what it gave back, kept here. Save a chat reply and it lands in this list."
             : "Text and attachments in, work out. Save a chat reply here, post it and it's rated, liked, disliked and commented on like anything else — or take it straight into another app."}
@@ -736,7 +736,7 @@ export default function OCC() {
             <Plus size={14} /> Keep it <span className="text-emerald-300">Free</span>
           </button>
           {!IN_SHELL && (
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               Keeping is free. Posting later costs the combined price of the skills
               you put on it — the row says how much before you press it.
             </p>
@@ -744,9 +744,9 @@ export default function OCC() {
         </div>
 
         {works === null ? (
-          <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+          <p className="flex items-center gap-2 text-[11px] text-white/55"><Loader2 className="animate-spin" size={12} /> Loading…</p>
         ) : works.length === 0 ? (
-          <p className="text-[12px] text-white/40">Nothing kept yet.</p>
+          <p className="text-[12px] text-white/55">Nothing kept yet.</p>
         ) : (
           <ul className="space-y-2">
             {works.map((w) => (
@@ -764,17 +764,17 @@ export default function OCC() {
         <div className="re-card space-y-3" data-tour="occ-suggest">
           <div className="re-label">💭 What's worth doing</div>
           {!sugg.suggestionz_allowed ? (
-            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/45">
+            <p className="flex items-start gap-2 text-[11px] leading-relaxed text-white/60">
               <Lock size={12} className="mt-0.5 shrink-0 text-mcz-ember" />
               SuggestionZ is Premium — it reads your account and tells you what's
               worth doing next, with what, why and how.
             </p>
           ) : !sugg.suggestionz ? (
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               SuggestionZ is switched off in Settings below.
             </p>
           ) : sugg.suggestions.length === 0 ? (
-            <p className="text-[12px] text-white/40">
+            <p className="text-[12px] text-white/55">
               Nothing to suggest — you're straight.
             </p>
           ) : (
@@ -823,7 +823,7 @@ export default function OCC() {
           )}
           {/* Said plainly, because "StatZ automates everything" is what a member
               would otherwise assume and be wrong about. */}
-          <p className="text-[10px] leading-relaxed text-white/35">{sugg.note}</p>
+          <p className="text-[10px] leading-relaxed text-white/50">{sugg.note}</p>
         </div>
       )}
 
@@ -872,7 +872,7 @@ export default function OCC() {
                     {tab.name}
                     {!tab.allowed && <Lock size={10} className="text-mcz-ember" />}
                   </p>
-                  <p className="text-[10px] leading-relaxed text-white/35">{tab.desc}</p>
+                  <p className="text-[10px] leading-relaxed text-white/50">{tab.desc}</p>
                   {!tab.allowed && (
                     <p className="text-[10px] text-mcz-ember">Needs {tab.needs}</p>
                   )}
@@ -903,16 +903,16 @@ export default function OCC() {
                 {lv.label}
                 {lv.key === spec.game_level && <span className="pill !text-[9px]">yours</span>}
                 {!lv.allowed && (
-                  <span className="text-[10px] font-normal text-white/45">
+                  <span className="text-[10px] font-normal text-white/60">
                     needs {TIER_NAME[lv.needs] || lv.needs}
                   </span>
                 )}
               </div>
               <p className="text-[11px] text-white/60">{lv.scope}</p>
-              <p className="text-[10px] text-white/40">e.g. {lv.examples} · {lv.languages}</p>
+              <p className="text-[10px] text-white/55">e.g. {lv.examples} · {lv.languages}</p>
             </div>
           ))}
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             Ask for more than your level and OCC builds your level's version and says what the next adds.
           </p>
         </div>
@@ -924,7 +924,7 @@ export default function OCC() {
           <div className="re-label">🎮 Build a game in</div>
           <div className="flex flex-wrap gap-1.5">
             {asList(spec.languages).map((l) => (
-              <span key={l.key} className={`pill !text-[10px] ${l.runs ? "" : "!text-white/45"}`}
+              <span key={l.key} className={`pill !text-[10px] ${l.runs ? "" : "!text-white/60"}`}
                     title={l.runs ? "OCC can write this and run it" : "OCC can write this — no sandbox runner yet"}>
                 {l.name}{l.runs ? " ▶" : ""}
               </span>
@@ -938,7 +938,7 @@ export default function OCC() {
           {/* Seventeen advertised, twelve runnable. That is not a lie — OCC writes
               Unity C# perfectly well without executing it — but the pills sit right
               above a Run panel that offers twelve, so the line gets drawn here. */}
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             ▶ means OCC can run it in the sandbox too. The rest it writes; you run them
             in your own engine.
             {asList(spec.languages_locked).length > 0

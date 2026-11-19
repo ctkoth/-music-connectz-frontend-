@@ -137,7 +137,7 @@ body {
     @apply rounded-xl border border-white/[0.06] bg-white/[0.03] p-4;
   }
   .re-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40;
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55;
   }
   /* Outlined glow pill, not a solid fill — border, glow AND icon (lucide
      icons stroke with currentColor) all come from the text color, so a

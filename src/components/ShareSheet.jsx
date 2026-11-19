@@ -64,7 +64,7 @@ export default function ShareSheet({ item, onClose }) {
         <p className="text-[11px] font-bold uppercase tracking-widest text-white/50">
           <Share2 size={12} className="mr-1 inline" /> Share {item.kind === "post" ? "this post" : "this"}
         </p>
-        <button onClick={onClose} aria-label="Close" className="text-white/40 hover:text-white"><X size={14} /></button>
+        <button onClick={onClose} aria-label="Close" className="text-white/55 hover:text-white"><X size={14} /></button>
       </div>
       {item.kind === "post" && <p className="text-[11px] text-white/60">{WHO[item.visibility] || WHO.public}</p>}
       {item.kind === "post" && !item.mine && !blocked && (
@@ -84,7 +84,7 @@ export default function ShareSheet({ item, onClose }) {
       )}
       {item.opens?.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-2 text-xs">
-          <span className="text-white/45">Open in</span>
+          <span className="text-white/60">Open in</span>
           {item.opens.map((o) => (
             <button key={o.label} className="pill hover:text-mcz-gold" onClick={() => { onClose?.(); goToSpot(o.tab, o.target); }}>{o.label}</button>
           ))}

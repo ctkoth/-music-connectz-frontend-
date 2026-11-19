@@ -72,7 +72,7 @@ export default function PublicBattle() {
             {b.host && (
               <p className="text-sm text-white/60">hosted by <Link to={`/u/${b.host}`} className="font-semibold text-white hover:text-mcz-cyan">@{b.host}</Link></p>
             )}
-            <p className="mt-1 text-[12px] text-white/45">{STATUS[b.status] || b.status}</p>
+            <p className="mt-1 text-[12px] text-white/60">{STATUS[b.status] || b.status}</p>
           </div>
 
           {b.description && <p className="text-sm text-white/75">{b.description}</p>}
@@ -99,7 +99,7 @@ export default function PublicBattle() {
               ))}
             </div>
           )}
-          <p className="text-[11px] text-white/35">Rating the entries and entering happen inside, with an account.</p>
+          <p className="text-[11px] text-white/50">Rating the entries and entering happen inside, with an account.</p>
 
           {/* A dare a stranger can answer at the free door. Said plainly that the free take
               is their score, not a battle entry — entering needs an account. Freestyle and

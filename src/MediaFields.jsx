@@ -171,7 +171,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
 
   return (
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{label}</p>
 
       <div className="flex flex-wrap items-center gap-2">
         {!recording ? (
@@ -214,7 +214,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
       {SLOTS.map(([slot, Tag]) => v[`${slot}_url`] && !recording && (
         <div key={slot} className="space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-widest text-white/35">{slot}</span>
+            <span className="text-[10px] uppercase tracking-widest text-white/50">{slot}</span>
             <button type="button" className="text-white/30 hover:text-mcz-ember"
                     onClick={() => discardSlot(slot)} title={`Remove the ${slot}`}>
               <Trash2 size={12} />
@@ -227,7 +227,7 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
               same confusion BossTake's recorder audit fixed there. What we
               actually counted on the way in is the only honest signal. */}
           {slot === "audio" && v.audio_blob && (
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               {secs > 0 && <>{mmss} · </>}{sizeLabel(v.audio_blob.size)}
               <span className="text-white/30">
                 {" "}— the player may show 0:00 for a browser recording; that's the file's

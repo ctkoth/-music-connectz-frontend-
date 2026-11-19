@@ -55,7 +55,7 @@ function Axis({ axis, value, onChange, size = "md" }) {
   const pad = size === "sm" ? "px-2.5 py-1 text-[11px]" : "px-4 py-2 text-sm";
   return (
     <div>
-      <p className={`mb-1 ${size === "sm" ? "text-[10px]" : "text-[11px]"} text-white/40`}>
+      <p className={`mb-1 ${size === "sm" ? "text-[10px]" : "text-[11px]"} text-white/55`}>
         {axis.question}
       </p>
       <div className="flex gap-2">
@@ -91,10 +91,10 @@ export default function PersonalitieZ({ value, onChange, axes: given }) {
 
   return (
     <div>
-      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🧭 PersonalitieZ ({answered} of {axes.length} answered)
       </p>
-      <p className="mb-3 text-[11px] leading-relaxed text-white/40">
+      <p className="mb-3 text-[11px] leading-relaxed text-white/55">
         Four axes, and neither side of any of them is better — this is something you say
         about yourself, not a score, and it never moves a rating or a skill level. It becomes
         a filter people can find you with. Leave any of them blank; blank stays blank.
@@ -122,7 +122,7 @@ export function PersonalityFilter({ value = {}, onChange, note }) {
   const on = Object.keys(value).length;
   return (
     <div className="space-y-2">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         🧭 PersonalitieZ {on ? `· ${on} axis${on === 1 ? "" : "es"} on` : ""}
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -137,7 +137,7 @@ export function PersonalityFilter({ value = {}, onChange, note }) {
           different causes — nobody matches, or nobody has said — and letting
           somebody conclude the first from the second is the emptiest kind of
           wrong on a field this new. */}
-      {note && <p className="text-[11px] text-white/40">{note}</p>}
+      {note && <p className="text-[11px] text-white/55">{note}</p>}
     </div>
   );
 }

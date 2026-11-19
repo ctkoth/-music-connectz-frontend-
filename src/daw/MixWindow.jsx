@@ -77,7 +77,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
       {!master && (
         <>
           {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} />}
-          <p className="uppercase tracking-wider text-white/40">Inserts</p>
+          <p className="uppercase tracking-wider text-white/55">Inserts</p>
           {inserts.map((ins) => (
             <div key={ins.id}>
               <div className="flex items-center gap-1 rounded bg-white/10 px-1 py-0.5">
@@ -86,7 +86,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
                 <button type="button" className="min-w-0 flex-1 truncate text-left text-white/80" onClick={() => setOpen(open === ins.id ? null : ins.id)}>
                   {PLUGINS[ins.type].emoji} {PLUGINS[ins.type].label}
                 </button>
-                <button type="button" aria-label={`Remove ${PLUGINS[ins.type].label}`} className="text-white/40 hover:text-mcz-ember"
+                <button type="button" aria-label={`Remove ${PLUGINS[ins.type].label}`} className="text-white/55 hover:text-mcz-ember"
                         onClick={() => onInserts(inserts.filter((x) => x.id !== ins.id))}><X size={11} /></button>
               </div>
               {open === ins.id && <InsertEditor insert={ins} onChange={setInsert} onClose={() => setOpen(null)} bands={bands} />}

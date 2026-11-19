@@ -13,7 +13,7 @@ export default function HashtagCount({ value, onChange, max = 30, className = ""
                const v = e.target.value;
                onChange(v === "" ? "" : Math.max(0, Math.min(max, Math.floor(Number(v) || 0))));
              }} />
-      <span className="text-white/40">{value === "" ? "writer's choice" : value === 0 ? "none" : "most relevant first"}</span>
+      <span className="text-white/55">{value === "" ? "writer's choice" : value === 0 ? "none" : "most relevant first"}</span>
     </label>
   );
 }

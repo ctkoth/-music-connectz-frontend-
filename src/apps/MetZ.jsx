@@ -259,7 +259,7 @@ function MetZ() {
             <Pause size={20} /> Stop
           </button>
 
-          <button
+          <button aria-label="Reset"
             onClick={handleReset}
             className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-6 py-3 font-bold text-white transition-all hover:bg-slate-600"
           >

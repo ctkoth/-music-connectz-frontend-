@@ -43,10 +43,10 @@ export default function PromoPost({ promo, onClose, title, note }) {
         {promo.share_url && (
           <a href={promo.share_url} target="_blank" rel="noreferrer" className="text-white/55 underline">See the card it links to</a>
         )}
-        <button type="button" onClick={onClose} className="text-white/45 hover:text-white/70">Close</button>
+        <button type="button" onClick={onClose} className="text-white/60 hover:text-white/70">Close</button>
         {msg && <span className="text-emerald-300">{msg}</span>}
       </div>
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-white/55">
         {note || (
           <>
             Written from your score and the coach's read only — nothing invented. It's saved in Sentence ConnectZ,

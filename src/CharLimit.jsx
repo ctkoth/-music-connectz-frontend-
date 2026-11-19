@@ -16,7 +16,7 @@ function useCharsFor() {
 }
 
 const COLOR = {
-  ok: "text-white/35",
+  ok: "text-white/50",
   near: "text-mcz-gold",
   full: "text-mcz-ember",
 };
@@ -74,7 +74,7 @@ export function TierCharTable({ current }) {
     <div className="flex flex-wrap gap-1.5 text-[11px]">
       {Object.keys(TIER_CHAR_LIMITS).map((tier) => (
         <span key={tier}
-          className={`pill ${tier === current ? "!border-mcz-ember/60 !text-mcz-ember" : "!text-white/45"}`}>
+          className={`pill ${tier === current ? "!border-mcz-ember/60 !text-mcz-ember" : "!text-white/60"}`}>
           {TIER_LABEL[tier]} {charsFor(tier)}
         </span>
       ))}

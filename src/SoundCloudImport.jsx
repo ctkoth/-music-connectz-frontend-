@@ -95,7 +95,7 @@ export default function SoundCloudImport({ clientId: given = "", compact = false
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
         Import from SoundCloud
       </p>
 

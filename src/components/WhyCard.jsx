@@ -27,7 +27,7 @@ export default function WhyCard() {
             {r.proof
               ? <span className="block text-emerald-300">{r.proof}</span>
               : <span className="block text-white/55">{r.try_it}</span>}
-            <span className="block text-[11px] text-white/45">{r.line}</span>
+            <span className="block text-[11px] text-white/60">{r.line}</span>
           </button>
         ))}
       </div>

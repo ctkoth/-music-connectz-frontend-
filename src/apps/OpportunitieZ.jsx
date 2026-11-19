@@ -60,7 +60,7 @@ export default function OpportunitieZ() {
         </div>
       ) : opportunities.length === 0 ? (
         <div className="neon-frame space-y-3 p-6 text-center">
-          <Briefcase size={24} className="mx-auto text-white/40" />
+          <Briefcase size={24} className="mx-auto text-white/55" />
           <p className="text-white/60">Nobody has posted what they need yet. Members show up here once they fill in "What I Need" on their ProfileZ — be the first, and the people who can help find you.</p>
           <button className="neon-btn-primary !w-auto px-5" onClick={() => goToSpot("profilez", "what-i-need")}>Fill in what I need →</button>
         </div>
@@ -77,7 +77,7 @@ export default function OpportunitieZ() {
                 <div className="flex-1">
                   <p className="font-semibold text-white">
                     <MemberName username={opp.username} />
-                    <span className="ml-2 text-[11px] font-normal text-white/40 uppercase tracking-wider">
+                    <span className="ml-2 text-[11px] font-normal text-white/55 uppercase tracking-wider">
                       {opp.tier}
                     </span>
                   </p>
@@ -97,13 +97,13 @@ export default function OpportunitieZ() {
                 )}
                 {opp.status && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-white/40">Building</p>
+                    <p className="text-[10px] uppercase tracking-wider text-white/55">Building</p>
                     <p className="text-white/80">{opp.status}</p>
                   </div>
                 )}
                 {opp.current_reach && (
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-white/40">Reach</p>
+                    <p className="text-[10px] uppercase tracking-wider text-white/55">Reach</p>
                     <p className="text-white/70">{opp.current_reach}</p>
                   </div>
                 )}

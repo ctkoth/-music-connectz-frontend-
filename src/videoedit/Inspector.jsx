@@ -23,7 +23,7 @@ function Slider({ label, value, min, max, step = 1, unit = "", onChange }) {
 
 const Section = ({ title, children, tour }) => (
   <div className="space-y-2 border-t border-white/10 pt-3" data-tour={tour}>
-    <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{title}</p>
+    <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">{title}</p>
     {children}
   </div>
 );
@@ -65,7 +65,7 @@ function useVoices() {
 export default function Inspector({ project, clip: c, t, lipAllowed, count = null, tierName = "your tier", onChange, onLive, onSplit, onDuplicate, onDelete }) {
   const v = useVoices();
   if (!c) {
-    return <p className="text-xs text-white/45">Select a clip on the timeline to trim it, give it a look, add FX, make it picture-in-picture or put words on it.</p>;
+    return <p className="text-xs text-white/60">Select a clip on the timeline to trim it, give it a look, add FX, make it picture-in-picture or put words on it.</p>;
   }
   const visual = c.kind !== "audio";
   const media = c.kind === "video" || c.kind === "audio";
@@ -82,7 +82,7 @@ export default function Inspector({ project, clip: c, t, lipAllowed, count = nul
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="truncate text-sm font-semibold">{c.kind === "text" ? "Title" : c.name || c.kind} <span className="text-xs font-normal text-white/45">· {trackName(project, c.track)}</span></p>
+        <p className="truncate text-sm font-semibold">{c.kind === "text" ? "Title" : c.name || c.kind} <span className="text-xs font-normal text-white/60">· {trackName(project, c.track)}</span></p>
         <div className="flex gap-1">
           <button className="re-btn !w-auto px-2 py-1 text-xs" disabled={!inside} onClick={onSplit} title="Split at the playhead (S)"><Scissors size={12} /> Split</button>
           <button className="re-btn !w-auto px-2 py-1 text-xs" onClick={onDuplicate} title="Duplicate"><Copy size={12} /></button>
@@ -114,7 +114,7 @@ export default function Inspector({ project, clip: c, t, lipAllowed, count = nul
             );
           })}
         </div>
-        <p className="text-[11px] text-white/40">A transition plays where this clip overlaps the one before it on the same track — drag it onto that clip&apos;s end.</p>
+        <p className="text-[11px] text-white/55">A transition plays where this clip overlaps the one before it on the same track — drag it onto that clip&apos;s end.</p>
       </Section>
 
       {visual && c.kind !== "text" && (
@@ -149,7 +149,7 @@ export default function Inspector({ project, clip: c, t, lipAllowed, count = nul
           <Slider label="Left / right" value={c.x} min={-100} max={100} unit="%" onChange={(x) => set({ x })} />
           <Slider label="Up / down" value={c.y} min={-100} max={100} unit="%" onChange={(x) => set({ y: x })} />
           <Slider label="Opacity" value={c.opacity} min={0} max={100} unit="%" onChange={(x) => set({ opacity: x })} />
-          {c.kind !== "text" && <p className="text-[11px] text-white/40">On an upper track, a smaller size makes a picture-in-picture over the tracks below.</p>}
+          {c.kind !== "text" && <p className="text-[11px] text-white/55">On an upper track, a smaller size makes a picture-in-picture over the tracks below.</p>}
         </Section>
       )}
 
@@ -205,7 +205,7 @@ export default function Inspector({ project, clip: c, t, lipAllowed, count = nul
                   {voiceErr && <p className="text-xs text-mcz-ember">{voiceErr}</p>}
                 </>
               )}
-              <p className="text-[11px] text-white/45">{LIP_NOTE}</p>
+              <p className="text-[11px] text-white/60">{LIP_NOTE}</p>
               <StatzSample what="Lip-sync" />
             </>
           )}

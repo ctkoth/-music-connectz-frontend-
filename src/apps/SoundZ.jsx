@@ -118,7 +118,7 @@ export default function SoundZ() {
             {on ? "On" : "Off"}
           </button>
         </div>
-        <p className="text-[11px] leading-relaxed text-white/45">
+        <p className="text-[11px] leading-relaxed text-white/60">
           Off by default, because a site that makes noise at a stranger is
           hostile. Every sound accompanies a number that's already on screen —
           nothing here is the only way to know something happened.
@@ -143,7 +143,7 @@ export default function SoundZ() {
                   {active && <span className="re-badge">On</span>}
                   {locked && <Lock size={12} className="text-white/30" />}
                 </span>
-                <span className="block text-[11px] leading-relaxed text-white/45">
+                <span className="block text-[11px] leading-relaxed text-white/60">
                   {p.blurb}
                 </span>
                 <span className="block text-[10px] text-white/30">
@@ -192,7 +192,7 @@ export default function SoundZ() {
       {state.can_customize && (
         <div className="space-y-2">
           <p className="re-label">One sound at a time</p>
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             Like the house set but want a louder coin? Take a single sound from
             another pack. {Object.keys(overrides).length}/{state.max_overrides} set.
           </p>

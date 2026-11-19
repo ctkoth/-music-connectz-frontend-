@@ -28,7 +28,7 @@ export function RapzProfilePanel() {
   }
   return (
     <div className="neon-frame space-y-3 p-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Your RapZ game profile {p.boss_unlocked && "· 👑 BOSS"}</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">Your RapZ game profile {p.boss_unlocked && "· 👑 BOSS"}</p>
       <p className="text-xs text-white/50">Top 3 styles ({styles.length}/3):</p>
       <p className="flex flex-wrap gap-1">
         {RAP_STYLES.map((s) => (
@@ -65,7 +65,7 @@ export function SingzProfilePanel() {
   }
   return (
     <div className="neon-frame space-y-3 p-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
         Your SingZ voice profile {p.boss_unlocked && "· 🎤 BOSS"}
       </p>
       <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">

@@ -45,7 +45,7 @@ export default function NowPlayingBar() {
                    onChange={(e) => { if (ref.current) ref.current.currentTime = Number(e.target.value); }}
                    className="h-1 w-full accent-[#ff5500]" />
           </div>
-          <span className="shrink-0 text-[11px] tabular-nums text-white/45">{fmt(t.cur)} / {fmt(t.dur)}</span>
+          <span className="shrink-0 text-[11px] tabular-nums text-white/60">{fmt(t.cur)} / {fmt(t.dur)}</span>
           <button type="button" aria-label="Close player" onClick={stopTrack} className="shrink-0 text-white/50 hover:text-white">
             <X size={16} />
           </button>

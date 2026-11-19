@@ -73,7 +73,7 @@ export default function PublicProfile() {
           <CoverBanner url={p.cover_url} />
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{p.display_name}</h1>
-            <p className="flex flex-wrap items-center gap-1.5 text-sm text-white/45">
+            <p className="flex flex-wrap items-center gap-1.5 text-sm text-white/60">
               <span>@{p.username}</span>
               {/* This is the page being linked TO, so the button is the
                   shortest path from "I like this person's work" to sending it
@@ -97,7 +97,7 @@ export default function PublicProfile() {
 
           {p.personas?.map((persona, i) => (
             <div key={i}>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
                 {persona.name || persona.key}
                 {Array.isArray(persona.roles) && persona.roles.length > 0 && (
                   <span className="ml-2 normal-case tracking-normal text-mcz-cyan/80">· {persona.roles.join(", ")}</span>

@@ -46,7 +46,7 @@ export default function PushSettings({ compact = false }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 font-semibold text-white/80">
           <BellRing size={13} /> Push to this device
-          <span className={here ? "text-emerald-300" : "text-white/40"}>{here ? "on" : "off"}</span>
+          <span className={here ? "text-emerald-300" : "text-white/55"}>{here ? "on" : "off"}</span>
         </span>
         {can.ok ? (
           <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={busy} onClick={here ? off : on}>
@@ -59,7 +59,7 @@ export default function PushSettings({ compact = false }) {
 
       {here && !compact && (
         <>
-          <p className="text-white/45">
+          <p className="text-white/60">
             Only things about you, at most {s.daily_cap} a day, and never during quiet hours.
             Tap one and it opens the thing it's about.
           </p>
@@ -82,7 +82,7 @@ export default function PushSettings({ compact = false }) {
             <select aria-label="Quiet until" data-nomemo="true" className="neon-input !w-auto !py-0.5 text-xs" value={s.quiet.end} onChange={(e) => quiet("quiet_end", e.target.value)}>
               {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hour(h)}</option>)}
             </select>
-            {s.quiet.tz && <span className="text-white/35">({s.quiet.tz.replace(/_/g, " ")}{s.quiet.tz_guessed ? " — assumed until your browser says" : ""})</span>}
+            {s.quiet.tz && <span className="text-white/50">({s.quiet.tz.replace(/_/g, " ")}{s.quiet.tz_guessed ? " — assumed until your browser says" : ""})</span>}
             <button className="re-link ml-auto" onClick={test} disabled={busy}>Send me a test</button>
           </div>
         </>

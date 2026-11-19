@@ -78,7 +78,7 @@ export default function EnergyRegenerationDisplay() {
       <span className="text-white/70">
         +{energyInfo.regenPerHour}⚡/hr
       </span>
-      <span className="text-white/40 text-[10px]">
+      <span className="text-white/55 text-[10px]">
         ({tierLabels[energyInfo.tier]})
       </span>
       {minsUntilRefill > 0 && minsUntilRefill < 60 && (

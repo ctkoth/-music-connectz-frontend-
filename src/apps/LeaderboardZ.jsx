@@ -88,7 +88,7 @@ export default function LeaderboardZ({ period = "week" }) {
           these live, but that's 7 more API calls on a screen that already
           loads in one — a call this fix doesn't make for you. */}
       <div className="space-y-1.5">
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-white/55">
           🏆 Coach XP — every instrument has its own board. Pick yours:
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -234,7 +234,7 @@ export function InstrumentLeaderboardCard({ appKey, limit = 5 }) {
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-mcz-gold font-bold w-5 text-right">#{leader.rank}</span>
               <span className="text-white truncate">{leader.username}</span>
-              <span className="text-white/40">L{leader.level}</span>
+              <span className="text-white/55">L{leader.level}</span>
             </div>
             <span className="text-mcz-gold font-medium">+{leader.xp_earned}⭐</span>
           </div>

@@ -79,7 +79,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
                       onClick={() => setKind(k)}>{KIND_LABEL[k]}</button>
             ))}
           </div>
-          <p className="text-white/45">{presetRoom(state, kind).line} — each kind has its own room.</p>
+          <p className="text-white/60">{presetRoom(state, kind).line} — each kind has its own room.</p>
           <input className="w-full rounded bg-white/10 px-1 py-0.5 text-white" placeholder="Name, e.g. My vocal" maxLength={60} autoFocus
                  value={name} onChange={(e) => setName(e.target.value)} aria-label="Preset name"
                  onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) doSave(); if (e.key === "Escape") setSaving(false); }} />

@@ -54,7 +54,7 @@ export default function UpdateNotice() {
             {open ? "Hide what's new" : "What's new"}
           </button>
         )}
-        <span className="w-full text-[11px] text-white/45">Reloading throws away anything you haven't sent or saved yet — finish that first.</span>
+        <span className="w-full text-[11px] text-white/60">Reloading throws away anything you haven't sent or saved yet — finish that first.</span>
       </div>
       {open && (
         <ul className="mx-auto mt-2 max-w-3xl list-disc space-y-1 pl-5 text-xs text-white/75">

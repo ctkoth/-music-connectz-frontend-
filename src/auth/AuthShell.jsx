@@ -35,7 +35,7 @@ export function AuthShell({ title, subtitle, children }) {
             {build.emoji} Download for {build.key === "android" ? "Android (.apk)" : "Windows (.exe)"}
           </span>
           <span className="ml-1.5 text-emerald-300">Free</span>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">
             {build.note} {build.key === "android"
               ? "You'll need to allow installs from this source."
               : "Unsigned build — SmartScreen: More info → Run anyway."}

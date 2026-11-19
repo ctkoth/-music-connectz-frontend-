@@ -24,11 +24,11 @@ export default function SuperfanZ({ username = "" }) {
   const you = d.you;
   return (
     <section data-tour="superfanz" className="space-y-2">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
         {d.name} {d.emoji}
       </p>
       {d.top.length === 0 ? (
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/60">
           {d.mine ? "No superfans yet — they show up here as people keep coming back to your posts."
                   : `Nobody has reached ${d.min_points} yet.`}
         </p>
@@ -37,7 +37,7 @@ export default function SuperfanZ({ username = "" }) {
           {d.top.map((r) => (
             <li key={r.username} className="flex items-center justify-between gap-2 rounded-lg bg-white/5 px-3 py-1.5 text-xs">
               <span className="flex min-w-0 items-center gap-2">
-                <span className="text-white/40">#{r.rank}</span>
+                <span className="text-white/55">#{r.rank}</span>
                 <MemberName username={r.username} bare />
                 <span aria-hidden>{d.emoji}</span>
               </span>
@@ -55,11 +55,11 @@ export default function SuperfanZ({ username = "" }) {
             ? <>You're one of @{d.artist}'s SuperfanZ {d.emoji} — your comments pin to the top of their posts.</>
             : <>You have {you.points} pts with @{d.artist}; {you.to_top} more to be one of their SuperfanZ.</>}
           {Array.isArray(d.your_listing) && d.your_listing.includes("private") && (
-            <span className="text-white/45"> You're hidden from these lists (VisibilitieZ).</span>
+            <span className="text-white/60"> You're hidden from these lists (VisibilitieZ).</span>
           )}
         </p>
       )}
-      <p className="text-[10px] text-white/40">{d.rule}</p>
+      <p className="text-[10px] text-white/55">{d.rule}</p>
     </section>
   );
 }

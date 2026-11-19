@@ -65,7 +65,7 @@ export default function GenreZ() {
 
       {GENRE_GROUPS.map((grp) => (
         <div key={grp.key} className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/40">{grp.emoji} {grp.label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-white/55">{grp.emoji} {grp.label}</p>
           <div className="flex flex-wrap gap-1.5">
             {grp.genres.map(([name]) => (
               <Chip key={name} on={picked.includes(name)} onClick={() => toggle(name)}>{genreLabel(name)}</Chip>
@@ -79,7 +79,7 @@ export default function GenreZ() {
                className="mt-1 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30" />
       </label>
 
-      {!picked.length && !gear.trim() && <p className="text-[12px] text-white/40">Choose a genre to see who plays it.</p>}
+      {!picked.length && !gear.trim() && <p className="text-[12px] text-white/55">Choose a genre to see who plays it.</p>}
       {loading && <Loader2 className="animate-spin text-white/50" size={16} />}
       {error && <p className="text-[12px] text-mcz-ember">{error}</p>}
       {(picked.length > 0 || gear.trim()) && !loading && !error && !rows.length && (

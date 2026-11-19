@@ -141,7 +141,7 @@ export default function GroupZ({ onViewProfile, onMessage }) {
                         {/* Why this list is not editable, from the server. A
                             list you cannot change needs to explain itself or
                             it reads as a broken one. */}
-                        {g.note && <p className="text-[11px] text-white/40">{g.note}</p>}
+                        {g.note && <p className="text-[11px] text-white/55">{g.note}</p>}
                       </div>
                       {!g.derived && (
                         <button onClick={() => drop(g)} title="Delete this list"
@@ -153,7 +153,7 @@ export default function GroupZ({ onViewProfile, onMessage }) {
 
                     <div className="mb-2 space-y-1">
                       {asList(g.members).length === 0 && (
-                        <span className="text-xs text-white/40">No members yet.</span>
+                        <span className="text-xs text-white/55">No members yet.</span>
                       )}
                       {asList(g.members).map((m) => (
                         <div key={m} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-xs">

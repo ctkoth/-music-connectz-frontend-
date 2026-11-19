@@ -76,7 +76,7 @@ export default class ErrorBoundary extends Component {
             On a stale chunk it is a filename nobody can act on, and printing it
             makes an ordinary update look like a fault. */}
         {!stale && (
-          <p className="break-words rounded-lg bg-black/40 px-3 py-2 font-mono text-[11px] text-white/40">
+          <p className="break-words rounded-lg bg-black/40 px-3 py-2 font-mono text-[11px] text-white/55">
             {String(error?.message || error)}
           </p>
         )}

@@ -83,7 +83,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
     <div className="space-y-2 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.04] p-3 text-xs text-white/75" data-testid="equipment-fit">
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold text-white">Fit “{routine.title}” to my equipment</p>
-        {onClose && <button type="button" className="text-white/40 hover:text-white" onClick={onClose} aria-label="Close">✕</button>}
+        {onClose && <button type="button" className="text-white/55 hover:text-white" onClick={onClose} aria-label="Close">✕</button>}
       </div>
       <p className="text-white/55">
         Pick what you have. The Planner swaps any lift that needs other gear for one in the same muscle group that
@@ -92,7 +92,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
       <EquipmentPicker selected={equipment} onToggle={(k) => setEquipment(toggleEquipment(equipment, k))} />
 
       {equipment.length === 0 ? (
-        <p className="text-white/45">Nothing is picked, so nothing changes. Pick the equipment you have.</p>
+        <p className="text-white/60">Nothing is picked, so nothing changes. Pick the equipment you have.</p>
       ) : (
         <>
           <ul className="space-y-1.5">
@@ -100,13 +100,13 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
               const cur = lib[p.row.exercise_id];
               const name = cur?.name || `Exercise #${p.row.exercise_id}`;
               if (p.ok) {
-                return <li key={p.index} className="text-white/45">✓ {name} <span className="text-white/30">— already {EQUIPMENT_LABEL[cur?.equipment] || "fits"}</span></li>;
+                return <li key={p.index} className="text-white/60">✓ {name} <span className="text-white/30">— already {EQUIPMENT_LABEL[cur?.equipment] || "fits"}</span></li>;
               }
               const picked = choices[p.index];
               return (
                 <li key={p.index} className="space-y-1 rounded bg-white/5 p-2">
                   <p className="text-white">
-                    {name} <span className="text-white/40">({EQUIPMENT_LABEL[cur?.equipment] || "?"})</span>
+                    {name} <span className="text-white/55">({EQUIPMENT_LABEL[cur?.equipment] || "?"})</span>
                     {p.best || picked != null ? <span className="text-mcz-cyan"> →</span> : null}
                   </p>
                   {p.candidates.length > 0 ? (
@@ -118,7 +118,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
                         <option value={p.row.exercise_id}>Keep {name} as it is</option>
                         <option value="remove">Remove it from the routine</option>
                       </select>
-                      {p.why && picked == null && <p className="text-[11px] text-white/40">{p.why}</p>}
+                      {p.why && picked == null && <p className="text-[11px] text-white/55">{p.why}</p>}
                     </>
                   ) : (
                     <>
@@ -147,7 +147,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
             <div className="space-y-1 rounded bg-white/5 p-2" data-testid="fit-plan">
               <p className="font-semibold text-white">
                 Plan {moveText(preview.polished.compare)}
-                <span className="font-normal text-white/45"> — {preview.polished.plan.passed} of {preview.polished.plan.applicable} checks after the swaps</span>
+                <span className="font-normal text-white/60"> — {preview.polished.plan.passed} of {preview.polished.plan.applicable} checks after the swaps</span>
               </p>
               {preview.polished.changes.length > 0 && (
                 <ul className="list-disc space-y-0.5 pl-4 text-white/65">
@@ -155,12 +155,12 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
                 </ul>
               )}
               {checkMoves(preview.polished.compare).map((m) => (
-                <p key={m.key} className="text-white/45">{m.text}{m.why ? ` — ${m.why}` : ""}</p>
+                <p key={m.key} className="text-white/60">{m.text}{m.why ? ` — ${m.why}` : ""}</p>
               ))}
               {stillYours(preview.polished.plan).length > 0 && (
                 <p className="text-amber-200">Still yours to fix: {stillYours(preview.polished.plan).map((c) => c.detail).join(" ")}</p>
               )}
-              <p className="text-white/35">{preview.caveat}</p>
+              <p className="text-white/50">{preview.caveat}</p>
             </div>
           )}
           {previewErr && <p className="text-amber-200">{previewErr}</p>}
@@ -171,7 +171,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
               {Object.entries(shown).map(([m, list]) => (
                 <p key={m}><b className="text-white/70">{MUSCLE_LABEL[m] || m}:</b> {list.map((e) => e.name).join(", ")}</p>
               ))}
-              {Object.keys(shown).length === 0 && <p className="text-white/45">Nothing you can use with that.</p>}
+              {Object.keys(shown).length === 0 && <p className="text-white/60">Nothing you can use with that.</p>}
             </div>
           </details>
 
@@ -185,7 +185,7 @@ export default function EquipmentFit({ routine, exercises, pickable, onApply, on
             <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs" disabled={busy || nothingToDo} onClick={saveNew}>
               Save as a new routine
             </button>
-            <span className="text-white/40">Free · nothing is saved until you press one.</span>
+            <span className="text-white/55">Free · nothing is saved until you press one.</span>
           </div>
         </>
       )}

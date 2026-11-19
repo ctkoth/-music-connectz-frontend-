@@ -46,7 +46,7 @@ export default function UseIn({ source, sourceId, pct, text }) {
         <div key={u.id} className="flex flex-wrap items-center justify-between gap-2 text-xs text-white/70">
           <span>{KIND_LABEL[u.target_kind]}: {title(u.target_kind, u.target_id)} —{" "}
             <span className="text-mcz-ember">−{u.royalty_pct}% of your earnings</span> to K-Oth
-            {(u.paid_cents > 0 || u.paid_spinaz > 0) && <span className="text-white/40"> · paid so far {u.paid_cents ? `${(u.paid_cents / 100).toFixed(2)} 💵` : `${u.paid_spinaz} 🍥`}</span>}
+            {(u.paid_cents > 0 || u.paid_spinaz > 0) && <span className="text-white/55"> · paid so far {u.paid_cents ? `${(u.paid_cents / 100).toFixed(2)} 💵` : `${u.paid_spinaz} 🍥`}</span>}
           </span>
           {!u.locked && <button className="re-link" onClick={() => detach(u.id)}>Remove</button>}
         </div>

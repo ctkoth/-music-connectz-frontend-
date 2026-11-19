@@ -223,7 +223,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               {hiddenCount > 0 && (
                 <button
                   onClick={() => setShowHidden((s) => !s)}
-                  className="text-[11px] text-white/45 underline hover:text-white/70"
+                  className="text-[11px] text-white/60 underline hover:text-white/70"
                 >
                   {showHidden ? "Hide cleared apps" : `${hiddenCount} cleared — show`}
                 </button>
@@ -239,7 +239,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
             </div>
           </div>
           <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
-            <Search size={14} className="shrink-0 text-white/40" />
+            <Search size={14} className="shrink-0 text-white/55" />
             {/* A placeholder is not a label: it disappears the moment you type
                 and screen readers are inconsistent about announcing it. The
                 visible text stays a placeholder because the magnifier already
@@ -255,7 +255,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
             />
             {q && (
-              <button onClick={() => setQ("")} className="shrink-0 text-white/40 hover:text-white">
+              <button onClick={() => setQ("")} className="shrink-0 text-white/55 hover:text-white">
                 <X size={13} />
               </button>
             )}
@@ -268,7 +268,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
           </p>
 
           {shown.length === 0 && (
-            <p className="py-6 text-center text-[13px] text-white/40">
+            <p className="py-6 text-center text-[13px] text-white/55">
               Nothing matches "{q}". Try what you want to do rather than the app's name.
             </p>
           )}
@@ -303,7 +303,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                         are invented — SpinaZ, MimeZ, OmviardZ — so the label
                         alone tells a new member nothing, and a picture tells
                         them less. */}
-                    <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-white/35">
+                    <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-white/50">
                       {purposeOf(a.key)}
                     </span>
                   </a>
@@ -322,7 +322,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                         ? "bg-mcz-gold text-black"
                         : pinDisabled
                         ? "bg-white/5 text-white/20"
-                        : "bg-black/70 text-white/45 hover:text-white"
+                        : "bg-black/70 text-white/60 hover:text-white"
                     }`}
                   >
                     <Pin size={9} />
@@ -342,7 +342,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                     className={`absolute -left-1 -top-1 rounded-full p-1 transition ${
                       isHidden
                         ? "bg-emerald-500/80 text-black"
-                        : "bg-black/70 text-white/35 hover:text-white/70"
+                        : "bg-black/70 text-white/50 hover:text-white/70"
                     }`}
                   >
                     {isHidden ? <Plus size={9} /> : <Minus size={9} />}
@@ -406,11 +406,11 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
           {aiPicks.length === 0 && pinnedApps.length === 0 ? (
             <>
-              <span className="shrink-0 px-1 text-[11px] text-white/35">Start here:</span>
+              <span className="shrink-0 px-1 text-[11px] text-white/50">Start here:</span>
               {starterApps.map((a) => (
                 <DockButton key={a.key} app={a} active={current === a.key} onClick={() => onOpen(a.key)} />
               ))}
-              <span className="px-2 text-[11px] text-white/35">
+              <span className="px-2 text-[11px] text-white/50">
                 or tap ⊞ for every app — your most-used ones land here →
               </span>
             </>

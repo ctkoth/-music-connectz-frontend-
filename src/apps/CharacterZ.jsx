@@ -67,7 +67,7 @@ function Editor({ d, start, onSaved, onCancel }) {
       </div>
       <div className="space-y-2">
         <p className="re-label">Hobbies</p>
-        <p className="text-[11px] text-white/45">What they like doing. Their lines in MangaZ can lean on it. It is flavour — nothing here is scored.</p>
+        <p className="text-[11px] text-white/60">What they like doing. Their lines in MangaZ can lean on it. It is flavour — nothing here is scored.</p>
         <input className="neon-input !py-2 text-sm" placeholder="street racing, pottery, night markets" maxLength={400}
                value={(f.hobbies || []).join(", ")}
                onChange={(e) => set("hobbies", e.target.value.split(",").map((s) => s.trimStart()).filter((s, i, a) => s !== "" || i === a.length - 1))}
@@ -132,7 +132,7 @@ export default function CharacterZ() {
           <IconImg icon="characterz.png" alt="" className="h-11 w-11 rounded-xl" /> CharacterZ
         </h2>
         <p className="text-sm text-white/60">A face, a personality and a voice. MangaZ draws them and writes their lines in that voice.</p>
-        <p className="text-[11px] text-white/40">{d.characters.length} / {d.limit} on your plan
+        <p className="text-[11px] text-white/55">{d.characters.length} / {d.limit} on your plan
           {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}</p>
       </div>
       {edit ? (
@@ -153,13 +153,13 @@ export default function CharacterZ() {
             {c.image ? <img src={c.image} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
                      : <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-white/5 text-2xl">🎭</div>}
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="font-semibold">{c.name} {c.personality && <span className="text-[11px] text-white/40">{c.personality.replace(/-/g, "·")}</span>}</p>
+              <p className="font-semibold">{c.name} {c.personality && <span className="text-[11px] text-white/55">{c.personality.replace(/-/g, "·")}</span>}</p>
               <p className="text-[12px] text-white/55">{c.voice_summary}</p>
-              {c.bio && <p className="line-clamp-2 text-[12px] text-white/45">{c.bio}</p>}
-              {c.hobbies?.length > 0 && <p className="line-clamp-1 text-[11px] text-white/45">🎯 {c.hobbies.join(", ")}</p>}
+              {c.bio && <p className="line-clamp-2 text-[12px] text-white/60">{c.bio}</p>}
+              {c.hobbies?.length > 0 && <p className="line-clamp-1 text-[11px] text-white/60">🎯 {c.hobbies.join(", ")}</p>}
               <div className="flex gap-3 text-xs">
                 <button className="re-link" onClick={() => setEdit(c)}>Edit</button>
-                <button className="text-white/40 hover:text-mcz-ember" onClick={() => remove(c)} aria-label={`Delete ${c.name}`}><Trash2 size={12} /></button>
+                <button className="text-white/55 hover:text-mcz-ember" onClick={() => remove(c)} aria-label={`Delete ${c.name}`}><Trash2 size={12} /></button>
               </div>
             </div>
           </div>

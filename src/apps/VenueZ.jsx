@@ -107,17 +107,17 @@ function Quote({ q, mine, host }) {
     return mine ? (
       <p className="text-[13px]">
         <span className="font-semibold text-emerald-300">+{q.spinaz} {SPINAZ}</span>
-        <span className="ml-1.5 text-white/45">from each visitor you accept, paid once it starts</span>
+        <span className="ml-1.5 text-white/60">from each visitor you accept, paid once it starts</span>
       </p>
     ) : (
       <p className="text-[13px]">
         <span className="font-semibold text-mcz-ember">−{q.spinaz} {SPINAZ}</span>
-        <span className="ml-1.5 text-white/45">entry to @{host} · held now, refunded if declined or cancelled before it starts</span>
+        <span className="ml-1.5 text-white/60">entry to @{host} · held now, refunded if declined or cancelled before it starts</span>
       </p>
     );
   }
   if (q.free) {
-    return <span className="text-[12px] text-white/45">Free — nobody pays.</span>;
+    return <span className="text-[12px] text-white/60">Free — nobody pays.</span>;
   }
   const iPay = mine ? q.payer_is_host : !q.payer_is_host;
   const other = mine ? "the visitor" : `@${host}`;
@@ -128,7 +128,7 @@ function Quote({ q, mine, host }) {
   if (!q.amount_cents) {
     const fromVisitor = q.payer_is_host && !q.lines?.length;
     return (
-      <p className="text-[12px] text-white/45">
+      <p className="text-[12px] text-white/60">
         {fromVisitor
           ? (mine
               ? "Priced from what each visitor brings — nothing named yet."
@@ -147,11 +147,11 @@ function Quote({ q, mine, host }) {
         ) : (
           <span className="font-semibold text-emerald-300">+{money(q.amount_cents)} {MONEY}</span>
         )}
-        <span className="ml-1.5 text-white/45">
+        <span className="ml-1.5 text-white/60">
           {iPay ? `you pay ${other}` : `${other} pays you`}
         </span>
       </p>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         {iPay
           ? "Held in CollabZ escrow, not paid outright — refunded if declined or cancelled before it starts, released after the room has run."
           : "Held in CollabZ escrow and paid to you after the room has run, unless it's disputed."}
@@ -160,7 +160,7 @@ function Quote({ q, mine, host }) {
 
       {/* Per hour multiplies; an agreed total is the total however long it
           runs. Both are said, because "$50" means two different things. */}
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         {q.basis === "hour"
           ? `${money(q.hourly_cents)} an hour × ${q.hours}h`
           : `Agreed total for the ${q.hours}h — the total however long it runs.`}
@@ -169,7 +169,7 @@ function Quote({ q, mine, host }) {
       {Array.isArray(q.lines) && q.lines.length > 0 && (
         <ul className="space-y-0.5 text-[11px]">
           {q.lines.map((l, i) => (
-            <li key={`${l.skill}-${i}`} className="flex justify-between gap-3 text-white/45">
+            <li key={`${l.skill}-${i}`} className="flex justify-between gap-3 text-white/60">
               <span className="truncate">{labelForSkill(l.skill)}</span>
               <span className={l.cents ? "text-white/65" : "text-white/25"}>
                 {l.cents ? money(l.cents) : "unpriced"}
@@ -182,7 +182,7 @@ function Quote({ q, mine, host }) {
       {/* Named rather than dropped: a silent omission reads as a discount and
           then surprises somebody at the door. */}
       {q.unpriced?.length > 0 && (
-        <p className="text-[10px] text-white/35">
+        <p className="text-[10px] text-white/50">
           {q.unpriced.length} of these {q.unpriced.length === 1 ? "is" : "are"} unpriced
           {mine || q.payer_is_host ? "" : ` by @${host}`} and add nothing:{" "}
           {q.unpriced.map(labelForSkill).join(", ")}.
@@ -258,7 +258,7 @@ function AskPanel({ venue, onDone, onFlash }) {
   return (
     <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
       <div>
-        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+        <label className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
           How long
         </label>
         <input type="number" min="1" max="24" value={hours}
@@ -271,7 +271,7 @@ function AskPanel({ venue, onDone, onFlash }) {
       {/* The distinction that decides both prices, said plainly, because it is
           not guessable: naming skills is what makes this cost ⚡, and on a
           session it is also what the host will be paying you for. */}
-      <p className="text-[10px] leading-relaxed text-white/35">
+      <p className="text-[10px] leading-relaxed text-white/50">
         {skills.length === 0
           ? "Name nothing and the room's own list prices it — that costs you no ⚡, "
             + "because you didn't write it."
@@ -285,10 +285,10 @@ function AskPanel({ venue, onDone, onFlash }) {
           {energy?.cost > 0 ? (
             <>
               <span className="font-semibold text-mcz-ember">−{energy.cost} {ENERGY}</span>
-              <span className="ml-1.5 text-white/45">to ask</span>
+              <span className="ml-1.5 text-white/60">to ask</span>
             </>
           ) : (
-            <span className="text-white/45">Asking costs no {ENERGY}.</span>
+            <span className="text-white/60">Asking costs no {ENERGY}.</span>
           )}
         </p>
       </div>
@@ -304,7 +304,7 @@ function AskPanel({ venue, onDone, onFlash }) {
 
       {/* A refused ask takes nothing — worth saying, because the rule elsewhere
           in the app is that a post is charged whatever it can afford. */}
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         Nothing is charged if the host says no, and nothing is charged if this
         is refused.
       </p>
@@ -328,7 +328,7 @@ function EscrowLine({ b }) {
   if (!e) return null;
   const waiting = ["funded", "delivered"].includes(e.status);
   return (
-    <p className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/45">
+    <p className="flex flex-wrap items-center gap-1.5 text-[10px] text-white/60">
       {MONEY} {money(b.quoted_cents)} {ESCROW_SAID[e.status] || e.status}
       {waiting && e.auto_release_at && ` — pays out ${new Date(e.auto_release_at).toLocaleDateString()} unless disputed`}
       <Term k="escrow">What is escrow?</Term>
@@ -347,7 +347,7 @@ function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <MemberName username={b.visitor} className="text-[13px]" />
-          <p className="text-[10px] text-white/40">
+          <p className="text-[10px] text-white/55">
             {BOOKING_LABEL[b.status] || b.status} · {b.hours}h
           </p>
         </div>
@@ -357,13 +357,13 @@ function BookingRow({ b, venue, onRespond, onRateGuest, busy }) {
       </div>
 
       {b.skills?.length > 0 && (
-        <p className="text-[10px] text-white/40">
+        <p className="text-[10px] text-white/55">
           Bringing: {b.skills.map(labelForSkill).join(", ")}
         </p>
       )}
       <EscrowLine b={b} />
       {b.status === "requested" && b.payer_is_host && b.quoted_cents > 0 && (
-        <p className="text-[10px] text-white/40">Letting them in holds this from your balance until the room has run.</p>
+        <p className="text-[10px] text-white/55">Letting them in holds this from your balance until the room has run.</p>
       )}
 
       {b.status === "requested" && (
@@ -500,7 +500,7 @@ function Venue({ v, onChanged, onFlash }) {
         </span>
       </div>
 
-      <p className="text-[11px] text-white/40">{kind.rule}</p>
+      <p className="text-[11px] text-white/55">{kind.rule}</p>
 
       {v.description && (
         <p className="text-[12px] text-white/70"><MentionText text={v.description} /></p>
@@ -520,7 +520,7 @@ function Venue({ v, onChanged, onFlash }) {
             <ShieldCheck size={12} /> {v.address}
           </p>
         ) : !v.mine && (
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             {v.my_booking?.status === "requested"
               ? "The address comes when the host says yes."
               : "The area is public; the address is shared once you're accepted."}
@@ -532,7 +532,7 @@ function Venue({ v, onChanged, onFlash }) {
       </div>
 
       {v.skills?.length > 0 && (
-        <p className="text-[10px] text-white/40">The room's list: {v.skills.map(labelForSkill).join(", ")}</p>
+        <p className="text-[10px] text-white/55">The room's list: {v.skills.map(labelForSkill).join(", ")}</p>
       )}
 
       {/* The money, before anything is agreed to, from this viewer's side.
@@ -582,7 +582,7 @@ function Venue({ v, onChanged, onFlash }) {
             {/* Every refusal is a sentence somebody can act on, so it is shown
                 rather than the button silently doing nothing. */}
             {!v.can_book && v.why_not && (
-              <p className="mt-1 text-[11px] text-white/45">{v.why_not}</p>
+              <p className="mt-1 text-[11px] text-white/60">{v.why_not}</p>
             )}
           </div>
         )
@@ -592,7 +592,7 @@ function Venue({ v, onChanged, onFlash }) {
       {v.mine && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
               Who's asked ({v.bookings?.length || 0})
             </p>
             {!["cancelled", "done"].includes(v.status) && !editing && (
@@ -635,7 +635,7 @@ function Venue({ v, onChanged, onFlash }) {
                   it was agreed, so none of this moves what anybody already
                   owes — only what the room says now and what the next person
                   to ask sees. */}
-              <p className="text-[10px] text-white/35">
+              <p className="text-[10px] text-white/50">
                 Nobody who's already booked owes anything different — their price was
                 locked in when they asked.
               </p>
@@ -659,7 +659,7 @@ function Venue({ v, onChanged, onFlash }) {
               ))}
             </ul>
           ) : (
-            <p className="text-[12px] text-white/40">Nobody yet.</p>
+            <p className="text-[12px] text-white/55">Nobody yet.</p>
           )}
           {v.status !== "cancelled" && (
             <button className="re-btn !w-auto px-3 py-1.5 text-xs" disabled={busy}
@@ -672,7 +672,7 @@ function Venue({ v, onChanged, onFlash }) {
 
       {/* ---- Rating the night -------------------------------------------- */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-2">
-        <span className="text-[11px] text-white/45">
+        <span className="text-[11px] text-white/60">
           {v.rating?.count > 0
             ? <>Rated {v.rating.median}/10 by {v.rating.count}</>
             : "Not rated yet"}
@@ -702,7 +702,7 @@ function Venue({ v, onChanged, onFlash }) {
           <Handshake size={12} className="shrink-0 text-mcz-cyan" />
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[12px] text-white/80">{d.label}</span>
-            <span className="block text-[10px] text-white/35">{d.what}</span>
+            <span className="block text-[10px] text-white/50">{d.what}</span>
           </span>
           <ArrowRight size={12} className="shrink-0 text-white/25" />
         </button>
@@ -758,7 +758,7 @@ function HostForm({ onCreated, onFlash }) {
 
   return (
     <div data-tour="venuez-host" className="neon-frame space-y-3 p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
         Host a room
       </p>
 
@@ -786,7 +786,7 @@ function HostForm({ onCreated, onFlash }) {
         )}
         {/* Which way the money goes, said as you choose it rather than found
             out afterwards by whoever ends up owing. */}
-        <p className="text-[10px] text-white/40">{(KIND[f.kind] || KIND.free).rule}</p>
+        <p className="text-[10px] text-white/55">{(KIND[f.kind] || KIND.free).rule}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -813,7 +813,7 @@ function HostForm({ onCreated, onFlash }) {
                value={f.address} onChange={set("address")} />
         {/* The safety rule, at the field it governs, so nobody has to trust
             that we do the right thing with it. */}
-        <p className="text-[10px] text-white/35">
+        <p className="text-[10px] text-white/50">
           Only people whose booking you ACCEPT ever see this. It is never on the
           listing.
         </p>
@@ -823,7 +823,7 @@ function HostForm({ onCreated, onFlash }) {
         <input className="neon-input !py-2 text-xs" type="number" min="0" max="99"
                placeholder="Minimum age (0 = anyone)"
                value={f.min_age} onChange={set("min_age")} />
-        <p className="text-[10px] text-white/35">
+        <p className="text-[10px] text-white/50">
           Enforced at the door and again when you accept, not left to a line in
           the description.
         </p>
@@ -838,7 +838,7 @@ function HostForm({ onCreated, onFlash }) {
           whole catalogue stays here; every picker that names the member's OWN skills reads
           their profile instead. */}
       <SkillsUsed source="catalogue" value={skills} onChange={setSkills} label="What's on offer here" />
-      <p className="text-[10px] leading-relaxed text-white/35">
+      <p className="text-[10px] leading-relaxed text-white/50">
         {f.kind === "session"
           ? "On a session this is what you're asking people to bring — each visitor's "
             + "own rates price what you'll owe them."
@@ -855,7 +855,7 @@ function HostForm({ onCreated, onFlash }) {
         {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
         {" "}Put the room up
       </button>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         Hosting costs nothing. Money moves per the rule above, once somebody is in.
       </p>
     </div>
@@ -942,7 +942,7 @@ export default function VenueZ() {
       {tab === "rooms" && venues && (
         <div data-tour="venuez-rooms" className="space-y-3">
           {theirs.length === 0 ? (
-            <p className="text-sm text-white/45">
+            <p className="text-sm text-white/60">
               No rooms coming up. Put one up and it lands here for everyone else.
             </p>
           ) : theirs.map((v) => (
