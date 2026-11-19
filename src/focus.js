@@ -41,7 +41,7 @@ export const FOCUS_SUPPORT = [
   "membershipz", "onboardz", "logz",
   // Not music, kept on purpose: Corey uses them.
   "bodiez", "lilith",
-  "imagez", "mangaz", "animez",   // Corey: ImageZ, MangaZ and AnimeZ on the home screen
+  "imagez", "mangaz", "animez", "dawz",   // Corey: ImageZ, MangaZ, AnimeZ and DawZ on the home screen
 ];
 
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
