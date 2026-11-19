@@ -35,6 +35,7 @@ import {
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
+const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft" };
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
 const MODE_LABEL = {
@@ -82,6 +83,7 @@ export default function Workspace({ workflow }) {
   const future = useRef([]);
   const [, bump] = useState(0);
   const [sessionId, setSessionId] = useState(() => uid("ses"));
+  const [others, setOthers] = useState([]);       // sessions made in the other DAWs
   const [saved, setSaved] = useState([]);         // sessions on this device
   const [storeErr, setStoreErr] = useState("");
   const [selected, setSelected] = useState(null);
@@ -116,14 +118,20 @@ export default function Workspace({ workflow }) {
   const redo = () => { if (!future.current.length) return; past.current = [...past.current, sRef.current]; put(future.current.shift()); bump((n) => n + 1); };
 
   // ---- the device: sessions and their audio ----
-  const refreshList = useCallback(() => listSessions().then((rows) => setSaved(rows.filter((r) => r.app === workflow.app))).catch(() => setSaved([])), [workflow.app]);
+  const refreshList = useCallback(() => listSessions().then((rows) => {
+    setSaved(rows.filter((r) => r.app === workflow.app));
+    setOthers(rows.filter((r) => r.app !== workflow.app));
+  }).catch(() => { setSaved([]); setOthers([]); }), [workflow.app]);
 
-  const open = useCallback(async (id) => {
+  // asCopy: a session made in another DAW comes in as a NEW session of this one. The original stays
+  // where it was, untouched; the audio is shared (sources are keyed by id), so nothing is duplicated.
+  const open = useCallback(async (id, asCopy = false) => {
     setBusy("Opening the session…"); setErr(""); setMsg("");
     try {
       const row = await loadSession(id);
       if (!row) throw new Error("That session isn't on this device any more.");
       const s = cleanSession(row.session);
+      if (asCopy) s.name = `${s.name} (from ${DAW_NAMES[row.app] || "another DAW"})`.slice(0, 60);
       s.tracks = s.tracks.map((t) => ({ ...t, inserts: cleanInserts(t.inserts) }));
       let lost = 0;
       for (const sid of Object.keys(s.sources)) {
@@ -137,7 +145,7 @@ export default function Workspace({ workflow }) {
       }
       setMissing(lost);
       past.current = []; future.current = [];
-      put(s); setSessionId(id); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null);
+      put(s); setSessionId(asCopy ? uid("ses") : id); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }, [daw]);
 
@@ -569,6 +577,14 @@ export default function Workspace({ workflow }) {
           <option value="">Open a session on this device…</option>
           {saved.map((r) => <option key={r.id} value={r.id}>{r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
         </select>
+        {others.length > 0 && (
+          <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Copy in a session from another DAW"
+                  title="Opens a copy here. The original stays in its own DAW, unchanged."
+                  onChange={(e) => e.target.value && open(e.target.value, true)}>
+            <option value="">Copy in from another DAW…</option>
+            {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
+          </select>
+        )}
         <button type="button" className="re-btn !w-auto px-3" onClick={newOne}><Plus size={13} /> New</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={dropSession}><Trash2 size={13} /> Delete</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={() => fileIn.current?.click()}><Upload size={13} /> Import audio</button>
