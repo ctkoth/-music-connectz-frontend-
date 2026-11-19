@@ -24,5 +24,10 @@
   },
   "android": {
     "backgroundColor": "#07060d"
+  },
+  "ios": {
+    "backgroundColor": "#07060d",
+    "contentInset": "always",
+    "limitsNavigationsToAppBoundDomains": false
   }
 }
