@@ -39,6 +39,9 @@ const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuitio
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
+import MixCheck from "./MixCheck.jsx";
+import { duckPoints, shiftFader } from "./mixcheck.js";
+import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
@@ -794,6 +797,23 @@ export default function Workspace({ workflow }) {
               if (f.flip) next = setTrack(next, f.id, { invert: !next.tracks.find((t) => t.id === f.id)?.invert });
               return next;
             }, s))} />
+        )}
+        {stemTracks.length > 1 && (
+          <MixCheck tracks={stemTracks} measure={measureTrackAudio} busy={!!busy || recording}
+            measureMix={async () => { const buf = await daw.bounce(sRef.current, { tail: 0 }); return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate }; }}
+            apply={(ch) => commit((s) => {
+              let next = s;
+              if (ch.faders) next = { ...next, tracks: next.tracks.map((t) => ({ ...t, gain: shiftFader(t.gain, ch.faders) })) };
+              for (const c of ch.cuts || []) {
+                const eq = newInsert("eq");
+                eq.bands = eq.bands.map((b, i) => (i === 1 ? { ...b, f: c.f, gain: c.gain, q: c.q } : b));
+                const t = next.tracks.find((x) => x.id === c.id);
+                if (t) next = setTrack(next, c.id, { inserts: [...(t.inserts || []), eq] });
+              }
+              // The line is drawn around the fader as it is NOW (after any headroom move), so ducking never undoes it.
+              if (ch.duck) { const t = next.tracks.find((x) => x.id === ch.duck.id); if (t) next = setAuto(next, t.id, "volume", { on: true, points: duckPoints(ch.duck.env, t.gain || 0) }); }
+              return next;
+            })} />
         )}
         {stemTracks.length > 1 && (
           <StagePanel tracks={stemTracks} measure={measureTrackAudio} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
