@@ -36,6 +36,8 @@ import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
 const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft" };
+import { guessRole } from "../mastering/multitrack.js";
+import StagePanel from "./StagePanel.jsx";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
 const MODE_LABEL = {
@@ -83,6 +85,7 @@ export default function Workspace({ workflow }) {
   const future = useRef([]);
   const [, bump] = useState(0);
   const [sessionId, setSessionId] = useState(() => uid("ses"));
+  const stemIn = useRef(null);
   const [others, setOthers] = useState([]);       // sessions made in the other DAWs
   const [saved, setSaved] = useState([]);         // sessions on this device
   const [storeErr, setStoreErr] = useState("");
@@ -389,20 +392,20 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items, { own = false } = {}) => {
+  const bring = async (items, { own = false, stems = false } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
       try {
         const meta = await daw.decode(await it.blob.arrayBuffer(), it.name);
         try { await putSource(meta.id, it.blob); } catch { setStoreErr("This audio couldn't be kept on the device — it plays now but won't be here after the tab closes."); }
-        const at = playhead;
+        const at = stems ? 0 : playhead;   // stems line up from the top of the song
         commit((s) => {
           let next = addSource(s, meta);
-          let track = items.length === 1 && !own ? targetTrack(next) : null;
+          let track = items.length === 1 && !own && !stems ? targetTrack(next) : null;
           if (!track) {
             const more = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40), tierCap);
-            if (more !== next) { next = more; track = next.tracks.at(-1).id; }
+            if (more !== next) { next = more; track = next.tracks.at(-1).id; if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
             else {
               // At the tier's track count: it goes on an empty track if there is one, else the last track.
               track = next.tracks.find((t) => !regionsOf(t).length)?.id || next.tracks.at(-1).id;
@@ -419,6 +422,14 @@ export default function Workspace({ workflow }) {
     setBusy("");
   };
   const fromDevice = (files) => bring([...files].map((f) => ({ name: f.name, blob: f })));
+  // Stems: every file on its own track, all starting at 0:00 so they play in time, each with a guessed
+  // role (vocal, bass, drums…) that the gain-staging panel reads.
+  const fromStems = async (files) => {
+    const list = [...files];
+    if (!list.length) return;
+    await bring(list.map((f) => ({ name: f.name, blob: f })), { stems: true });
+    setMsg(`${list.length} stem${list.length === 1 ? "" : "s"} on ${list.length === 1 ? "its own track" : "their own tracks"}, all lined up from 0:00.`);
+  };
   const fromFileZ = async (u) => {
     setLib(false);
     setBusy(`Fetching ${u.name}…`);
@@ -589,6 +600,8 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={dropSession}><Trash2 size={13} /> Delete</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={() => fileIn.current?.click()}><Upload size={13} /> Import audio</button>
         <input ref={fileIn} type="file" accept="audio/*,video/*" multiple className="hidden" onChange={(e) => { fromDevice(e.target.files || []); e.target.value = ""; }} />
+        <button type="button" className="re-btn !w-auto px-3" onClick={() => stemIn.current?.click()} data-tour="daw-import-stems"><Upload size={13} /> Import stems</button>
+        <input ref={stemIn} type="file" accept="audio/*" multiple className="hidden" onChange={(e) => { fromStems(e.target.files || []); e.target.value = ""; }} />
         <button type="button" className="re-btn !w-auto px-3" onClick={() => setLib(true)}><FolderOpen size={13} /> From FileZ</button>
       </div>
 
@@ -764,6 +777,16 @@ export default function Workspace({ workflow }) {
           <button type="button" className="neon-btn-primary !w-auto px-4" disabled={!len || !!busy || recording} onClick={bounce}><Wand2 size={14} /> Bounce the mix</button>
           <span className="text-white/55"><span className="text-emerald-300">Free</span> · a 24-bit WAV of everything you can hear, made on your device ({minSec(len, false)} plus a 2-second tail for reverb and delay).</span>
         </div>
+        {stemTracks.length > 1 && (
+          <StagePanel tracks={stemTracks} measure={async (t) => {
+            const cur = sRef.current;
+            // Pre-fader: the track alone, at 0 dB and centre, so the suggestion is the fader setting itself.
+            const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
+            const buf = await daw.bounce(solo, { tail: 0 });
+            return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
+          }} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
+             busy={!!busy || recording} />
+        )}
         {stemTracks.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="re-btn !w-auto px-3" disabled={!!busy || recording} onClick={sendStems} data-tour="daw-stems">
