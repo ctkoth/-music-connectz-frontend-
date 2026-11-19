@@ -290,6 +290,8 @@ export default function Landing() {
         <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-sm">
           <Link to="/register" className="re-link">Create a free account</Link>
           <span className="text-white/20">·</span>
+          <Link to="/explore" className="text-white/55 hover:text-white">Browse members' work</Link>
+          <span className="text-white/20">·</span>
           <Link to="/login" className="text-white/55 hover:text-white">Already a member? Log in</Link>
         </div>
       </div>
