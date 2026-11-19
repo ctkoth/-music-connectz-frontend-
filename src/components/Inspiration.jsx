@@ -467,7 +467,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
     api(`/api/${appKey}/match/`).then((d) => on && setInfo(d)).catch(() => {});
     // The lists to pick from. A failure leaves them empty and the file door still works — the
     // member did not ask for these, so a fetch that fails says nothing.
-    Promise.allSettled([api("/api/economy/posts/?mine=1"), api("/api/economy/posts/?sort=top"), api("/api/economy/uploads/")])
+    Promise.allSettled([api("/api/economy/postz/?mine=1"), api("/api/economy/postz/?sort=top"), api("/api/economy/uploads/")])
       .then(([mine, all, up]) => {
         if (!on) return;
         const rows = (r) => (r.status === "fulfilled" ? (Array.isArray(r.value) ? r.value : r.value?.posts || []) : []);

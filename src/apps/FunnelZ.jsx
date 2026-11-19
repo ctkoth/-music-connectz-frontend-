@@ -442,6 +442,18 @@ export default function FunnelZ() {
       )}
 
       {steps && !loading && <Headline rows={data.headline} />}
+      {/* After the funnel: of the accounts made in the window, how many got a scored take within a day.
+          The number the first screen (OnboardZ) is built to move; the server counts it. */}
+      {steps && !loading && data.activation && (
+        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm" data-tour="funnelz-activation">
+          <p className="font-semibold text-white">{data.activation.label}</p>
+          <p className="text-white/70">
+            <b className="text-mcz-cyan">{data.activation.pct == null ? "—" : `${data.activation.pct}%`}</b>{" "}
+            — {data.activation.to.toLocaleString()} of {data.activation.from.toLocaleString()} new accounts
+          </p>
+          <p className="text-[11px] text-white/55">{data.activation.note}</p>
+        </div>
+      )}
       {/* Each rate above counts only browsers that did BOTH steps. This is the
           group the landing rate cannot see, and it has been most of the trial's
           traffic: people who came by a link straight to a trial door. */}

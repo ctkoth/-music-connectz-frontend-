@@ -11,6 +11,13 @@ import { SPINAZ, ENERGY } from "../resources.js";
 import IntentPicker from "../components/IntentPicker.jsx";
 import { handOff } from "../handoff.js";
 import { personaSkillRows, skillsStepDone } from "../onboardSkills.js";
+import { storedTrialApp } from "../trialToken.js";
+import { readSeeds } from "../yourApps.js";
+import { coreDone, firstCoach, nextStep, ordered } from "../onboardOrder.js";
+import { FOCUS_COACHES } from "../focus.js";
+
+const COACH_NAME = { singz: "SingZ", rapz: "RapZ", guitarz: "GuitarZ", bassz: "BassZ", keyz: "KeyZ", drumz: "DrumZ", violinz: "ViolinZ",
+  flutez: "FluteZ", saxz: "SaxZ", clarinetz: "ClarinetZ", trumpetz: "TrumpetZ", producez: "ProduceZ" };
 
 // Guided first session. Steps derive "done" from real account state where
 // possible (personas / nationalities / referral count); action-only steps track
@@ -96,11 +103,17 @@ export default function OnboardZ() {
   // default": a step you have not finished explains itself, a finished one
   // folds away. Toggling one step must not touch any other.
   const [detailOpen, setDetailOpen] = useState({});
-  const isOpen = (s) => detailOpen[s.key] ?? !s.done;
+  const isOpen = (s) => detailOpen[s.key] ?? false;
+  // The first score: which coach it opens (the one they tried, else one they picked, else SingZ) and whether
+  // they already have one. `first` is undefined until the server answers, so nothing flashes.
+  const [coach, setCoach] = useState(() => firstCoach({ trialApp: storedTrialApp(), seeds: readSeeds() }));
+  const [first, setFirst] = useState(undefined);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => { setMe(d); setBday(d?.birthday || ""); }).catch(() => setMe({}));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
+    api("/api/auth/onboard/complete/").then((d) => setFirst(d?.first_take || null)).catch(() => setFirst(null));
   }, []);
 
   async function saveBday() {
@@ -128,6 +141,15 @@ export default function OnboardZ() {
   }
 
   const steps = [
+    { key: "score", icon: <Star size={18} />, title: "Get your first score",
+      desc: `Free — record or upload 8–15 seconds in ${COACH_NAME[coach]}, and the AI coach scores it out of 10 and says what to fix.`,
+      what: "One take, scored by the coach — the number, what worked, and the one thing to fix first.",
+      why: "It's the fastest way to find out what this place is for. Everything else here — posts, ratings, battles — is built on takes like this one.",
+      how: `Open ${COACH_NAME[coach]}, press Record (or Upload a clip), then Send it to the coach.`,
+      done: !!first,
+      tab: coach, target: "bosstake-mic", cta: `Get my score in ${COACH_NAME[coach]}`,
+      onGo: () => {} },
+
     { key: "profile", icon: <User size={18} />, title: "Set up your ProfileZ",
       desc: "Pick every PersonaZ you play and set your ZodiacZ.",
       what: "Your classes. Every PersonaZ you actually play — Producer, GhostWriter, Mix Engineer, A&R Scout, Director, all of them.",
@@ -192,7 +214,10 @@ export default function OnboardZ() {
   const go = (s) => { s.onGo?.(); goToSpot(s.tab, s.target); };
 
   const complete = steps.filter((s) => s.done).length;
-  const allDone = complete === steps.length;
+  // The bonus asks for what makes a member stay — a score, a post, ratings — not the profile paperwork.
+  const allDone = first !== undefined && coreDone(steps);
+  const next = nextStep(steps);
+  const rest = ordered(steps).filter((s) => s !== next);
 
   // Claim the one-time completion reward the moment every step is done.
   useEffect(() => {
@@ -208,60 +233,9 @@ export default function OnboardZ() {
     }
   }, [allDone, me, claim]);
 
-  return (
-    <div className="space-y-5">
-      <header className="flex items-center gap-3">
-        <IconImg icon="onboardz.png" alt="OnboardZ" className="h-11 w-11 rounded-xl" />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-display text-xl font-extrabold">OnboardZ</h2>
-          <p className="text-xs text-white/60">Your guided first session — {complete}/{steps.length} done.</p>
-        </div>
-      </header>
+  const card = (s, lead = false) => (
 
-      {/* The first thing a brand-new member needs is not a system
-          explainer — it's "where do I go to do the thing I came here for,"
-          without already knowing this app's own names for CollabZ, DirectZ,
-          LessonZ etc. Role, then intent, then straight to the control. This
-          is a navigation tool, not a checklist step: it never gates the
-          completion bonus below and has no "done" state of its own. */}
-      <IntentPicker />
-
-      {!allDone && (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-300/30 bg-emerald-300/5 px-4 py-3">
-          <Gift size={18} className="shrink-0 text-emerald-300" />
-          <div className="flex-1 text-sm">
-            <p className="font-semibold text-white">Complete all steps for a bonus:</p>
-            <p className="text-xs text-white/70">+150 {SPINAZ}  +50 {ENERGY}</p>
-          </div>
-        </div>
-      )}
-
-      <SystemCard />
-
-      <button onClick={startTour}
-        className="neon-btn-primary !w-auto px-5"
-        title="Walk me through it">
-        <Compass size={16} /> Take the guided tour
-      </button>
-
-      {/* Progress */}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
-        <div className="h-full rounded-full bg-mcz-ember transition-all"
-             style={{ width: `${(complete / steps.length) * 100}%` }} />
-      </div>
-
-      {allDone && (
-        <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
-          <PartyPopper size={16} />
-          {claim?.granted
-            ? <span>{talk(P.onboard_done(claim.reward_spinaz, claim.reward_energy))}</span>
-            : <span>{talk(P.onboard_done_plain)}</span>}
-        </div>
-      )}
-
-      <div className="space-y-3">
-        {steps.map((s) => (
-          <div key={s.key} className={`re-card ${s.done ? "opacity-70" : ""}`}>
+          <div key={s.key} className={`re-card ${s.done ? "opacity-70" : ""} ${lead ? "!border-mcz-ember/50" : ""}`}>
             <div className="flex items-start gap-3">
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                 s.done ? "bg-mcz-ember/20 text-mcz-ember" : "bg-white/[0.06] text-white/70"}`}>
@@ -362,7 +336,22 @@ export default function OnboardZ() {
                 {/* The link to where the task is actually done. It stays after
                     the step is finished — a done step is still somewhere you
                     go back to — just dimmed so it reads as optional. */}
-                {s.tab && (
+                {s.tab && lead && !s.done ? (
+                  <>
+                    <button className="neon-btn-primary mt-3 !w-auto px-5" onClick={() => go(s)}>
+                      {s.cta} <ArrowRight size={15} />
+                    </button>
+                {s.key === "score" && !s.done && (
+                      <div className="mt-3 flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label="Which coach">
+                        <span className="text-[11px] text-white/55">Not your instrument?</span>
+                        {FOCUS_COACHES.map((k) => (
+                          <button key={k} type="button" role="radio" aria-checked={coach === k} data-nomemo="true" onClick={() => setCoach(k)}
+                                  className={`pill ${coach === k ? "!border-mcz-ember !text-white" : ""}`}>{COACH_NAME[k]}</button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : s.tab && (
                   <button
                     className={`mt-2 flex items-center gap-1 text-xs font-semibold hover:brightness-125 ${
                       s.done ? "text-white/55 hover:text-mcz-ember" : "text-mcz-ember"}`}
@@ -373,8 +362,63 @@ export default function OnboardZ() {
               </div>
             </div>
           </div>
-        ))}
-      </div>
+  );
+
+  return (
+    <div className="space-y-5">
+      <header className="flex items-center gap-3">
+        <IconImg icon="onboardz.png" alt="OnboardZ" className="h-11 w-11 rounded-xl" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-xl font-extrabold">OnboardZ</h2>
+          <p className="text-xs text-white/60">{next ? "One step at a time — here's your next one." : "All done."}</p>
+        </div>
+      </header>
+
+
+      {!allDone && (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-300/30 bg-emerald-300/5 px-4 py-3">
+          <Gift size={18} className="shrink-0 text-emerald-300" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-white">Get your first score, post once and rate 3 tracks for a bonus:</p>
+            <p className="text-xs text-white/70">+150 {SPINAZ}  +50 {ENERGY}</p>
+          </div>
+        </div>
+      )}
+
+
+      {/* Progress */}
+      {complete > 0 && <div className="h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="h-full rounded-full bg-mcz-ember transition-all"
+             style={{ width: `${(complete / steps.length) * 100}%` }} />
+      </div>}
+
+      {allDone && (
+        <div className="flex items-center gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-4 py-2 text-sm text-mcz-ember">
+          <PartyPopper size={16} />
+          {claim?.granted
+            ? <span>{talk(P.onboard_done(claim.reward_spinaz, claim.reward_energy))}</span>
+            : <span>{talk(P.onboard_done_plain)}</span>}
+        </div>
+      )}
+
+      {next && card(next, true)}
+      {rest.length > 0 && (
+        <button type="button" className="text-xs font-semibold text-white/60 hover:text-white" onClick={() => setShowAll((v) => !v)} aria-expanded={showAll}>
+          {showAll ? "Hide the other steps" : `See all steps (${complete}/${steps.length} done)`}
+        </button>
+      )}
+      {showAll && <div className="space-y-3">{rest.map((x) => card(x))}</div>}
+
+      <details className="re-card">
+        <summary className="cursor-pointer text-sm font-semibold text-white">More ways in — pick what you're here for, how it all works, a guided tour</summary>
+        <div className="mt-3 space-y-4">
+          <IntentPicker />
+          <SystemCard />
+          <button onClick={startTour} className="neon-btn-primary !w-auto px-5" title="Walk me through it">
+            <Compass size={16} /> Take the guided tour
+          </button>
+        </div>
+      </details>
     </div>
   );
 }
