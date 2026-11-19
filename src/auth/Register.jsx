@@ -190,6 +190,15 @@ export default function Register() {
         </p>
       )}
 
+      {/* One tap first: OAuth is the smoothest way in, so it leads, and email is the alternative. */}
+      {!STANDALONE && <p className="text-sm font-semibold text-white">Sign up in one tap</p>}
+      <OAuthButtons first onSuccess={() => navigate("/")} onError={setError} />
+      {!STANDALONE && (
+        <div className="flex items-center gap-3 text-xs text-white/40">
+          <span className="h-px flex-1 bg-white/10" /> or sign up with email <span className="h-px flex-1 bg-white/10" />
+        </div>
+      )}
+
       <form onSubmit={submit} className="space-y-3">
         <div>
           <Field icon={User} placeholder="Username" value={form.username}
@@ -232,8 +241,6 @@ export default function Register() {
           {busy ? "Creating…" : "Create account"}
         </button>
       </form>
-
-      <OAuthButtons onSuccess={() => navigate("/")} onError={setError} />
 
       {/* The one-account rule, read from the server (`rulez.js`). It used to
           OPEN the form, above the username — a warning as the first thing a

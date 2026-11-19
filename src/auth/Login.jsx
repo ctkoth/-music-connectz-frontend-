@@ -126,6 +126,13 @@ export default function Login() {
           you can switch straight back from the bar at the top once you are in.
         </p>
       )}
+      <OAuthButtons first onSuccess={() => navigate(home)} onError={setError} />
+      {!import.meta.env.VITE_STANDALONE && (
+        <div className="flex items-center gap-3 text-xs text-white/40">
+          <span className="h-px flex-1 bg-white/10" /> or log in with email <span className="h-px flex-1 bg-white/10" />
+        </div>
+      )}
+
       <form onSubmit={submit} className="space-y-3">
         <div className="relative">
           <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
@@ -150,8 +157,6 @@ export default function Login() {
           {busy ? "Signing in…" : "Log in"}
         </button>
       </form>
-
-      <OAuthButtons onSuccess={() => navigate(home)} onError={setError} />
 
       <p className="pt-2 text-center text-sm text-white/55">
         New here?{" "}

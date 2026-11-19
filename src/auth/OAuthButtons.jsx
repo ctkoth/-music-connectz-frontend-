@@ -31,7 +31,7 @@ export default function OAuthButtons(props) {
   return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
 }
 
-function OAuthButtonsInner({ onSuccess, onError }) {
+function OAuthButtonsInner({ onSuccess, onError, first = false, divider }) {
   const { oauth } = useAuth();
   const navigate = useNavigate();
   // Google and Apple sign in by popup, so their answer lands HERE rather than
@@ -269,9 +269,12 @@ function OAuthButtonsInner({ onSuccess, onError }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3 text-xs text-white/40">
-        <span className="h-px flex-1 bg-white/10" /> or continue with <span className="h-px flex-1 bg-white/10" />
-      </div>
+      {/* `first`: the one-tap doors lead the screen and the divider sits AFTER them ("or with email"). */}
+      {!first && (
+        <div className="flex items-center gap-3 text-xs text-white/40">
+          <span className="h-px flex-1 bg-white/10" /> {divider || "or continue with"} <span className="h-px flex-1 bg-white/10" />
+        </div>
+      )}
 
       {hasGoogle && <div ref={googleBtn} className="flex justify-center" />}
 

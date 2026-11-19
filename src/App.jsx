@@ -17,6 +17,7 @@ import DesktopSiteHint from "./components/DesktopSiteHint.jsx";
 import { useSessionHoldState } from "./useSessionHold.js";
 import { clearSessionHold, seedSessionHold } from "./sessionHold.js";
 import LangPicker from "./components/LangPicker.jsx";
+import JoinBar from "./components/JoinBar.jsx";
 import { protectNames } from "./autoTranslate.js";
 import { useAuth } from "./auth/AuthContext.jsx";
 import MemberName from "./MemberName.jsx";
@@ -1724,6 +1725,7 @@ export default function App() {
       ))}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    {!user && <JoinBar />}
     </Suspense>
   );
 }
