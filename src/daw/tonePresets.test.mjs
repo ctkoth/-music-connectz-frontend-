@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { STARTERS, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
+import { STARTERS, startersFor, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
 import { PLUGINS, cleanInserts } from "./plugins.js";
 
 test("every starter is made of built-in effects with every value inside its range", () => {
@@ -8,7 +8,7 @@ test("every starter is made of built-in effects with every value inside its rang
     const chain = s.chain();
     assert.ok(chain.length > 0 && chain.length <= 8, s.name);
     assert.deepEqual(cleanInserts(chain).map((i) => [i.params, i.bands]), chain.map((i) => [i.params, i.bands]), `${s.name} has a value out of range`);
-    for (const i of chain) if (i.type === "eq") assert.equal(i.bands.length, 3, `${s.name}: a starter fits the Free plan's three bands`);
+    for (const i of chain) if (i.type === "eq" && !s.statz) assert.equal(i.bands.length, 3, `${s.name}: a free starter fits the Free plan's three bands`);
     for (const i of chain) assert.ok(PLUGINS[i.type]);
     assert.ok(s.what.length > 10);
   }
@@ -60,4 +60,41 @@ test("a starter uses a StatZ effect only if it says so, so the picker can lock i
     assert.equal(!!s.statz, pro, `${s.name}: statz flag must match what it contains`);
   }
   assert.ok(STARTERS.filter((s) => s.statz).length >= 4);
+});
+
+test("there is a hook-vocal chain for every vocal range, ordered so the cut and the sibilance climb with the voice", () => {
+  const hooks = STARTERS.filter((s) => s.group === "Hook vocals by range");
+  assert.equal(hooks.length, 8);
+  const cut = (s) => s.chain()[0].params.freq;
+  const bass = hooks.find((s) => s.key === "hook_bass"), soprano = hooks.find((s) => s.key === "hook_soprano");
+  assert.ok(cut(bass) < cut(soprano));
+  const ess = (s) => s.chain().find((i) => i.type === "deess").params.freq;
+  assert.ok(ess(bass) < ess(soprano));
+  for (const h of hooks) assert.match(h.what, /Autotune/);
+  for (const h of hooks) assert.ok(h.chain().length <= 8);
+});
+
+// The coaches' own lists (backend apps/economy/instruments.py: VOCAL_RANGES, RAP_STYLES, INSTRUMENT_APP_KEYS). Mirrored here
+// the way funnelkinds.test.mjs mirrors the funnel's: the two repos deploy apart, and a chain keyed to a slug the coach
+// never sends is a preset nothing will ever offer.
+const SERVER_RANGES = ["bass", "baritone", "tenor", "countertenor", "contralto", "alto", "mezzo-soprano", "soprano"];
+const SERVER_STYLES = ["boom-bap", "trap", "drill", "cloud-rap", "lyrical", "storytelling", "freestyle", "melodic", "double-time", "old-school", "conscious", "mumble"];
+const SERVER_APPS = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "violinz", "flutez", "saxz", "clarinetz", "trumpetz", "producez"];
+
+test("chains are keyed to the coaches' own lists: every range and every rap style has one, and nothing else is invented", () => {
+  const ranges = STARTERS.filter((s) => s.range).map((s) => s.range).sort();
+  assert.deepEqual(ranges, [...SERVER_RANGES].sort());
+  const styles = STARTERS.filter((s) => s.style).map((s) => s.style).sort();
+  assert.deepEqual(styles, [...SERVER_STYLES].sort());
+  for (const s of STARTERS) if (s.app) assert.ok(SERVER_APPS.includes(s.app), `${s.name}: ${s.app} is not a coach`);
+  for (const s of STARTERS) assert.ok(s.chain().length <= 8, `${s.name} has more than eight effects`);
+});
+
+test("a scored take is offered its own range or style chain first, and other styles' chains never", () => {
+  const drill = startersFor("rapz", { style: "drill" });
+  assert.equal(drill[0].style, "drill");
+  assert.ok(drill.every((s) => !s.style || s.style === "drill"));
+  const bass = startersFor("singz", { range: "bass" });
+  assert.equal(bass[0].range, "bass");
+  assert.ok(startersFor("drumz").length >= 4);
 });

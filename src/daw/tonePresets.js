@@ -113,7 +113,80 @@ export const STATZ_STARTERS = [
     chain: () => [eq(1, 70, 0, 1000, 1, 1.2, 10000), fx("glue", { threshold: -16, ratio: 2, attack: 30, release: 200, makeup: 1.5, mix: 60 }), fx("widen", { width: 110 }), fx("limiter", { drive: 2, ceiling: -1, release: 100 })] },
 ];
 
-export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS];
+// Hook (chorus) vocals by RANGE: the same eight classes the coaches name. A hook sits bigger, brighter and wider
+// than a verse, and the range decides where things go: a bass's weight and mud live lower than a soprano's, the
+// presence that cuts through is higher the higher the voice, and so is the "s" the de-esser has to find. Four EQ
+// bands (StatZ has no band ceiling), then compression, de-ess, warmth, a hall, width and a limiter.
+// AUTOTUNE is not an insert: it renders a new take of the dry vocal (the Autotune panel). So it cannot be in a
+// chain, and each chain says what to set there instead — run it FIRST on the dry take, then put the chain on.
+const eqBands = (bands) => ({ ...newInsert("eq"), bands });
+const RANGE_HOOKS = [
+  ["bass", "Bass", 70, 220, 2500, 9000, 5000, "slow, 35 ms at 70%: a low voice glides, a fast snap sounds artificial down there"],
+  ["baritone", "Baritone", 85, 240, 2800, 10000, 5500, "30 ms at 75%"],
+  ["tenor", "Tenor", 100, 260, 3200, 10500, 6000, "25 ms at 80%"],
+  ["countertenor", "Countertenor", 120, 280, 3600, 11000, 6800, "20 ms at 85%"],
+  ["contralto", "Contralto", 110, 270, 3300, 11000, 6200, "25 ms at 80%"],
+  ["alto", "Alto", 130, 300, 3800, 11500, 6800, "20 ms at 85%"],
+  ["mezzo-soprano", "Mezzo-soprano", 140, 320, 4000, 12000, 7200, "20 ms at 85%"],
+  ["soprano", "Soprano", 160, 350, 4500, 12500, 7800, "15 ms at 90%: high notes drift further, so it can be firmer"],
+].map(([key, label, cut, mud, pres, air, ess, auto]) => ({
+  group: "Hook vocals by range", statz: true, app: "singz", range: key, key: `hook_${key}`, name: `${label} hook, wide and bright`,
+  what: `Rumble cut at ${cut} Hz, mud dipped near ${mud} Hz, presence at ${(pres / 1000).toFixed(1)} kHz, air above ${Math.round(air / 1000)} kHz, a de-esser at ${(ess / 1000).toFixed(1)} kHz, warmth, a hall, width and a limiter. `
+    + `Autotune first, on the dry take: ${auto}. Autotune is a separate render in the Autotune panel, so it is not part of this chain.`,
+  chain: () => [hp(cut),
+    eqBands([{ type: "lowshelf", f: cut * 2, gain: 1.5, q: 1 }, { type: "peaking", f: mud, gain: -2.5, q: 1.2 }, { type: "peaking", f: pres, gain: 2.5, q: 1 }, { type: "highshelf", f: air, gain: 2.5, q: 1 }]),
+    comp(-21, 3, 6, 120, 8, 4), fx("deess", { freq: ess, threshold: -30, ratio: 5 }), sat(3, 12500, 35),
+    fx("proverb", { type: 2, decay: 2.0, predelay: 28, damp: 8000, width: 140, mix: 18 }), fx("widen", { width: 130 }), fx("limiter", { drive: 1, ceiling: -1, release: 90 })],
+}));
+
+// Rap chains by STYLE: the twelve RapZ styles, keyed by the SAME slugs the coach uses (`RAP_STYLES` in the backend's
+// instruments.py; a test mirrors them), so a take scored as Drill can offer the Drill chain without a lookup table
+// that could drift. Each is a different idea of a rap voice, not one chain with the numbers nudged:
+//   [key, label, highpass, lowpass|null, body dB, presence Hz, presence dB, air dB, comp(threshold, ratio, attack, release),
+//    saturation(drive, mix), de-ess threshold, echo(time, sync, feedback, mix)|null, reverb(type, decay, mix)|null, what]
+const RAP_STYLE_CHAINS = [
+  ["boom-bap", "Boom Bap", 100, null, 2, 3000, 1.5, 0, [-22, 4, 8, 100], [4, 40], -28, null, [0, 0.6, 6], "Warm and punchy: weight at 180 Hz, a little grit, firm 4:1 compression that lets the consonants hit, a short room."],
+  ["trap", "Trap", 110, null, -1, 3500, 3, 3, [-24, 4, 3, 80], [3, 30], -26, [375, 0.5, 20, 10], [1, 1.2, 10], "Crisp and upfront: bright air, tight compression, a strong de-ess for the hi-hat range and a beat-synced echo."],
+  ["drill", "Drill", 120, null, -2, 2200, 3, 0, [-26, 6, 2, 60], [5, 40], -26, null, [0, 0.5, 5], "Cold, dark and dry: low end thinned, mid bite at 2.2 kHz, hard compression, almost no space."],
+  ["cloud-rap", "Cloud Rap", 130, 9500, 0, 2500, 0, -1, [-18, 2.5, 15, 200], [2, 25], -30, [375, 0.75, 35, 28], [2, 3.2, 40], "Washed and dreamy: highs rolled off, light compression, a long hall and a dotted-beat echo."],
+  ["lyrical", "Lyrical", 100, null, 0, 3500, 3, 1, [-20, 3, 12, 140], [1, 20], -28, null, [0, 0.5, 4], "Clarity first: presence at 3.5 kHz so every word is heard, gentle slow compression, nearly dry."],
+  ["storytelling", "Storytelling", 90, null, 1, 3000, 1.5, 1, [-18, 2, 20, 180], [2, 20], -30, null, [0, 0.7, 8], "Natural and close: 2:1 compression so the performance keeps its dynamics, warmth, a small room."],
+  ["freestyle", "Freestyle", 100, null, 0, 3000, 2, 1, [-22, 3.5, 5, 100], [3, 30], -28, null, [0, 0.6, 6], "Raw and ready: moderate compression and a limiter safety net, little else, so nothing gets in the way of the take."],
+  ["melodic", "Melodic", 90, null, 1.5, 3500, 2.5, 3, [-20, 3, 8, 130], [3, 30], -30, [375, 0.5, 28, 16], [1, 1.8, 15], "Smooth and warm for sung-rap: air on top, a plate, a beat-synced echo on the tails."],
+  ["double-time", "Double-Time", 110, null, -1, 3200, 2.5, 1, [-24, 4, 1, 40], [2, 25], -26, null, [0, 0.4, 4], "Built for speed: very fast attack and release so the compressor keeps up with the syllables, a hard de-ess, nearly dry."],
+  ["old-school", "Old School", 130, 12000, 1, 2000, 2, -2, [-20, 3.5, 10, 120], [5, 45], -28, [90, 0, 12, 12], [1, 0.9, 8], "Mid-forward and a little narrow like a record from then: tape-style grit, highs rolled off, a quick slap."],
+  ["conscious", "Conscious", 90, null, 1.5, 3000, 1.5, 1, [-18, 2.5, 18, 170], [2, 20], -30, null, [1, 1.0, 10], "Intimate and warm, so the words land: light compression, a close plate, nothing flashy."],
+  ["mumble", "Mumble", 120, 8500, 1, 1800, 1, -2, [-26, 6, 2, 70], [7, 55], -24, [375, 0.5, 30, 24], [2, 2.6, 34], "Dark, heavy and saturated: tight compression, highs rolled off, a thick echo and hall that melt the words together."],
+].map(([key, label, cut, lpf, body, presF, presG, air, c, sa, ess, echo, rev, what]) => ({
+  group: "Rap chains by style", statz: true, app: "rapz", style: key, key: `rap_${key.replace(/-/g, "_")}`, name: `${label} vocal`, what,
+  chain: () => {
+    const ins = [hp(cut)];
+    if (lpf) ins.push(lp(lpf));
+    ins.push(eq(body, 160, 0, presF, 1.1, air, 10000));
+    ins[ins.length - 1].bands[1] = { type: "peaking", f: presF, gain: presG, q: 1.1 };
+    ins.push(comp(c[0], c[1], c[2], c[3], 6, 4), fx("deess", { freq: 7000, threshold: ess, ratio: 5 }), sat(sa[0], 11000, sa[1]));
+    if (echo) ins.push(fx("prodelay", { time: echo[0], sync: echo[1], feedback: echo[2], lowcut: 300, highcut: 5000, mix: echo[3] }));
+    if (rev) ins.push(fx("proverb", { type: rev[0], decay: rev[1], predelay: 15, damp: 7500, width: 115, mix: rev[2] }));
+    if (ins.length < 8) ins.push(fx("limiter", { drive: 1, ceiling: -1, release: 80 }));
+    return ins;
+  },
+}));
+
+// Which coach (a SkillZ `app_key`) each instrument starter belongs to, so a scored take can offer its own chain.
+const APP_OF = { acoustic_guitar: "guitarz", electric_clean: "guitarz", electric_gain: "guitarz", bass_guitar: "bassz", sub_808: "bassz",
+  piano: "keyz", synth_pad: "keyz", kick: "drumz", snare: "drumz", hats_overheads: "drumz", drum_bus: "drumz", strings: "violinz",
+  brass_winds: "saxz", mix_bus: "producez", parallel_room: "producez",
+  clean_vocal: "singz", warm_rnb: "singz", radio_voice: "singz", rap_upfront: "rapz", adlibs_far: "rapz" };
+
+export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS, ...RANGE_HOOKS, ...RAP_STYLE_CHAINS]
+  .map((s) => (s.app || !APP_OF[s.key] ? s : { ...s, app: APP_OF[s.key] }));
+
+/** The chains that belong with a scored take: its coach, and (if the take has one) its range or rap style. Most specific first. */
+export function startersFor(app, { range, style } = {}) {
+  const mine = STARTERS.filter((s) => s.app === app);
+  const rank = (s) => (style && s.style === style) || (range && s.range === range) ? 0 : s.style || s.range ? 2 : 1;
+  return mine.filter((s) => !(s.style || s.range) || rank(s) === 0).sort((x, y) => rank(x) - rank(y));
+}
 
 /** True when a chain holds a plugin-grade effect (the StatZ ones). */
 export const chainNeedsStatz = (inserts) => (Array.isArray(inserts) ? inserts : []).some((i) => PLUGINS[i?.type]?.statz);
