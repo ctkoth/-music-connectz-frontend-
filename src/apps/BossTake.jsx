@@ -366,6 +366,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
   const [url, setUrl] = useState("");
   const [recording, setRecording] = useState(false);
   const [secs, setSecs] = useState(0);
+  const [asking, setAsking] = useState(false);   // waiting on the browser's mic/camera permission
+  const askId = useRef(0);                         // a Cancel bumps it, so a late grant does not start recording
   // Bytes recorded so far. Hints can be ignored; bytes cannot — this is what
   // the size stop actually reads, and what the member watches climb.
   const [bytes, setBytes] = useState(0);
@@ -731,6 +733,11 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       return setMsg("This browser can't record. Upload a clip instead — it scores the same.");
     }
     if (!relaxed) step("try_record", { video });
+    // While the browser decides. A phone that has had the prompt dismissed before shows it only as a small icon
+    // (Chrome's quiet permission UI), or not at all, and the page waits on an answer that never comes — which
+    // reads as a dead button. So the wait is said out loud from the first moment, with the way round it.
+    setAsking(true);
+    const myAsk = ++askId.current;
     try {
       const stream = await navigator.mediaDevices.getUserMedia(
         relaxed ? { audio: true, ...(video ? { video: true } : {}) } :
@@ -752,6 +759,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                        // camera into no camera.
                        facingMode: { ideal: "user" } } }
           : { audio: true });
+      if (askId.current !== myAsk) { stream.getTracks().forEach((t) => t.stop()); return; }   // cancelled while it waited
+      setAsking(false);
       chunks.current = [];
       setBytes(0);
       videoRec.current = video;
@@ -898,6 +907,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       setRecording(true);
       playSound("record_start");
     } catch (err) {
+      setAsking(false);
       const { why, msg: line, retry } = mediaError(err, video);
       // Our constraints were impossible on this device. That is ours to fix,
       // not something to hand the member as a refusal — one retry with plain
@@ -1516,7 +1526,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                 same button again - upload is the way through. A blocked
                 permission or a busy mic can be fixed, so it stays. */}
             {!(trial && ["notfound", "insecure", "other"].includes(micWhy)) && (
-            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy}
+            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy || asking}
                     data-tour="bosstake-mic">
               <Mic size={15} /> {blob ? "Record again" : micWhy ? "Try the mic again" : trial ? "Or record one now" : "Record a take"}
             </button>
@@ -1524,7 +1534,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             {/* The coach watches as well as listens. On camera it can mark
                 delivery, breath and posture, which sound alone can't show. */}
             {!(trial && micWhy) && (
-            <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy}
+            <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy || asking}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
@@ -1546,6 +1556,24 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           </button>
         )}
       </div>
+      {/* Why the mic did not open, right under the button that was pressed — further down the page it landed
+          below the first screen on a phone, and the button just seemed dead. */}
+      {micWhy && msg && !asking && (
+        <p role="alert" className="rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-[12px] text-white/85">{msg}</p>
+      )}
+      {asking && (
+        <div role="status" className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] text-white/80">
+          <p className="font-semibold text-white">Waiting for your browser to allow the microphone…</p>
+          <p>Look for the prompt, or a 🎤 / 🔒 icon by the address bar, and tap Allow. If nothing shows, mic access is blocked for
+            this site in your browser settings — or skip it and upload a clip; it scores the same.</p>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 !py-1" onClick={() => { askId.current++; setAsking(false); fileInput.current?.click(); }}>
+              <Upload size={13} /> Upload a clip instead
+            </button>
+            <button type="button" className="text-[11px] text-white/60 underline" onClick={() => { askId.current++; setAsking(false); }}>Cancel</button>
+          </div>
+        </div>
+      )}
       {!trial && !IN_SHELL_COACH && !blocked && !blob && !fromPost && !recording && price?.links && (() => {
         const v = coachLinkVerdict(linkUrl, price.links);
         return (
@@ -1741,7 +1769,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {/* Suppressed on the trial when the card below is showing it: the two
           were rendering the same failure in two different sets of words, one
           of them invented here. */}
-      {msg && !(trial && failed) && (
+      {msg && !micWhy && !(trial && failed) && (
         <p className="flex items-start gap-2 rounded-lg border border-mcz-ember/30 bg-mcz-ember/10 px-3 py-2 text-[11px] text-mcz-ember">
           <AlertTriangle size={13} className="mt-0.5 shrink-0" /> {msg}
         </p>
