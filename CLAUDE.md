@@ -2697,3 +2697,19 @@ background, sharpness and colour — what the maker can change in a minute — a
 expression, looks). There is **no overall number** (one number beside a face reads as a score on the face), the caveat says so, and any age may
 use it for that reason. The notes open in DesignZ like the craft score, without the ring and without `LooksDoor`. This is the safe version of
 "feedback on my profile photo" for teens: it was offered in place of rating their looks, which stays refused.
+
+## Steps from a phone and watch: StepZ's second card, and where it cannot work
+
+`components/WatchSteps.jsx`, the top of BodieZ's StepZ tab. A web page and a Trusted Web Activity cannot read Health Connect, so
+the card does only what a page can: it asks the server for a pairing code (`/api/economy/health/pair/`), shows it, and on
+Android opens the native Link steps screen in the installed app with an `intent://` link (`healthSteps.js`; the BodieZ shell
+opens the BodieZ package, everything else the main one). Anywhere but Android it says to use an Android phone rather than
+offering a button that does nothing. The days, the note ("your device's count, pays nothing") and whether a phone is linked are the
+server's; a failed fetch renders nothing.
+
+- **Kept apart from the steps a member types.** A device's count and a typed one are different things; they are never summed.
+- **Unlink says what it deletes on the button** (every day held here) and asks first; the phone's own Health Connect data is untouched.
+- **Nothing is invented for a day with no record**, and the card never turns a step count into a score, level or reward.
+- The privacy policy and `play/bodiez/data-safety.md` name step data and Health Connect. **Not done:** the Play Console Health Connect
+  declaration, and none of the native side has been built or run (no Android SDK here) — build `assembleBodiezDebug` in CI and
+  try it on a phone with Health Connect and a watch writing to it. Merge the backend first.

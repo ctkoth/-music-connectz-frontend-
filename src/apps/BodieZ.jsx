@@ -72,6 +72,7 @@ import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
+import WatchSteps from "../components/WatchSteps.jsx";
 import KeepOnScreen from "../components/KeepOnScreen.jsx";
 import { useSessionHold } from "../useSessionHold.js";
 import { againLabelFor, lastLogged, setRest } from "../sessionHold.js";
@@ -4236,6 +4237,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
 
   return (
     <div className="space-y-5">
+      <WatchSteps />
       <div className="re-card">
         <div className="flex items-end justify-between gap-3">
           <div>
