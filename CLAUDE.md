@@ -2697,3 +2697,9 @@ background, sharpness and colour — what the maker can change in a minute — a
 expression, looks). There is **no overall number** (one number beside a face reads as a score on the face), the caveat says so, and any age may
 use it for that reason. The notes open in DesignZ like the craft score, without the ring and without `LooksDoor`. This is the safe version of
 "feedback on my profile photo" for teens: it was offered in place of rating their looks, which stays refused.
+
+### DesignZ driven against real design posts
+
+Two seeded image posts rendered in the gallery, each with the whole SocialBar on `post:<id>` (Karma, React, Rate with its
++1 ⚡ stated, Comment, Share, Open in…) and no console errors. One trap when seeding: a post's `visibility` is `"public"`;
+the empty string is only the *score* visibility's public, and a post saved with `""` is silently absent from every feed.
