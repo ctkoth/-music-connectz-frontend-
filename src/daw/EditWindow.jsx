@@ -16,6 +16,7 @@ import { useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
+import Popover from "./Popover.jsx";
 import { PLUGINS, newInsert } from "./plugins.js";
 
 const HEADER_W = 168;
@@ -155,8 +156,8 @@ export default function EditWindow({
             <div className="flex items-center gap-1">
               {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
                                 onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
-              <button type="button" className="relative flex h-5 shrink-0 items-center gap-0.5 rounded px-0.5 hover:bg-white/10" onClick={() => setLooks(looks === t.id ? null : t.id)}
-                      aria-label={`Change ${t.name}'s emoji and colour`} aria-expanded={looks === t.id} title="Change this track's emoji and colour">
+              <button type="button" className="relative flex h-5 shrink-0 items-center gap-0.5 rounded px-0.5 hover:bg-white/10" data-popover-anchor onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setLooks(looks?.id === t.id ? null : { id: t.id, rect: r }); }}
+                      aria-label={`Change ${t.name}'s emoji and colour`} aria-expanded={looks?.id === t.id} title="Change this track's emoji and colour">
                 <span className="h-3 w-1.5 rounded" style={{ background: t.color }} />{t.emoji && <span className="text-xs">{t.emoji}</span>}
               </button>
               <input className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-white outline-none" value={t.name}
@@ -241,13 +242,13 @@ export default function EditWindow({
             </div>
             {onInserts && (
               <div className="relative flex items-center gap-1 text-[10px]">
-                <button type="button" aria-expanded={fx === t.id} onClick={() => setFx(fx === t.id ? null : t.id)} title="This track's effects"
+                <button type="button" data-popover-anchor aria-expanded={fx?.id === t.id} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFx(fx?.id === t.id ? null : { id: t.id, rect: r }); }} title="Add effects or pick a preset chain"
                         className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
                   FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
                 </button>
                 <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>
-                {fx === t.id && (
-                  <div className="absolute left-0 top-full z-40 mt-1 w-64 space-y-2 rounded-lg border border-white/15 bg-[#12121c] p-2 shadow-xl" role="dialog" aria-label={`${t.name} effects`}>
+                {fx?.id === t.id && (
+                  <Popover rect={fx.rect} onClose={() => setFx(null)} label={`${t.name} effects`}>
                     <p className="font-semibold text-white/80">{t.emoji} {t.name} effects</p>
                     {(t.inserts || []).length === 0 && <p className="text-white/60">No effects yet. Pick a preset chain below, or add one effect at a time.</p>}
                     <ul className="space-y-1">
@@ -275,16 +276,16 @@ export default function EditWindow({
                     <p className="text-white/60">Preset chains</p>
                     <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} />
                     {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
-                  </div>
+                  </Popover>
                 )}
               </div>
             )}
-            {looks === t.id && (
-              <div className="absolute left-2 top-full z-40 mt-1 w-60 space-y-2 rounded-lg border border-white/15 bg-[#12121c] p-2 text-xs shadow-xl" role="dialog" aria-label={`${t.name} look`}>
+            {looks?.id === t.id && (
+              <Popover rect={looks.rect} onClose={() => setLooks(null)} label={`${t.name} look`}>
                 <EmojiPick value={t.emoji || ""} onChange={(emoji) => onTrack(t.id, { emoji })} label="Track emoji" />
                 <ColorPick value={t.color} onChange={(color) => onTrack(t.id, { color })} label="Track colour" />
                 <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => setLooks(null)}>Done</button>
-              </div>
+              </Popover>
             )}
           </div>
         ))}
