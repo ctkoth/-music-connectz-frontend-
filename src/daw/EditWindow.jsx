@@ -246,7 +246,7 @@ export default function EditWindow({
                   <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
                           title={monitorTrack === t.id ? `Hearing ${t.name}'s input${monitorLat ? ` (about ${monitorLat} ms of delay)` : ""}. Click to stop.` : "Hear this track's input while you record (use headphones)"}
                           aria-label={`Monitor ${t.name}`}
-                          className={`rounded px-1.5 py-0.5 font-bold ${monitorTrack === t.id ? "bg-emerald-500 text-black" : "bg-red-900/50 text-white"}`}>🎧</button>
+                          className={`rounded px-1.5 py-0.5 font-bold ${monitorTrack === t.id ? "bg-emerald-500 text-black" : "bg-red-600 text-white ring-1 ring-white/40"}`}>🎧</button>
                 )}
                 <button type="button" data-popover-anchor aria-expanded={fx?.id === t.id} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFx(fx?.id === t.id ? null : { id: t.id, rect: r }); }} title="Add effects or pick a preset chain"
                         className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
