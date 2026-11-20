@@ -41,6 +41,7 @@ import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
+import { envelopeOf, sameAudioGroups } from "./dupes.js";
 import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
@@ -256,6 +257,27 @@ export default function Workspace({ workflow }) {
     flushWrites();
     try { daw.resetPeak(); setClipDb(null); await daw.play(sRef.current, from, { click }); setPlaying(true); } catch (e) { setErr(e.message); }
   };
+  // Copies of the same audio on several tracks. Stacked copies of one recording comb and partly cancel, which
+  // sounds like static — and a folder of exports often holds several. Each track's envelope is worked out once
+  // per region and kept, so this costs nothing on the next render.
+  const envCache = useRef(new Map());
+  const copies = useMemo(() => {
+    const items = [];
+    for (const t of session.tracks) {
+      if (t.mute) continue;
+      const r = playlistOf(t).regions[0];
+      const buf = r && daw.buffer(r.src);
+      if (!buf) continue;
+      const key = `${r.src}|${r.in}|${r.out}`;
+      if (!envCache.current.has(key)) envCache.current.set(key, envelopeOf(buf, r.in, r.out));
+      items.push({ id: t.id, env: envCache.current.get(key) });
+    }
+    return sameAudioGroups(items);
+  }, [session.tracks, session.sources, daw]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nameOf = (id) => session.tracks.find((t) => t.id === id)?.name || "a track";
+  const muteCopies = (g) => { commit((s) => g.slice(1).reduce((acc, id) => setTrack(acc, id, { mute: true }), s)); setMsg(`Muted ${g.length - 1} cop${g.length === 2 ? "y" : "ies"} — ${nameOf(g[0])} plays on its own. Undo puts them back.`); };
+  const removeCopies = (g) => { commit((s) => g.slice(1).reduce((acc, id) => removeTrack(acc, id), s)); setMsg(`Removed ${g.length - 1} cop${g.length === 2 ? "y" : "ies"} of ${nameOf(g[0])}. Undo puts them back.`); };
+
   // Clipping, said while it happens: the loudest peak since Play, checked four times a second. Over 0 dBFS the
   // output distorts, and across a whole song that is static, not music.
   const [clipDb, setClipDb] = useState(null);
@@ -633,6 +655,15 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={() => setLib(true)}><FolderOpen size={13} /> From FileZ</button>
       </div>
 
+      {copies.map((g) => (
+        <div key={g.join()} role="alert" className="flex flex-wrap items-center gap-2 rounded-xl border border-mcz-gold/50 bg-mcz-gold/10 px-3 py-2 text-xs">
+          <span className="font-semibold text-mcz-gold">⚠ {g.length} tracks play the same audio</span>
+          <span className="text-white/75">— {g.slice(0, 4).map(nameOf).join(", ")}{g.length > 4 ? ` and ${g.length - 4} more` : ""}. Copies of one recording stacked together sound like static.</span>
+          <button type="button" className="re-btn !w-auto px-3 !py-1" onClick={() => muteCopies(g)}>Mute the copies (keep {nameOf(g[0])})</button>
+          <button type="button" className="re-btn !w-auto px-3 !py-1 !text-mcz-ember" onClick={() => removeCopies(g)}>Remove the copies</button>
+          <span className="text-emerald-300">Free · Undo puts it back</span>
+        </div>
+      ))}
       {clipDb != null && (
         <div role="alert" className="flex flex-wrap items-center gap-2 rounded-xl border border-mcz-ember/50 bg-mcz-ember/10 px-3 py-2 text-xs">
           <span className="font-semibold text-mcz-ember">⚠ The mix is clipping</span>
