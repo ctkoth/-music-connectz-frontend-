@@ -127,3 +127,16 @@ test("every audio skill a member can name has at least one chain", () => {
   const missing = AUDIO_SKILLS.filter((k) => !have.has(k));
   assert.deepEqual(missing, []);
 });
+
+test("every string instrument has arco, pizzicato, staccato and tremolo, and pizzicato is the fastest and the driest", () => {
+  for (const sk of ["violin", "viola", "cello", "double_bass"]) {
+    const mine = STARTERS.filter((s) => s.skills?.includes(sk) && s.technique);
+    assert.deepEqual(mine.map((s) => s.technique).sort(), ["arco", "pizzicato", "staccato", "tremolo"], sk);
+    const get = (t) => mine.find((s) => s.technique === t).chain();
+    const comp = (c) => c.find((i) => i.type === "comp").params, room = (c) => c.find((i) => i.type === "reverb").params;
+    assert.ok(comp(get("pizzicato")).attack < comp(get("arco")).attack, sk);
+    assert.ok(room(get("pizzicato")).decay < room(get("arco")).decay, sk);
+    assert.ok(room(get("tremolo")).decay > room(get("arco")).decay, `${sk}: tremolo has the longest tail`);
+    assert.ok(get("pizzicato")[0].params.freq > get("arco")[0].params.freq, `${sk}: pizzicato cuts higher, so the pluck isn't muddy`);
+  }
+});

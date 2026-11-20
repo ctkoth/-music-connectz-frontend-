@@ -79,13 +79,17 @@ export default function MixAI({ song, settings, onApply, allowedIntensities = []
         </div>
       )}
       <div className="space-y-1">
-        <p className="text-[11px] text-white/55">Or start from a genre — <span className="text-emerald-300">free</span>:</p>
-        <div className="flex flex-wrap gap-1.5">
-          {d.genres.map((g) => (
-            <button key={g.key} title={g.why} className={`pill text-[11px] ${preset === g.label ? "!bg-white/20" : ""}`}
-              onClick={() => { apply(g.settings, g.label); setGot(null); }}>{g.emoji} {g.label}</button>
-          ))}
-        </div>
+        {[...new Set(d.genres.map((g) => g.group || "Genre"))].map((grp) => (
+          <div key={grp} className="space-y-1">
+            <p className="text-[11px] text-white/55">{grp === "Genre" ? "Or start from a genre" : grp === "Rap style" ? "By rap style" : "By singing range"} — <span className="text-emerald-300">free</span>:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {d.genres.filter((g) => (g.group || "Genre") === grp).map((g) => (
+                <button key={g.key} title={g.why} className={`pill text-[11px] ${preset === g.label ? "!bg-white/20" : ""}`}
+                  onClick={() => { apply(g.settings, g.label); setGot(null); }}>{g.emoji} {g.label.replace(/ master$/, "")}</button>
+              ))}
+            </div>
+          </div>
+        ))}
         {preset && !preset.startsWith("AI") && (() => { const g = d.genres.find((x) => x.label === preset); return g ? (
           <p className="text-[11px] text-white/60">{g.label} is on the controls: {g.why}{capped(g.settings) ? ` ${capped(g.settings)}` : ""}</p>) : null; })()}
       </div>

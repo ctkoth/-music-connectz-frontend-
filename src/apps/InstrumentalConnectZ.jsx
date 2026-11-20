@@ -109,6 +109,30 @@ function ReloadOnSample({ onChange }) {
   return null;
 }
 
+// Starting points by rap style, singing range and genre: the server's list (instrumental_presets.py), which fills the form
+// below. Free; Compose is priced exactly as before and every field can still be changed. The reason for each choice is
+// shown, because a tempo or a key with no reason is a number to take on trust.
+function PresetPicker({ presets, onPick, last }) {
+  if (!presets?.length) return null;
+  const groups = [...new Set(presets.map((p) => p.group))];
+  return (
+    <div className="space-y-2" data-tour="instrumental-presets">
+      <p className="text-sm text-white/70">Start from a preset <span className="text-emerald-300">free</span> <span className="text-white/50">— fills the form; nothing is composed or charged until you press Compose</span></p>
+      {groups.map((g) => (
+        <div key={g} className="space-y-1">
+          <p className="text-[11px] text-white/55">{g === "Rap style" ? "By rap style" : "By singing range"}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {presets.filter((p) => p.group === g).map((p) => (
+              <button key={p.key} title={p.why} className={`pill text-[11px] ${last?.key === p.key && last?.group === g ? "!bg-white/20" : ""}`} onClick={() => onPick(p)}>{p.emoji} {p.label}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {last && <p className="text-[11px] text-white/60">{last.label}: {last.bpm} BPM, {last.key_name}. {last.why}</p>}
+    </div>
+  );
+}
+
 export default function InstrumentalConnectZ() {
   const cl = useCharLimit();
   const [s, setS] = useState(null);
@@ -121,6 +145,7 @@ export default function InstrumentalConnectZ() {
   const [bars, setBars] = useState(4);
   const [prio, setPrio] = useState({});
   const [insp, setInsp] = useState(null);
+  const [lastPreset, setLastPreset] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
   // The POST response for the piece just composed: the only place the server says
@@ -235,6 +260,9 @@ export default function InstrumentalConnectZ() {
           if (d.key) setKey(d.key);
           if (d.instruments?.length) setPicked(d.instruments);
           if (d.brief) setBrief(cl.clamp(d.brief));
+        }} />
+        <PresetPicker presets={s?.presets} last={lastPreset} onPick={(p) => {
+          setLastPreset(p); setGenre(p.genre); setPicked(p.instruments.slice(0, s?.max_tracks ?? 6)); setBpm(p.bpm); setKey(p.key_name); setBars(p.bars); setBrief(cl.clamp(p.brief));
         }} />
         {/* The same emoji genres every other screen offers; the text box below still takes anything. */}
         <select data-nomemo="true" aria-label="Pick a genre" className="neon-input w-full text-sm"

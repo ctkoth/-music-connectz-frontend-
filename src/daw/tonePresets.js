@@ -266,7 +266,39 @@ const SKILLS_OF = { acoustic_guitar: ["acoustic_guitar"], electric_clean: ["elec
   clean_vocal: ["any_singing", "vocals", "singing"], warm_rnb: ["any_singing"], radio_voice: ["any_singing"],
   rap_upfront: ["rapping", "rap"], adlibs_far: ["rapping"] };
 
-export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS, ...RANGE_HOOKS, ...RAP_STYLE_CHAINS_BUILT, ...RAP_SKILL_CHAINS, ...INSTRUMENT_SKILL_STARTERS, ...VOICEOVER_STARTERS]
+// String TECHNIQUES by instrument: how a string is played changes what the chain has to do. A bowed (arco) note is long and
+// wants slow, gentle levelling and a hall; a plucked (pizzicato) note is a transient, so it wants a fast compressor to even the
+// pluck, the pluck's own frequency lifted and a short room so the decay isn't smothered; staccato/spiccato is a bounced bow, short
+// and bright, in a small room; tremolo is a shimmer of repeated short strokes that smears in a hot compressor, so it gets the
+// gentlest settings and the longest tail. Each instrument has its own register, so the cut, body and presence move with it.
+//   [skill token, name, coach, highpass, body Hz, presence Hz, string/noise Hz]
+const STRING_INSTRUMENTS = [
+  ["violin", "Violin", "violinz", 150, 300, 3500],
+  ["viola", "Viola", "violinz", 100, 250, 2600],
+  ["cello", "Cello", "violinz", 50, 120, 2000],
+  ["double_bass", "Double bass", "bassz", 35, 90, 800],
+];
+const TECHNIQUES = {
+  arco: { label: "arco (bowed)", what: "Long bowed notes: slow, gentle compression so the sustain stays natural, a little rosin presence and a hall.",
+    cut: 1, body: 1.5, pres: 1, air: 1, comp: [-22, 2.5, 30, 250, 10, 1], room: [2.0, 18] },
+  pizzicato: { label: "pizzicato (plucked)", what: "Plucked notes: a fast compressor evens out the pluck's attack, the pluck's own frequency is lifted, and a short room leaves the decay alone.",
+    cut: 1.3, body: 1, pres: 3, air: 1, comp: [-20, 4, 2, 70, 3, 3], room: [0.7, 10] },
+  staccato: { label: "staccato / spiccato", what: "Short bounced-bow notes: quick compression, a little brightness so each note starts clearly, a small room.",
+    cut: 1.2, body: 0, pres: 1.8, air: 1.5, comp: [-21, 3, 4, 90, 4, 2], room: [0.9, 12] },
+  tremolo: { label: "tremolo", what: "Fast repeated strokes: the gentlest compression, because a tight one makes the shimmer pump, and the longest tail.",
+    cut: 1, body: 0, pres: 0.5, air: 2, comp: [-24, 2, 40, 300, 12, 1], room: [2.8, 26] },
+};
+const STRING_TECHNIQUE_STARTERS = STRING_INSTRUMENTS.flatMap(([skill, label, app, cut, bodyF, presF]) =>
+  Object.entries(TECHNIQUES).map(([tk, t]) => ({
+    group: `Strings · ${label}`, key: `str_${skill}_${tk}`, name: `${label}, ${t.label}`, app, skills: [skill], technique: tk,
+    what: `${t.what} Tuned for the ${label.toLowerCase()}'s register (cut ${Math.round(cut * t.cut)} Hz, body ${bodyF} Hz, presence ${(presF / 1000).toFixed(1)} kHz).`,
+    chain: () => {
+      const e = eq(t.body, bodyF, 0, presF, 1, t.air, 10000); e.bands[1] = { type: "peaking", f: presF, gain: t.pres, q: 1 };
+      return [hp(Math.round(cut * t.cut)), e, comp(...t.comp), fx("reverb", { decay: t.room[0], predelay: 12, mix: t.room[1] })];
+    },
+  })));
+
+export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS, ...RANGE_HOOKS, ...RAP_STYLE_CHAINS_BUILT, ...RAP_SKILL_CHAINS, ...INSTRUMENT_SKILL_STARTERS, ...STRING_TECHNIQUE_STARTERS, ...VOICEOVER_STARTERS]
   .map((s) => (s.app || !APP_OF[s.key] ? s : { ...s, app: APP_OF[s.key] }))
   .map((s) => (s.skills || !SKILLS_OF[s.key] ? s : { ...s, skills: SKILLS_OF[s.key] }));
 
