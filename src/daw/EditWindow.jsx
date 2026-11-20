@@ -67,7 +67,7 @@ export function Playhead({ position, zoom, height }) {
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
-  onAuto, autoAllowed = false, trackLabel = "",
+  onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick,
 }) {
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
@@ -139,6 +139,8 @@ export default function EditWindow({
         {session.tracks.map((t) => (
           <div key={t.id} className="flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
             <div className="flex items-center gap-1">
+              {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
+                                onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
               <span className="h-3 w-1.5 shrink-0 rounded" style={{ background: t.color }} />
               <input className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-white outline-none" value={t.name}
                      aria-label="Track name" onChange={(e) => onTrack(t.id, { name: e.target.value })} />

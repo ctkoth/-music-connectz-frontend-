@@ -42,6 +42,7 @@ import TimingPanel from "./TimingPanel.jsx";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
 import { envelopeOf, sameAudioGroups } from "./dupes.js";
+import SelectAllBar from "../components/SelectAllBar.jsx";
 import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
@@ -275,6 +276,19 @@ export default function Workspace({ workflow }) {
     return sameAudioGroups(items);
   }, [session.tracks, session.sources, daw]); // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = (id) => session.tracks.find((t) => t.id === id)?.name || "a track";
+  // Ticked tracks, for doing one thing to many. Ticking is free; "Select all" is StatZ's (SelectAllBar).
+  const [picked, setPicked] = useState([]);
+  const pickedLive = picked.filter((id) => session.tracks.some((t) => t.id === id));
+  const toPicked = (patch, word) => {
+    commit((s) => pickedLive.reduce((acc, id) => setTrack(acc, id, patch), s));
+    setMsg(`${word} ${pickedLive.length} track${pickedLive.length === 1 ? "" : "s"}. Undo puts them back.`);
+  };
+  const removePicked = () => {
+    if (pickedLive.length >= session.tracks.length) { setErr("A session keeps at least one track — leave one unticked."); return; }
+    if (!window.confirm(`Remove ${pickedLive.length} track${pickedLive.length === 1 ? "" : "s"}? Undo puts them back.`)) return;
+    commit((s) => pickedLive.reduce((acc, id) => removeTrack(acc, id), s));
+    setPicked([]);
+  };
   // Every copy but the first of each group: what the AI prompt and the checks leave out, so they work on the
   // fewest tracks that still hold every recording once.
   const copyIds = useMemo(() => new Set(copies.flatMap((g) => g.slice(1))), [copies]);
@@ -792,8 +806,20 @@ export default function Workspace({ workflow }) {
       ) : view === "drummer" ? (
         <SmartDrummer app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
                       onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead — open Tracks to see it.`); }} />
-      ) : view === "edit" ? (
+      ) : view === "edit" ? (<>
+        <div className="flex flex-wrap items-center gap-2 text-xs" data-tour="daw-select-tracks">
+          <SelectAllBar all={session.tracks.map((t) => t.id)} picked={pickedLive} onChange={setPicked} disabled={recording} allLabel="Select all tracks" />
+          {pickedLive.length > 0 && (<>
+            <span className="text-white/60">{pickedLive.length} selected:</span>
+            <button type="button" className="pill" onClick={() => toPicked({ mute: true }, "Muted")}>Mute</button>
+            <button type="button" className="pill" onClick={() => toPicked({ mute: false }, "Unmuted")}>Unmute</button>
+            <button type="button" className="pill" onClick={() => toPicked({ solo: true }, "Soloed")}>Solo</button>
+            <button type="button" className="pill" onClick={() => toPicked({ solo: false }, "Unsoloed")}>Unsolo</button>
+            <button type="button" className="pill !text-mcz-ember" disabled={recording} onClick={removePicked}>Remove</button>
+          </>)}
+        </div>
         <EditWindow
+          picked={pickedLive} onPick={setPicked}
           session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
@@ -810,7 +836,7 @@ export default function Workspace({ workflow }) {
             if (op.type === "copy") commit((s) => newPlaylist(s, id, { copy: true }));
             restartIfPlaying();
           }}
-        />
+        /></>
       ) : (
         <MixWindow
           session={session} daw={daw} playing={playing}
