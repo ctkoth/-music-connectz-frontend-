@@ -298,6 +298,12 @@ const TOOLZ_MENU = {
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
   ],
+  // Corey: DawZ, MangaZ and AnimeZ on one screen — make music, draw it, animate it.
+  'StudioZ': [
+    { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW on one engine — tap an icon to open it as a tab, split window or new window' },
+    { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
+    { key: 'animez', label: 'AnimeZ', color: 'cyan', desc: 'Episodes from your manga pages and anime pieces — subtitles, camera moves, cut in VideoZ' },
+  ],
   'BodieZ': [
     { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
   ],
@@ -307,7 +313,7 @@ const CATEGORY_ICON_KEY = {
   SocialiZeZ: "social_connectz.png", CollabZ: "collabz.png", BattleZ: "battlez.png",
   GroupZ: "groupz.png", SkillZ: "skillz.png", ToolZ: "toolz.png", IntelligenceZ: "intelligencez.png",
   ProfileZ: "profilez.png", DesignZ: "designz.png", VenueZ: "venuez.png", MercheZ: "merchz.png",
-  Lilith: "lilithz.png", BodieZ: "bodiez.png",
+  Lilith: "lilithz.png", BodieZ: "bodiez.png", StudioZ: "dawz.png",
 };
 
 // Category info for the main grid
@@ -325,6 +331,7 @@ const CATEGORIES = [
   { key: 'MercheZ', label: 'MercheZ', color: 'magenta' },
   { key: 'Lilith', label: 'Lilith', color: 'magenta' },
   { key: 'BodieZ', label: 'BodieZ', color: 'orange' },
+  { key: 'StudioZ', label: 'StudioZ', color: 'cyan' },
 ];
 
 // Labels for the focus tiles that no ToolZ category names (see focus.js).

@@ -47,8 +47,8 @@ test("SkillZ is a coach app: it ends the coach grid, as the category it is (ther
   assert.match(block("CATEGORY_ICON_KEY"), /\bSkillZ:/);
 });
 
-test("ToolZ and IntelligenceZ are parents: each a real category with art, offered up front", () => {
-  assert.deepEqual(PARENTS, ["ToolZ", "IntelligenceZ"]);
+test("ToolZ, IntelligenceZ and StudioZ are parents: each a real category with art, offered up front", () => {
+  assert.deepEqual(PARENTS, ["ToolZ", "IntelligenceZ", "StudioZ"]);
   const art = block("CATEGORY_ICON_KEY");
   for (const k of PARENTS) {
     assert.match(menu, new RegExp(`\\n  '${k}': \\[`), `${k} is not a category in TOOLZ_MENU`);
