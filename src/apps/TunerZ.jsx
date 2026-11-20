@@ -363,16 +363,16 @@ function TunerZ() {
           <button
             onClick={startListening}
             disabled={isListening}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-6 py-3 font-bold text-white transition-all hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex min-h-[4.5rem] flex-1 items-center justify-center gap-3 rounded-2xl bg-emerald-500 px-6 py-4 text-lg font-bold text-white transition-all hover:bg-emerald-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Mic size={20} /> Start Listening
+            <Mic size={30} /> Start Listening
           </button>
           <button
             onClick={stopListening}
             disabled={!isListening}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-mcz-ember px-6 py-3 font-bold text-white transition-all hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex min-h-[4.5rem] flex-1 items-center justify-center gap-3 rounded-2xl bg-mcz-ember px-6 py-4 text-lg font-bold text-white transition-all hover:bg-red-600 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <MicOff size={20} /> Stop
+            <MicOff size={30} /> Stop
           </button>
         </div>
 

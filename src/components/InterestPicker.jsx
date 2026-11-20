@@ -114,13 +114,13 @@ export default function InterestPicker({ persona, interests, setInterests, brand
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {busy === "recording" ? (
-          <button type="button" className="pill text-[11px] !border-mcz-ember !text-mcz-ember" onClick={stopMic}>
-            <Square size={12} /> Stop
+          <button type="button" className="pill !flex min-h-[2.75rem] items-center gap-2 px-5 text-sm font-bold !border-mcz-ember !text-mcz-ember" onClick={stopMic}>
+            <Square size={16} fill="currentColor" /> Stop
           </button>
         ) : (
-          <button type="button" className="pill text-[11px]" onClick={startMic}
+          <button type="button" className="pill !flex min-h-[2.75rem] items-center gap-2 px-5 text-sm font-bold" onClick={startMic}
                   disabled={!!busy || left === 0}>
-            <Mic size={12} /> {busy === "transcribe" ? "Listening…" : "Say it"}
+            <Mic size={18} /> {busy === "transcribe" ? "Listening…" : "Say it"}
           </button>
         )}
         <span className="text-[10px] text-white/60">{left === 0 ? "You've used today's voice clips — typing is free and works the same." : micCost}</span>

@@ -729,9 +729,9 @@ export default function Workspace({ workflow }) {
           ? <button type="button" className="neon-btn-primary !w-auto px-3" onClick={stopPlay}><Square size={14} /> Stop</button>
           : <button type="button" className="neon-btn-primary !w-auto px-3" onClick={() => startPlay()} disabled={recording}><Play size={14} /> Play</button>}
         <button type="button" onClick={record} disabled={!!busy && !recording}
-                className={`!w-auto rounded-full px-3 py-1.5 font-semibold ${recording ? "animate-pulse bg-red-600 text-white" : "border border-red-500/60 text-mcz-ember"}`}
+                className={`!w-auto min-h-[2.75rem] rounded-full px-5 py-2 text-sm font-bold transition active:scale-95 ${recording ? "animate-pulse bg-red-600 text-white shadow-[0_0_18px_rgba(239,68,68,0.5)]" : "border-2 border-red-500/70 bg-red-500/10 text-mcz-ember"}`}
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
-          <Circle size={12} className="mr-1 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
+          <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>

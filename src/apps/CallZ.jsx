@@ -296,9 +296,9 @@ export default function CallZ() {
                 {muted ? <MicOff size={15} /> : <Mic size={15} />} {muted ? "Unmute" : "Mute"}
               </button>
             )}
-            <button className="re-btn re-btn-red !w-auto px-4" disabled={busy}
+            <button className="re-btn re-btn-red !w-auto min-h-[3rem] px-6 text-base font-bold" disabled={busy}
                     onClick={() => finish(mine, "end")}>
-              <PhoneOff size={15} /> {mine.status === "ringing" ? "Cancel" : "End call"}
+              <PhoneOff size={20} /> {mine.status === "ringing" ? "Cancel" : "End call"}
             </button>
           </div>
         </div>
@@ -357,9 +357,9 @@ export default function CallZ() {
                 </p>
               )}
               {quote.can_call ? (
-                <button className="neon-btn-primary !w-auto px-5" disabled={busy}
+                <button className="neon-btn-primary !w-auto min-h-[3rem] px-6 text-base font-bold" disabled={busy}
                         onClick={place}>
-                  <Phone size={15} /> Call {quote.username}
+                  <Phone size={20} /> Call {quote.username}
                   {!quote.free && ` · ${usd(perMin)}/min`}
                 </button>
               ) : (
