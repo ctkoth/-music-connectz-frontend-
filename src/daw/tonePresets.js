@@ -13,7 +13,7 @@ const eq = (lowGain, lowFreq, midGain, midFreq, midQ, highGain, highFreq) => ({ 
   { type: "peaking", f: midFreq, gain: midGain, q: midQ },
   { type: "highshelf", f: highFreq, gain: highGain, q: 1 }] });
 
-export const STARTERS = [
+export const VOICE_STARTERS = [
   { key: "clean_vocal", name: "Clean vocal", what: "Rumble cut, a little presence and air, gentle compression, a short room.",
     chain: () => [fx("filter", { mode: 1, freq: 90, q: 0.7 }),
       eq(-2, 200, 2, 3000, 1, 3, 10000),
@@ -39,6 +39,48 @@ export const STARTERS = [
       fx("delay", { time: 375, sync: 0.75, feedback: 35, mix: 30 }),
       fx("reverb", { decay: 3, predelay: 40, mix: 35 })] },
 ];
+
+// Starters for the rest of the kit: each is a sensible first move for that sound, written here from ordinary
+// mixing practice with the built-in effects only (free, three EQ bands, nothing StatZ). They are starting
+// points, not verdicts — every one says what it does so a member can tell whether it fits their take. Any
+// value outside an effect's range is clamped when applied, and the test holds every one inside it.
+const hp = (freq, q = 0.7) => fx("filter", { mode: 1, freq, q });
+const lp = (freq, q = 0.7) => fx("filter", { mode: 0, freq, q });
+const comp = (threshold, ratio, attack, release, knee, makeup) => fx("comp", { threshold, ratio, attack, release, knee, makeup });
+export const INSTRUMENT_STARTERS = [
+  { group: "Guitar", key: "acoustic_guitar", name: "Acoustic guitar, open", what: "Rumble cut, boxiness dipped around 250 Hz, a little pick and air, gentle levelling.",
+    chain: () => [hp(80), eq(0, 120, -2, 250, 1.2, 2.5, 9000), comp(-20, 2.5, 15, 150, 8, 2)] },
+  { group: "Guitar", key: "electric_clean", name: "Electric guitar, clean", what: "Low end tidied, body at 200 Hz, a touch of bite and a short room.",
+    chain: () => [hp(90), eq(0, 150, 1.5, 3000, 1, 1.5, 8000), comp(-18, 2, 20, 160, 8, 1), fx("reverb", { decay: 1.0, predelay: 15, mix: 10 })] },
+  { group: "Guitar", key: "electric_gain", name: "Electric guitar, driven", what: "Mud under 100 Hz removed and the fizz above 8 kHz rolled off so a distorted tone sits behind a vocal.",
+    chain: () => [hp(100), lp(8500), eq(0, 200, -1.5, 3500, 1.2, 0, 8000)] },
+  { group: "Bass", key: "bass_guitar", name: "Bass guitar, solid", what: "Sub rumble out, weight at 80 Hz, definition at 800 Hz, firm even compression.",
+    chain: () => [hp(35), eq(2, 80, -1, 300, 1, 2, 900), comp(-22, 4, 20, 120, 4, 4)] },
+  { group: "Bass", key: "sub_808", name: "808 / sub bass", what: "Keeps the weight and cuts what fights the kick; barely compressed so the note rings.",
+    chain: () => [hp(28), lp(5000), eq(1.5, 55, -2, 250, 1, 0, 3000), comp(-14, 2, 30, 200, 6, 1)] },
+  { group: "Keys", key: "piano", name: "Piano, natural", what: "Low mud cleared, a little sparkle, a medium room so it sounds played in a space.",
+    chain: () => [hp(60), eq(0, 150, -1.5, 400, 1, 2, 10000), comp(-20, 2, 25, 200, 10, 1), fx("reverb", { decay: 1.6, predelay: 20, mix: 14 })] },
+  { group: "Keys", key: "synth_pad", name: "Synth pad, wide", what: "Lows cleared so a pad does not eat the bass, highs softened, a long soft tail.",
+    chain: () => [hp(150), lp(10000), eq(0, 200, -2, 500, 1, 0, 8000), fx("reverb", { decay: 3.0, predelay: 30, mix: 25 })] },
+  { group: "Drums", key: "kick", name: "Kick, punch", what: "Below 30 Hz removed, thump at 60 Hz, box dipped at 350 Hz, click at 4 kHz, fast compression.",
+    chain: () => [hp(30), eq(2.5, 60, -3, 350, 1.4, 2, 4000), comp(-18, 4, 10, 80, 3, 3)] },
+  { group: "Drums", key: "snare", name: "Snare, crack", what: "Body at 200 Hz, ring dipped at 500 Hz, crack at 5 kHz, quick and tight with a short room.",
+    chain: () => [hp(80), eq(1.5, 200, -2, 500, 2, 2, 6000), comp(-20, 4, 5, 90, 3, 3), fx("reverb", { decay: 0.7, predelay: 10, mix: 10 })] },
+  { group: "Drums", key: "hats_overheads", name: "Hats and overheads, airy", what: "Everything under 300 Hz removed so cymbals stay out of the way; a little shimmer on top.",
+    chain: () => [hp(300), eq(-1, 400, 0, 2000, 1, 2.5, 10000), comp(-22, 2, 20, 150, 8, 1)] },
+  { group: "Drums", key: "drum_bus", name: "Drum bus, glue", what: "Slow-attack compression that lets the hits through and holds the sustain together.",
+    chain: () => [eq(1, 80, 0, 1000, 1, 1.5, 9000), comp(-16, 3, 30, 120, 6, 3)] },
+  { group: "Strings and brass", key: "strings", name: "Strings, smooth", what: "Low rumble cleared, harshness at 3 kHz softened, a roomy hall.",
+    chain: () => [hp(60), eq(0, 150, -1.5, 3000, 1, 1, 9000), comp(-22, 2, 30, 250, 10, 1), fx("reverb", { decay: 2.2, predelay: 25, mix: 18 })] },
+  { group: "Strings and brass", key: "brass_winds", name: "Brass and winds, present", what: "Cleaner low end and a lift where the instrument speaks, with even level.",
+    chain: () => [hp(100), eq(0, 200, -1.5, 1500, 1, 1.5, 8000), comp(-20, 3, 15, 150, 6, 2)] },
+  { group: "Mix", key: "mix_bus", name: "Mix bus, gentle", what: "Gentle two-to-one on the whole mix with a hint of low end and air. Leave the loudness to the master.",
+    chain: () => [hp(25), eq(1, 70, 0, 1000, 1, 1, 10000), comp(-14, 2, 30, 150, 10, 1.5)] },
+  { group: "Mix", key: "parallel_room", name: "Parallel room send", what: "A short bright room to put under a dry track so it feels placed without getting washed out.",
+    chain: () => [hp(250), fx("reverb", { decay: 0.9, predelay: 8, mix: 100 })] },
+];
+
+export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS];
 
 /** A stored chain made into fresh inserts for a track: new ids, every value back in range. */
 export function chainToInserts(chain) {

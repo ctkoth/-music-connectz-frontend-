@@ -66,9 +66,11 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
             {all.filter((p) => p.kind === k).map((p) => <option key={p.id} value={`m:${p.id}`}>{p.name}</option>)}
           </optgroup>
         ))}
-        <optgroup label="Voice starters (built in)">
-          {STARTERS.map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}</option>)}
-        </optgroup>
+        {[...new Set(STARTERS.map((s) => s.group))].map((g) => (
+          <optgroup key={g} label={`${g} starters (built in)`}>
+            {STARTERS.filter((s) => s.group === g).map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}</option>)}
+          </optgroup>
+        ))}
       </select>
       {!failed && (saving ? (
         <div className="space-y-1 rounded bg-black/40 p-1">

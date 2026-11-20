@@ -44,3 +44,16 @@ test("an EQ saved before bands opens as the three bands it was, and a chain keep
   const back = chainToInserts(insertsToChain(cleanInserts([{ type: "eq", bands: seven }])));
   assert.equal(back[0].bands.length, 7);
 });
+
+test("starters have unique keys, cover the whole kit, and borrow nobody's preset names", () => {
+  const keys = STARTERS.map((s) => s.key);
+  assert.equal(new Set(keys).size, keys.length);
+  const groups = new Set(STARTERS.map((s) => s.group));
+  for (const g of ["Voice", "Guitar", "Bass", "Keys", "Drums", "Strings and brass", "Mix"]) assert.ok(groups.has(g), g);
+  // Ours are written from ordinary practice; a name that implies a vendor's preset would imply a link we do not have.
+  for (const s of STARTERS) assert.ok(!/fabfilter|ozone|izotope|waves|pro-?q|pro-?c|pro tools|logic|bitwig/i.test(`${s.name} ${s.what}`), s.name);
+});
+
+test("only free effects are used, so a Free member can apply every starter", () => {
+  for (const s of STARTERS) for (const i of s.chain()) assert.ok(!PLUGINS[i.type].statz, `${s.name} uses ${i.type}`);
+});
