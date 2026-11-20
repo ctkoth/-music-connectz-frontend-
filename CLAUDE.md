@@ -2746,3 +2746,20 @@ a near-miss, or any reward that depends on the animation. Variable payouts of �
 and Play treats simulated gambling in a family app as a policy problem. The reels *show* a result; they never *decide* one. A test fails if the reveal
 gains a random source or a button. If randomized rewards are ever wanted, that is an owner and legal decision (adults verified, nothing purchasable, odds
 published), not a styling one. The big-win layer now stays up 3.2 s so the last reel is seen landing.
+
+## DAW: name and save a session, and key + BPM from the instrumental
+
+Arsenal (every DAW, `Workspace.jsx`) kept sessions on the device as you worked but never said so, and an untouched "Untitled session" looked unsaved.
+- **💾 Name & save** beside the session name (it reads **Save** once named): asks for a name when it is still "Untitled session", saves to the
+  device at once (cancel changes nothing) and the line beside it says "Saved on this device · 9:47 PM". It is the device only; the tooltip says a copy
+  of the sound is bounce → Save to FileZ.
+- **🎹 Detect key & BPM** listens to the audio and sets the project key and tempo, and **says what it heard in a sentence** under the toolbar. Free, on the device.
+  - **Key** listens to the *instrumental*: every track that is not a lead vocal, backing vocal or drums (`instrumentalKey.js`, roles from import or `guessRole`).
+    Drums have no pitch and a lead vocal follows the tune rather than the harmony. It names the relative key too, because they share every note.
+  - **Tempo** (`tempo.js`) listens to everything but the vocals, **drums included**, because they carry the pulse. It counts how often the loudness jumps repeat
+    (60–180 BPM), names the half/double-time twin instead of hiding it ("if it feels twice as fast, 186 BPM"), and says when the pulse is weak.
+  - **Honesty:** `null` and a sentence ("I couldn't find a clear key / a steady beat") rather than a number, for drums-only, a held pad, silence or free time.
+    With no instrumental track it falls back to the whole mix and says so. A song that changes tempo will not read well.
+  - Driven in a browser: an A-minor tune read A minor / 120; a 93 BPM drum beat moved the project from 120 to 93 and, correctly, reported no key.
+    Unit tests cover 70–160 BPM, hats between the beats not doubling the tempo, and a steady tone or silence reading as nothing. **Not tested on real mixes**, where
+    a swung or live-drummer track will be less exact than a click.

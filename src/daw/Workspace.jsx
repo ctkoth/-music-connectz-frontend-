@@ -4,6 +4,9 @@
 // Save to FileZ, and the screen says so before anything else.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyBadge from "../components/KeyBadge.jsx";
+import { detectKeyFromChannels } from "../songKey.js";
+import { detectTempoFromChannels } from "../tempo.js";
+import { instrumentalTracks, keySentence, rhythmTracks, sessionKeyFor, tempoSentence } from "./instrumentalKey.js";
 import {
   ArrowLeftRight, ChevronLeft, ChevronRight, Circle, Copy, Download, FolderOpen, Loader2, Minus, Play, Plus, Redo2, Save, Scissors,
   SkipBack, Square, Trash2, Undo2, Upload, Wand2,
@@ -179,7 +182,7 @@ export default function Workspace({ workflow }) {
   useEffect(() => {
     const t = setTimeout(() => {
       if (!lengthOf(session) && !Object.keys(session.sources).length && session.tracks.length === 1) return;
-      saveSession(sessionId, workflow.app, session).then(() => { setStoreErr(""); refreshList(); })
+      saveSession(sessionId, workflow.app, session).then(() => { setStoreErr(""); setSavedAt(Date.now()); refreshList(); })
         .catch((e) => setStoreErr(`Couldn't keep this session on the device: ${e.message}`));
     }, 800);
     return () => clearTimeout(t);
@@ -583,6 +586,55 @@ export default function Workspace({ workflow }) {
   const stemCap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
   // One track alone, pre-fader (0 dB, centre, no automation; its polarity as set): what the timing and gain
   // panels measure, so their answers are about the audio itself rather than the current settings.
+  // ---- name & save: the session is kept on this device as it changes; this makes that visible and lets a member name it on purpose ----
+  const [savedAt, setSavedAt] = useState(0);
+  const nameAndSave = async () => {
+    let name = session.name;
+    if (!name || name === "Untitled session") {
+      const given = window.prompt("Name this session", "");
+      if (given === null) return;                                  // cancelled: nothing changes
+      name = given.trim().slice(0, 60) || "Untitled session";
+    }
+    const next = { ...sRef.current, name };
+    commit((x) => ({ ...x, name }));
+    try { await saveSession(sessionId, workflow.app, next); setStoreErr(""); setSavedAt(Date.now()); refreshList(); }
+    catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); }
+  };
+
+  // ---- key and tempo from the instrumental: free, on this device, and it says what it heard ----
+  const [keyNote, setKeyNote] = useState("");
+  const [keyBusy, setKeyBusy] = useState(false);
+  const channelsOf = (buf) => ({ channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate });
+  const renderOnly = (cur, picked) => {
+    const ids = new Set(picked.map((t) => t.id));
+    return daw.bounce({ ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: ids.has(x.id), mute: ids.has(x.id) ? false : x.mute, ...(ids.has(x.id) ? { gain: 0, pan: 0, auto: {} } : {}) })) }, { tail: 0 });
+  };
+  const detectProjectKey = async () => {
+    const cur = sRef.current;
+    const withAudio = (t) => playlistOf(t).regions.length > 0;
+    const all = cur.tracks.filter(withAudio);
+    if (!all.length) { setKeyNote("Add or record some audio first — there is nothing to listen to yet."); return; }
+    // The key listens to the instrumental (no vocals, no drums: drums have no pitch). The tempo listens to everything but the
+    // vocals, drums included, because they carry the pulse. With no such track either one falls back to the whole mix and says so.
+    let inst = instrumentalTracks(cur.tracks, withAudio), keyWhole = false;
+    if (!inst.length) { inst = all; keyWhole = true; }
+    let beat = rhythmTracks(cur.tracks, withAudio), beatWhole = false;
+    if (!beat.length) { beat = all; beatWhole = true; }
+    setKeyBusy(true); setKeyNote("");
+    try {
+      const keyBuf = await renderOnly(cur, inst);
+      const found = detectKeyFromChannels(channelsOf(keyBuf));
+      const sameSet = beat.length === inst.length && beat.every((t, i) => t.id === inst[i].id);
+      const tempoBuf = sameSet ? keyBuf : await renderOnly(cur, beat);
+      const tempo = detectTempoFromChannels(channelsOf(tempoBuf));
+      const named = sessionKeyFor(found);
+      if (named || tempo) commit((x) => setSession(x, { ...(named ? { key: named } : {}), ...(tempo ? { bpm: tempo.bpm } : {}) }));
+      const set = [named && `key to ${named}`, tempo && `tempo to ${tempo.bpm} BPM`].filter(Boolean).join(" and ");
+      setKeyNote(`${keySentence(found, inst.map((t) => t.name), keyWhole)} ${tempoSentence(tempo, beat.map((t) => t.name), beatWhole)}${set ? ` I've set the project ${set}.` : ""}`);
+    } catch (e) {
+      setKeyNote(`Couldn't read this audio: ${e.message || "unknown error"}`);
+    } finally { setKeyBusy(false); }
+  };
   const measureTrackAudio = async (t) => {
     const cur = sRef.current;
     const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
@@ -687,6 +739,13 @@ export default function Workspace({ workflow }) {
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <input className="neon-input !w-48 !py-1.5" value={session.name} aria-label="Session name"
                onChange={(e) => commit((s) => ({ ...s, name: e.target.value.slice(0, 60) }))} />
+        <button type="button" className="re-btn !w-auto px-3" onClick={nameAndSave}
+                title="Kept on this device as you work. This names it and saves it right now. To keep a copy of the sound itself, bounce it and Save to FileZ.">
+          💾 {session.name === "Untitled session" ? "Name & save" : "Save"}
+        </button>
+        <span className="text-[11px] text-white/50" role="status">
+          {savedAt ? `Saved on this device · ${new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Kept on this device as you work"}
+        </span>
         <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Open a saved session"
                 onChange={(e) => e.target.value && open(e.target.value)}>
           <option value="">Open a session on this device…</option>
@@ -780,6 +839,10 @@ export default function Workspace({ workflow }) {
             {SESSION_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </label>
+        <button type="button" className="re-btn !w-auto px-3" onClick={detectProjectKey} disabled={keyBusy || recording}
+                title="Listens to the instrumental, tells you the key and the BPM, and sets both on the project. Free, on your device.">
+          {keyBusy ? "Listening…" : "🎹 Detect key & BPM"}
+        </button>
         <label className="flex items-center gap-1 text-white/60">BPM
           <input type="number" className="neon-input !w-16 !py-1" min={BPM.min} max={BPM.max} value={session.bpm} disabled={recording}
                  onChange={(e) => commit((s) => setSession(s, { bpm: e.target.value }))} />
@@ -789,6 +852,8 @@ export default function Workspace({ workflow }) {
                  onChange={(e) => commit((s) => setSession(s, { meter: e.target.value }))} />
         </label>
       </div>
+
+      {keyNote && <p role="status" className="rounded-xl border border-mcz-cyan/40 bg-mcz-cyan/10 px-3 py-2 text-xs text-white/85">🎹 {keyNote}</p>}
 
       {/* Edit tools */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
