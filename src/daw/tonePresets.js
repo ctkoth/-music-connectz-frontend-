@@ -130,7 +130,7 @@ const RANGE_HOOKS = [
   ["mezzo-soprano", "Mezzo-soprano", 140, 320, 4000, 12000, 7200, "20 ms at 85%"],
   ["soprano", "Soprano", 160, 350, 4500, 12500, 7800, "15 ms at 90%: high notes drift further, so it can be firmer"],
 ].map(([key, label, cut, mud, pres, air, ess, auto]) => ({
-  group: "Hook vocals by range", statz: true, app: "singz", range: key, key: `hook_${key}`, name: `${label} hook, wide and bright`,
+  group: "Hook vocals by range", statz: true, app: "singz", range: key, skills: [key.replace(/-/g, "_")], key: `hook_${key}`, name: `${label} hook, wide and bright`,
   what: `Rumble cut at ${cut} Hz, mud dipped near ${mud} Hz, presence at ${(pres / 1000).toFixed(1)} kHz, air above ${Math.round(air / 1000)} kHz, a de-esser at ${(ess / 1000).toFixed(1)} kHz, warmth, a hall, width and a limiter. `
     + `Autotune first, on the dry take: ${auto}. Autotune is a separate render in the Autotune panel, so it is not part of this chain.`,
   chain: () => [hp(cut),
@@ -157,20 +157,60 @@ const RAP_STYLE_CHAINS = [
   ["old-school", "Old School", 130, 12000, 1, 2000, 2, -2, [-20, 3.5, 10, 120], [5, 45], -28, [90, 0, 12, 12], [1, 0.9, 8], "Mid-forward and a little narrow like a record from then: tape-style grit, highs rolled off, a quick slap."],
   ["conscious", "Conscious", 90, null, 1.5, 3000, 1.5, 1, [-18, 2.5, 18, 170], [2, 20], -30, null, [1, 1.0, 10], "Intimate and warm, so the words land: light compression, a close plate, nothing flashy."],
   ["mumble", "Mumble", 120, 8500, 1, 1800, 1, -2, [-26, 6, 2, 70], [7, 55], -24, [375, 0.5, 30, 24], [2, 2.6, 34], "Dark, heavy and saturated: tight compression, highs rolled off, a thick echo and hall that melt the words together."],
-].map(([key, label, cut, lpf, body, presF, presG, air, c, sa, ess, echo, rev, what]) => ({
-  group: "Rap chains by style", statz: true, app: "rapz", style: key, key: `rap_${key.replace(/-/g, "_")}`, name: `${label} vocal`, what,
-  chain: () => {
-    const ins = [hp(cut)];
-    if (lpf) ins.push(lp(lpf));
-    ins.push(eq(body, 160, 0, presF, 1.1, air, 10000));
-    ins[ins.length - 1].bands[1] = { type: "peaking", f: presF, gain: presG, q: 1.1 };
-    ins.push(comp(c[0], c[1], c[2], c[3], 6, 4), fx("deess", { freq: 7000, threshold: ess, ratio: 5 }), sat(sa[0], 11000, sa[1]));
-    if (echo) ins.push(fx("prodelay", { time: echo[0], sync: echo[1], feedback: echo[2], lowcut: 300, highcut: 5000, mix: echo[3] }));
-    if (rev) ins.push(fx("proverb", { type: rev[0], decay: rev[1], predelay: 15, damp: 7500, width: 115, mix: rev[2] }));
-    if (ins.length < 8) ins.push(fx("limiter", { drive: 1, ceiling: -1, release: 80 }));
-    return ins;
-  },
-}));
+];
+
+// One rap style, three jobs. The LEAD is the style's own voice. The DUBS are the doubles stacked behind it: compressed
+// LESS (a gentler ratio, slower times) so they keep their life, thinned so they don't fight the lead, with no grit of their
+// own, then chorused and pushed wide. The CHORUS (hook) is the lead made bigger: brighter, wider, more space and a limiter.
+// Eight effects at most; when the full list is longer the grit goes first, then the echo, so a chain stays whole.
+const PARTS = { lead: "lead", dub: "dubs", chorus: "chorus (hook)" };
+const rapChain = ([key, label, cut, lpf, body, presF, presG, air, c, sa, ess, echo, rev, what], tags, part = "lead") => {
+  const dub = part === "dub", hook = part === "chorus";
+  const note = dub ? " As dubs: compressed less, thinned, chorused and wide, so they sit behind the lead."
+    : hook ? " As the hook: brighter, wider, with more space and a limiter." : "";
+  return {
+    group: `Rap · ${label}`, statz: true, app: "rapz", part, key: `rap_${key.replace(/-/g, "_")}${dub ? "_dub" : hook ? "_chorus" : ""}`,
+    name: `${label} — ${PARTS[part]}`, what: what + note, ...tags,
+    chain: () => {
+      const ins = [{ ...hp(dub ? cut + 60 : cut), _k: "hp" }];
+      if (lpf) ins.push({ ...lp(lpf), _k: "lp" });
+      const e = eq(dub ? body - 1 : body, 160, 0, presF, 1.1, air + (hook ? 1.5 : dub ? 1 : 0), 10000);
+      e.bands[1] = { type: "peaking", f: presF, gain: presG + (hook ? 1 : dub ? -0.5 : 0), q: 1.1 };
+      ins.push(e);
+      const ratio = dub ? Math.max(2, c[1] * 0.5) : c[1];
+      ins.push(comp(dub ? c[0] + 4 : c[0], ratio, dub ? c[2] * 1.5 : c[2], dub ? c[3] * 1.4 : c[3], 6, 4), fx("deess", { freq: 7000, threshold: ess, ratio: 5 }));
+      if (!dub) ins.push({ ...sat(hook ? sa[0] - 1 : sa[0], 11000, sa[1]), _k: "sat" });
+      if (dub) ins.push(fx("chorus", { rate: 0.5, depth: 4, mix: 32 }));
+      if (echo && !dub) ins.push({ ...fx("prodelay", { time: echo[0], sync: echo[1], feedback: echo[2], lowcut: 300, highcut: 5000, mix: hook ? echo[3] + 6 : echo[3] }), _k: "echo" });
+      const r = rev || [0, 0.8, 8];
+      ins.push(fx("proverb", { type: hook ? 2 : dub ? 1 : r[0], decay: hook ? Math.max(1.8, r[1] * 1.6) : dub ? Math.max(1.2, r[1]) : r[1], predelay: 15, damp: 7500,
+        width: hook ? 140 : dub ? 160 : 115, mix: hook ? Math.max(16, r[2] * 1.8) : dub ? Math.max(14, r[2] * 1.2) : r[2] }));
+      if (dub || hook) ins.push(fx("widen", { width: dub ? 175 : 130 }));
+      if (!dub) ins.push({ ...fx("limiter", { drive: 1, ceiling: -1, release: 80 }), _k: "lim" });
+      for (const drop of ["sat", "echo"]) { if (ins.length <= 8) break; const at = ins.findIndex((x) => x._k === drop); if (at >= 0) ins.splice(at, 1); }
+      if (ins.length > 8) { const at = ins.findIndex((x) => x._k === "lp"); if (at >= 0) ins.splice(at, 1); }
+      return ins.map(({ _k, ...x }) => x);
+    },
+  };
+};
+const rapSet = (row, tags) => ["lead", "dub", "chorus"].map((part) => rapChain(row, tags, part));
+// The skill tokens a coach style stands for (personaz.py: the skills a member can name), so a chain is found by the
+// skill on a profile as well as by the style on a take. The styles with no skill of their own share `any_rapping`.
+const SKILL_OF_STYLE = { "boom-bap": "boom_bap", trap: "trap", drill: "drill", "cloud-rap": "cloud_rap", conscious: "conscious_rap",
+  mumble: "mumble_rap", "old-school": "old_school", freestyle: "freestyle" };
+const RAP_STYLE_CHAINS_BUILT = RAP_STYLE_CHAINS.flatMap((r) => rapSet(r, { style: r[0], skills: [SKILL_OF_STYLE[r[0]] || "any_rapping"] }));
+
+// Rap sub-genres a member can name as a SKILL that the coach has no style for. Each is its own idea of a voice.
+const RAP_SKILL_CHAINS = [
+  ["chopper", "Chopper", 110, null, -1, 3400, 2.5, 1, [-25, 4, 1, 35], [2, 25], -26, null, [0, 0.4, 4], "Tech-rap speed: the fastest compressor times so every syllable of a run gets its own attack, a hard de-ess, dry."],
+  ["crunk", "Crunk", 140, null, 1, 2000, 3, 0, [-28, 8, 2, 60], [9, 70], -24, null, [0, 0.5, 5], "Shouted and dirty: heavy 8:1 compression, hard saturation, a chant that stays in your face."],
+  ["emo-rap", "Emo Rap", 100, 10500, 1.5, 3000, 1.5, 0, [-19, 3, 10, 150], [4, 45], -29, [375, 0.5, 30, 20], [2, 2.4, 28], "Sad and close: dark highs, soft grit, a washed echo and hall so it feels like a voice in an empty room."],
+  ["g-funk", "G-Funk", 110, null, 2, 2800, 2, 2, [-20, 3, 12, 140], [2, 25], -29, [90, 0, 14, 10], [1, 1.1, 12], "Smooth West Coast: warm lows, a silky top, gentle compression, a short slap and a plate."],
+  ["gangsta-rap", "Gangsta Rap", 120, null, 1, 1800, 2.5, -1, [-24, 5, 4, 80], [5, 45], -27, null, [0, 0.5, 5], "Menacing and mid-heavy: weight and a hard 1.8 kHz push, firm compression, dry and close."],
+  ["hardcore", "Hardcore Hip-Hop", 130, null, 0, 2400, 3, 0, [-27, 6, 2, 60], [6, 50], -25, null, [0, 0.4, 3], "Raw and aggressive: hard compression, grit, no space at all."],
+  ["jazz-rap", "Jazz Rap", 90, null, 2, 3200, 1.5, 2, [-17, 2, 20, 180], [2, 20], -30, null, [1, 1.3, 12], "Loose and warm: 2:1 compression so the phrasing breathes, a soft plate, nothing hard."],
+  ["snap", "Snap Rap", 140, null, -2, 3800, 3, 3, [-23, 4, 3, 70], [3, 30], -26, [375, 0.5, 15, 8], [1, 0.8, 8], "Light and clipped: thin lows, bright consonants and a quick beat-synced echo that doesn't smear."],
+].flatMap((r) => rapSet(r, { skills: [r[0].replace(/-/g, "_")] }));
 
 // Which coach (a SkillZ `app_key`) each instrument starter belongs to, so a scored take can offer its own chain.
 const APP_OF = { acoustic_guitar: "guitarz", electric_clean: "guitarz", electric_gain: "guitarz", bass_guitar: "bassz", sub_808: "bassz",
@@ -178,8 +218,57 @@ const APP_OF = { acoustic_guitar: "guitarz", electric_clean: "guitarz", electric
   brass_winds: "saxz", mix_bus: "producez", parallel_room: "producez",
   clean_vocal: "singz", warm_rnb: "singz", radio_voice: "singz", rap_upfront: "rapz", adlibs_far: "rapz" };
 
-export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS, ...RANGE_HOOKS, ...RAP_STYLE_CHAINS]
-  .map((s) => (s.app || !APP_OF[s.key] ? s : { ...s, app: APP_OF[s.key] }));
+// The instruments a member can name as a skill that had no chain: free, three EQ bands, written for how each one sounds.
+//   [skill token, name, coach, highpass, body Hz, body dB, presence Hz, presence dB, air dB, compressor, reverb|null, what]
+const INSTRUMENT_SKILL_STARTERS = [
+  ["viola", "Viola, dark and sweet", "violinz", 90, 250, 1.5, 2500, 1, 1, [-22, 2.5, 25, 220, 10, 1], [1.8, 18], "Warm lows kept, a little rosin at 2.5 kHz, soft compression and a hall."],
+  ["cello", "Cello, full", "violinz", 40, 120, 2, 2000, 1, 0, [-22, 2.5, 30, 250, 10, 1], [2.0, 18], "Body at 120 Hz, bow detail at 2 kHz, slow compression so the long notes sing."],
+  ["harp", "Harp, shimmer", "keyz", 60, 200, 0, 3500, 1.5, 2.5, [-24, 2, 15, 200, 10, 0], [2.6, 24], "Plucks kept clear, a little sparkle on top, a big soft hall under it."],
+  ["banjo", "Banjo, snap", "guitarz", 120, 250, -2, 3500, 2.5, 1.5, [-20, 4, 3, 80, 4, 3], null, "Boxiness out, pick attack up, fast compression to hold the roll level."],
+  ["mandolin", "Mandolin, bright", "guitarz", 150, 300, -1.5, 4000, 2, 2, [-21, 3, 5, 100, 6, 2], [0.8, 10], "Thin lows out, shimmer and pick up, a tiny room."],
+  ["ukulele", "Ukulele, warm", "guitarz", 120, 220, 1.5, 3000, 1, 1, [-21, 3, 10, 130, 8, 2], [0.9, 10], "A little low warmth, soft strum detail, even level."],
+  ["accordion", "Accordion, reedy", "keyz", 90, 220, 0, 1500, 1.5, 0, [-21, 3, 15, 160, 8, 2], [1.1, 14], "Reed body kept, harshness left alone, even compression and a small room."],
+  ["organ", "Organ, thick", "keyz", 50, 150, 1.5, 1200, 1, 0, [-18, 2, 40, 300, 12, 0], [1.9, 20], "Fat lows, a touch of mid push, barely compressed, a big room."],
+  ["harpsichord", "Harpsichord, crisp", "keyz", 100, 300, -1, 4000, 2, 2, [-22, 2, 8, 100, 6, 0], [0.9, 12], "Boxiness dipped, pluck up top, a short room."],
+  ["double_bass", "Double bass, woody", "bassz", 35, 90, 2, 800, 1.5, 0, [-22, 3.5, 20, 150, 6, 3], null, "Thump at 90 Hz and string noise at 800 Hz so notes read on small speakers."],
+  ["electric_guitar", "Electric guitar, in the mix", "guitarz", 90, 180, 1, 3000, 1.5, 0, [-19, 2.5, 18, 150, 8, 1], [0.9, 10], "Weight at 180 Hz, bite at 3 kHz, even level and a small room."],
+  ["digital_piano", "Digital piano, softened", "keyz", 70, 200, 0, 3500, -1, 1, [-21, 2, 25, 200, 10, 1], [1.4, 12], "A touch of the brittle top taken off, air kept, a real-room tail."],
+  ["synthesizer", "Synth lead, upfront", "keyz", 100, 250, -1, 2500, 2, 1.5, [-19, 3, 8, 110, 6, 2], [1.0, 10], "Mud out, presence up so a lead stays above the pad."],
+].map(([skill, name, app, cut, bodyF, bodyG, presF, presG, air, c, rev, what]) => ({
+  group: "More instruments", key: `skill_${skill}`, name, app, skills: [skill], what,
+  chain: () => {
+    const e = eq(bodyG, bodyF, 0, presF, 1, air, 10000); e.bands[1] = { type: "peaking", f: presF, gain: presG, q: 1 };
+    const ins = [hp(cut), e, comp(c[0], c[1], c[2], c[3], c[4], c[5])];
+    if (rev) ins.push(fx("reverb", { decay: rev[0], predelay: 15, mix: rev[1] }));
+    return ins;
+  },
+}));
+
+// Voice-over and acting skills (Monologist, Stage actor, Screen actor, Improviser): speech, not song, so the de-esser
+// does more and the compression does less, and none of it is a music-bus move. StatZ, because they use the de-esser.
+const VOICEOVER_STARTERS = [
+  { group: "Acting and voice-over", statz: true, key: "vo_narration", name: "Narration, intimate", skills: ["monologues", "screen_acting"],
+    what: "A close, steady voice for long reading: rumble out, warmth at 150 Hz, presence for clarity, a firm de-ess and level compression, no room.",
+    chain: () => [hp(80), eq(1.5, 150, 0, 3500, 1, 1.5, 11000), comp(-20, 3, 10, 150, 8, 3), fx("deess", { freq: 6500, threshold: -30, ratio: 6 }), fx("limiter", { drive: 1, ceiling: -1, release: 100 })] },
+  { group: "Acting and voice-over", statz: true, key: "vo_stage", name: "Stage monologue, carrying", skills: ["stage_acting", "monologues"],
+    what: "Projects: presence pushed so it reads from the back, light compression so the dynamic range of the performance survives, a hall for the space.",
+    chain: () => [hp(90), eq(0, 180, 0, 3000, 1, 2, 10000), comp(-18, 2, 20, 200, 10, 2), fx("deess", { freq: 6500, threshold: -32, ratio: 4 }), fx("proverb", { type: 2, decay: 2.0, predelay: 25, damp: 7500, width: 110, mix: 14 })] },
+  { group: "Acting and voice-over", statz: true, key: "vo_improv", name: "Improv and sketch, forgiving", skills: ["improv"],
+    what: "For unplanned takes at uneven levels: faster, firmer compression to catch the surprises, a de-ess and a limiter so a shout doesn't spike.",
+    chain: () => [hp(100), eq(0, 200, 0, 3200, 1, 1, 9000), comp(-24, 4, 4, 100, 5, 5), fx("deess", { freq: 6800, threshold: -28, ratio: 5 }), fx("limiter", { drive: 2, ceiling: -1, release: 60 })] },
+];
+
+// Skill tokens (personaz.py) the original starters answer to, for the ones not built from a skill table above.
+const SKILLS_OF = { acoustic_guitar: ["acoustic_guitar"], electric_clean: ["electric_guitar"], electric_gain: ["electric_guitar"],
+  bass_guitar: ["bass_guitar"], sub_808: ["beat_making", "drum_programming"], piano: ["acoustic_piano"], synth_pad: ["synthesizer", "sound_design"],
+  kick: ["drums_bass"], snare: ["drums_snare"], hats_overheads: ["cymbals"], drum_bus: ["any_percussion", "drums_bongo"],
+  strings: ["violin"], brass_winds: ["any_keyboard"], mix_bus: ["mixing", "compression"], parallel_room: ["reverb_fx"],
+  clean_vocal: ["any_singing", "vocals", "singing"], warm_rnb: ["any_singing"], radio_voice: ["any_singing"],
+  rap_upfront: ["rapping", "rap"], adlibs_far: ["rapping"] };
+
+export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS, ...RANGE_HOOKS, ...RAP_STYLE_CHAINS_BUILT, ...RAP_SKILL_CHAINS, ...INSTRUMENT_SKILL_STARTERS, ...VOICEOVER_STARTERS]
+  .map((s) => (s.app || !APP_OF[s.key] ? s : { ...s, app: APP_OF[s.key] }))
+  .map((s) => (s.skills || !SKILLS_OF[s.key] ? s : { ...s, skills: SKILLS_OF[s.key] }));
 
 /** The chains that belong with a scored take: its coach, and (if the take has one) its range or rap style. Most specific first. */
 export function startersFor(app, { range, style } = {}) {

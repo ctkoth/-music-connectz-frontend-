@@ -83,8 +83,8 @@ const SERVER_APPS = ["singz", "rapz", "guitarz", "bassz", "keyz", "drumz", "viol
 
 test("chains are keyed to the coaches' own lists: every range and every rap style has one, and nothing else is invented", () => {
   const ranges = STARTERS.filter((s) => s.range).map((s) => s.range).sort();
-  assert.deepEqual(ranges, [...SERVER_RANGES].sort());
-  const styles = STARTERS.filter((s) => s.style).map((s) => s.style).sort();
+  assert.deepEqual([...new Set(ranges)], [...SERVER_RANGES].sort());
+  const styles = [...new Set(STARTERS.filter((s) => s.style).map((s) => s.style))].sort();
   assert.deepEqual(styles, [...SERVER_STYLES].sort());
   for (const s of STARTERS) if (s.app) assert.ok(SERVER_APPS.includes(s.app), `${s.name}: ${s.app} is not a coach`);
   for (const s of STARTERS) assert.ok(s.chain().length <= 8, `${s.name} has more than eight effects`);
@@ -97,4 +97,33 @@ test("a scored take is offered its own range or style chain first, and other sty
   const bass = startersFor("singz", { range: "bass" });
   assert.equal(bass[0].range, "bass");
   assert.ok(startersFor("drumz").length >= 4);
+});
+
+test("every rap style, and every rap sub-genre a member can name as a skill, has a lead, dubs and a chorus chain", () => {
+  const rap = STARTERS.filter((s) => s.app === "rapz" && s.part);
+  const by = new Map();
+  for (const s of rap) { const k = s.style || s.skills[0]; by.set(k, [...(by.get(k) || []), s.part]); }
+  for (const st of SERVER_STYLES) assert.deepEqual((by.get(st) || []).sort(), ["chorus", "dub", "lead"], st);
+  for (const sk of ["chopper", "crunk", "emo_rap", "g_funk", "gangsta_rap", "hardcore", "jazz_rap", "snap"]) assert.deepEqual((by.get(sk) || []).sort(), ["chorus", "dub", "lead"], sk);
+  // dubs compress less than their lead; the chorus is wider than its lead
+  for (const st of SERVER_STYLES) {
+    const get = (part) => rap.find((s) => s.style === st && s.part === part).chain();
+    const ratio = (c) => c.find((i) => i.type === "comp").params.ratio;
+    assert.ok(ratio(get("dub")) < ratio(get("lead")) || ratio(get("dub")) <= 2, `${st}: dubs compress less`);
+    assert.ok(get("dub").some((i) => i.type === "widen"), `${st}: dubs are wide`);
+    assert.ok(get("chorus").some((i) => i.type === "limiter" || i.type === "widen"), st);
+  }
+});
+
+// The skills a member can name (personaz.py _ARTIST and the acting/mix roles): the audit. A skill with a recording sound
+// but no chain is a profile that names something the DAW cannot help with.
+const AUDIO_SKILLS = ["boom_bap", "trap", "drill", "cloud_rap", "conscious_rap", "mumble_rap", "old_school", "freestyle", "chopper", "crunk",
+  "emo_rap", "g_funk", "gangsta_rap", "hardcore", "jazz_rap", "snap", "any_rapping", "any_singing", "bass", "baritone", "tenor", "countertenor",
+  "contralto", "alto", "mezzo_soprano", "soprano", "acoustic_guitar", "electric_guitar", "bass_guitar", "double_bass", "acoustic_piano",
+  "digital_piano", "synthesizer", "organ", "harpsichord", "accordion", "drums_snare", "drums_bass", "cymbals", "violin", "viola", "cello", "harp",
+  "banjo", "mandolin", "ukulele", "monologues", "stage_acting", "screen_acting", "improv", "mixing", "reverb_fx"];
+test("every audio skill a member can name has at least one chain", () => {
+  const have = new Set(STARTERS.flatMap((s) => s.skills || []));
+  const missing = AUDIO_SKILLS.filter((k) => !have.has(k));
+  assert.deepEqual(missing, []);
 });
