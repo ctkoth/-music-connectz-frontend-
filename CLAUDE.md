@@ -2718,3 +2718,18 @@ server's; a failed fetch renders nothing.
 Two seeded image posts rendered in the gallery, each with the whole SocialBar on `post:<id>` (Karma, React, Rate with its
 +1 ⚡ stated, Comment, Share, Open in…) and no console errors. One trap when seeding: a post's `visibility` is `"public"`;
 the empty string is only the *score* visibility's public, and a post saved with `""` is silently absent from every feed.
+
+## The Casino look: the lights without the odds
+
+Sound already had the casino half (`PACKS.casino` and `PACKS.highroller` in `sound.js`) and rewards already had a chip and a burst
+(`celebrate.js`, `CelebrationLayer.jsx`). What was missing was the screen and a bigger payoff, so `casinoLook.js` adds them: an opt-in
+**Casino look** (SoundZ → Casino look, `html[data-casino]`, off by default, remembered on the device) that paints marquee bulbs round
+`.re-card`, gold and ruby accents and a gold primary button, plus a **coin shower** on any `celebrate(..., { big: true })` gain (12 coins,
+28 with the look on).
+
+- **Paint, never odds.** The shower fires only from a celebration the SERVER confirmed, every amount is the server's, and there is no spin,
+  no near-miss, no fake jackpot and no random draw (`coinSpec` is deterministic and a test fails if `Math.random` appears). A platform
+  with 13-year-olds does not borrow a casino's mechanics, only its lighting.
+- **Movement stops for `prefers-reduced-motion`**; the colours stay. Driven in a 412px browser: gold button, bulb ring on a card, 28 coins
+  and a gold "+50 🍥 Level up!" chip, no console errors. Not checked on a real phone, and only `.re-card` and the primary button are restyled —
+  other surfaces (the top status card, tab strips) keep the neon look, so "app-wide" is a start, not a full retheme.

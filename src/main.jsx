@@ -7,6 +7,7 @@ import { AuthProvider } from "./auth/AuthContext.jsx";
 import { initAdMob } from "./admob.js";
 import { listenForAppReturn } from "./externalAuth.js";
 import { startAutoMemo } from "./autoMemo.js";
+import { applyCasinoLook } from "./casinoLook.js";
 import { startAutoTranslate } from "./autoTranslate.js";
 import { apply as applyGlow, load as loadGlow, PALETTE as GLOW_PALETTE } from "./glow.js";
 import "./index.css";
@@ -20,6 +21,7 @@ initAdMob();
 // A Facebook/Spotify login run in a Chrome tab comes back as a deep link.
 listenForAppReturn();
 startAutoMemo();
+applyCasinoLook();
 startAutoTranslate();
 // The saved glow shows at once; GlowColor re-checks it against the plan once the limits arrive.
 applyGlow(GLOW_PALETTE.find((c) => c.key === loadGlow()) || null);
