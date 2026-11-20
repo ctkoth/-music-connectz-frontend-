@@ -234,10 +234,10 @@ const TOOLZ_MENU = {
         { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Resumes, cover letters, lyrics, poems, bios, posts & essays' },
         { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI loops by genre, instruments, BPM & key — StatZ searches keys by mood' },
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
         { key: 'animeconnectz', label: 'Anime ConnectZ', color: 'magenta', desc: 'AI anime from your CharacterZ: PromptZ, ReelZ, EpisodeZ chapters and MovieZ scenes' },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
       ]
     },
     {
