@@ -16,6 +16,7 @@ import { RatingRing, RatingRow } from "../components/Rating.jsx";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import SocialBar from "../components/SocialBar.jsx";
+import LooksDoor from "../components/LooksDoor.jsx";
 import { PERSONA_SKILLS, labelForSkill } from "../personaSkills.js";
 import { designPosts, imageOf, notesFromHandoff } from "../designz.js";
 
@@ -128,6 +129,7 @@ function CoachNotes({ notes, onClose }) {
         ))}
       </div>
       {notes.next && <p className="text-sm text-white/80"><span className="font-semibold text-white">Next:</span> {notes.next}</p>}
+      <LooksDoor />
       <div className="flex flex-wrap gap-2">
         <button type="button" className="re-btn !w-auto px-4" onClick={() => goToSpot("imagez", "")}>Make the changes in ImageZ</button>
         <button type="button" className="re-btn !w-auto px-4" onClick={() => handOff("postz", "composer", {})}>Post it for other members to rate</button>

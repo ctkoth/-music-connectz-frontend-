@@ -6,6 +6,7 @@ import { api } from "../api.js";
 import { PROMPTZ, ENERGY } from "../resources.js";
 import { RatingRow } from "./Rating.jsx";
 import { handOff } from "../handoff.js";
+import LooksDoor from "./LooksDoor.jsx";
 
 export default function ImageScore({ getImage, busy }) {
   const [info, setInfo] = useState(null);
@@ -46,6 +47,7 @@ export default function ImageScore({ getImage, busy }) {
                   onClick={() => { let img = ""; try { const g = getImage(); if (typeof g === "string" && g.length < 1_500_000) img = g; } catch { /* no preview */ } handOff("designz", "designz-notes", { notes: res, image: img }); }}>
             Read the full coach notes in DesignZ <span className="text-emerald-300">· free</span>
           </button>
+          <LooksDoor />
           <p className="text-white/55">{res.charged_cents ? `Charged −${res.charged_cents} ${PROMPTZ}.` : "Covered by a free prompt."}</p>
         </div>
       )}

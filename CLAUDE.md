@@ -2674,3 +2674,10 @@ and only shows a data-URL picture. **It never rates anybody's looks**, which is 
 looks on a platform with strangers is harm; LookZMaxZ is verified adults, own photo); the notes panel says so. Driven in a 412px browser:
 the tab loads, the handed-over notes render, no console errors, no sideways scroll. The gallery was empty in the local seed (no design
 posts), so the SocialBar under a real design card was not seen.
+
+**A looks-rating door, for verified adults only (`LooksDoor.jsx`).** AI feedback on a member's own looks (LookZMaxZ / AttractivenessZ) and
+other members rating them (the attractiveness rating on a profile) already exist, 18+ verified and own photo only. Corey asked for it to be here
+so nobody leaves for another app; the answer is a door, not a widening. `LooksDoor` sits under ImageZ's score and DesignZ's coach notes and renders
+ONLY when `/economy/identity/` says `verified_18plus` — nothing at all for anyone else, because inviting a minor (or someone who may be one) to
+have their face scored is the harm the feature is built around, and a locked door is still an invitation. Not widened to minors or to other
+people's photos (Corey has asked more than once; refused each time for the same reason). Not driven in a browser: it needs a verified account.
