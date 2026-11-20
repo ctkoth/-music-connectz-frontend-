@@ -72,5 +72,10 @@ test("Corey's home screen set is always shown: real categories and real tabs", a
   for (const k of HOME_PARENTS) assert.match(menu, new RegExp(`key: '${k}', label:`), `${k} is not a category`);
   for (const k of HOME_APPS) assert.ok(tabs.has(k), `${k} is not a tab`);
   for (const k of ["ToolZ"]) assert.ok(HOME_PARENTS.includes(k));
-  for (const k of ["bodiez", "singz", "rapz", "guitarz", "drumz"]) assert.ok(HOME_APPS.includes(k));
+  for (const k of ["bodiez"]) assert.ok(HOME_APPS.includes(k));
+  // The coaches live in SkillZ, which is the featured tile — not repeated beside it.
+  const { HOME_FEATURED } = await import("./focus.js");
+  assert.equal(HOME_FEATURED, "SkillZ");
+  assert.match(menu, new RegExp(`key: '${HOME_FEATURED}', label:`));
+  for (const k of ["singz", "rapz", "guitarz", "drumz"]) assert.ok(!HOME_APPS.includes(k), `${k} belongs in SkillZ`);
 });

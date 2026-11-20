@@ -2650,3 +2650,12 @@ the bottom of the editor. Now `<main>` adds bottom room while a track plays (`pb
 mode (⤡ / ⤢, kept on this device as `mcz_np_compact`): a round play/pause and the title, bottom-left, with the track
 playing either way. Beside each other, PostZ and ImageZ also work in PaneZ. Video posts (`ListenedMedia`) are the element
 in the card and still stop with it; only audio plays in the bar.
+
+## SkillZ is the featured tile on the home screen; the coaches live inside it
+
+SkillZ was one small tile among fifteen (and SingZ, RapZ, GuitarZ and DrumZ were repeated beside it), so Corey's art
+read as buried. `FeaturedSkillZ` (`ToolZMenu.jsx`, `HOME_FEATURED` in `focus.js`) is now a wide tile above the grid with the art
+large, a line on what it is and the coaches it holds. SingZ, RapZ, GuitarZ and DrumZ are no longer tiles on the home grid (Corey:
+they belong in SkillZ); they are still in the SkillZ screen, still routed, and a coach opened often still lands in "Your apps".
+The art itself was never lost: `skillz.png` is his image (committed at 480px by the size pass) and the `SkillZ.<coach>.png` files
+are byte-for-byte the same art as the root coach icons. Driven in a 412px browser: icon left, title and coaches right.

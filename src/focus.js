@@ -46,8 +46,12 @@ export const FOCUS_SUPPORT = [
 
 // Corey's home screen: always shown at the top, whatever else folds away. Categories open their screen;
 // apps open the app. Order is his.
-export const HOME_PARENTS = ["ToolZ", "SkillZ", "IntelligenceZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];
-export const HOME_APPS = ["bodiez", "singz", "rapz", "guitarz", "drumz", "dawz", "imagez", "gamez"];
+// SkillZ is the FEATURED tile (HOME_FEATURED), big, above the grid: it is where the coaches live, so SingZ, RapZ,
+// GuitarZ and DrumZ are not repeated as tiles beside it (Corey: they belong in SkillZ). They are still one tap in, still
+// routed, and an app a member opens often still lands in "Your apps".
+export const HOME_FEATURED = "SkillZ";
+export const HOME_PARENTS = ["ToolZ", "IntelligenceZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];
+export const HOME_APPS = ["bodiez", "dawz", "imagez", "gamez"];
 
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
 

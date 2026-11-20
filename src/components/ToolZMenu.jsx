@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
 import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
-import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS } from '../focus.js';
+import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS, HOME_FEATURED } from '../focus.js';
 import './ToolZMenu.css';
 
 // Each tile draws through the SAME registry key the tab strip uses (App.jsx
@@ -397,6 +397,30 @@ function ParentTile({ categoryKey, onOpen }) {
   );
 }
 
+function FeaturedSkillZ({ onOpen }) {
+  const c = CATEGORIES.find((x) => x.key === HOME_FEATURED);
+  if (!c) return null;
+  const coaches = FOCUS_COACHES.filter((k) => ['singz', 'rapz', 'guitarz', 'drumz', 'keyz', 'bassz'].includes(k));
+  return (
+    <button type="button" data-tour="home-skillz" onClick={() => onOpen(HOME_FEATURED)}
+            aria-label="SkillZ — every coach and its skill tree"
+            className="category-card magenta"
+            style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 16, width: '100%', textAlign: 'left', padding: 14, marginBottom: 14 }}>
+      <IconImg icon={CATEGORY_ICON_KEY[HOME_FEATURED]} alt="" className="category-icon-img !h-24 !w-24 shrink-0 !rounded-2xl sm:!h-36 sm:!w-36" />
+      <span style={{ minWidth: 0 }}>
+        <span className="category-label" style={{ display: 'block', fontSize: '1.5rem' }}>{c.label}</span>
+        <span style={{ display: 'block', fontSize: 13, opacity: 0.8, margin: '4px 0 8px' }}>
+          Every coach and its skill tree — score a take, watch the number move.
+        </span>
+        <span style={{ display: 'block', fontSize: 12, opacity: 0.65 }}>
+          {coaches.map((k) => TABS_LABEL[k] || k).join(' · ')} and more →
+        </span>
+      </span>
+    </button>
+  );
+}
+const TABS_LABEL = { singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', drumz: 'DrumZ', keyz: 'KeyZ', bassz: 'BassZ' };
+
 export default function ToolZMenu() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -567,6 +591,9 @@ export default function ToolZMenu() {
       {FOCUS_MODE && lens === 'need' && (
         <NeedsView onOpen={openFocus} />
       )}
+
+      {/* SkillZ, featured: the coaches' home, with Corey's art large. Not one tile among fifteen. */}
+      {FOCUS_MODE && <FeaturedSkillZ onOpen={setSelectedCategory} />}
 
       {FOCUS_MODE && (
         <div className="category-grid" data-tour="home-pinned" style={{ marginBottom: 14 }}>
