@@ -275,6 +275,23 @@ export default function Workspace({ workflow }) {
     return sameAudioGroups(items);
   }, [session.tracks, session.sources, daw]); // eslint-disable-line react-hooks/exhaustive-deps
   const nameOf = (id) => session.tracks.find((t) => t.id === id)?.name || "a track";
+  // Every copy but the first of each group: what the AI prompt and the checks leave out, so they work on the
+  // fewest tracks that still hold every recording once.
+  const copyIds = useMemo(() => new Set(copies.flatMap((g) => g.slice(1))), [copies]);
+  // StatZ (or the sample): copies that arrive with an import are removed by themselves, said, and undoable.
+  // Only right after an import — copies a member made on purpose later are theirs to keep.
+  const justImported = useRef(0);
+  const [cleaned, setCleaned] = useState(null);    // { n, names } — what StatZ removed, on its own line
+  useEffect(() => {
+    // Watch the whole import, not just its first copy: files land one by one, and a third copy arriving after
+    // the first clean-up must be caught too. The window closes 20 s after the import started.
+    if (!copies.length || !justImported.current || Date.now() - justImported.current > 20000) return;
+    if (!(statz?.is_statz || statz?.active)) return;
+    const n = copies.reduce((a, g) => a + g.length - 1, 0);
+    const names = copies.map((g) => nameOf(g[0]));
+    commit((s) => copies.flatMap((g) => g.slice(1)).reduce((acc, id) => removeTrack(acc, id), s));
+    setCleaned((c) => ({ n: (c?.n || 0) + n, names: [...new Set([...(c?.names || []), ...names])] }));
+  }, [copies]); // eslint-disable-line react-hooks/exhaustive-deps
   const muteCopies = (g) => { commit((s) => g.slice(1).reduce((acc, id) => setTrack(acc, id, { mute: true }), s)); setMsg(`Muted ${g.length - 1} cop${g.length === 2 ? "y" : "ies"} — ${nameOf(g[0])} plays on its own. Undo puts them back.`); };
   const removeCopies = (g) => { commit((s) => g.slice(1).reduce((acc, id) => removeTrack(acc, id), s)); setMsg(`Removed ${g.length - 1} cop${g.length === 2 ? "y" : "ies"} of ${nameOf(g[0])}. Undo puts them back.`); };
 
@@ -463,13 +480,20 @@ export default function Workspace({ workflow }) {
     }
     setBusy("");
   };
-  const fromDevice = (files) => bring([...files].map((f) => ({ name: f.name, blob: f })));
+  const fromDevice = async (files) => {
+    justImported.current = Date.now();
+    await bring([...files].map((f) => ({ name: f.name, blob: f })));
+    setTimeout(() => { justImported.current = 0; }, 1500);
+  };
   // Stems: every file on its own track, all starting at 0:00 so they play in time, each with a guessed
   // role (vocal, bass, drums…) that the gain-staging panel reads.
   const fromStems = async (files) => {
     const list = [...files];
     if (!list.length) return;
+    justImported.current = Date.now();
     await bring(list.map((f) => ({ name: f.name, blob: f })), { stems: true });
+    // The watch ends shortly after the import lands, so an Undo of the clean-up is the member's and sticks.
+    setTimeout(() => { justImported.current = 0; }, 1500);
     setMsg(`${list.length} stem${list.length === 1 ? "" : "s"} on ${list.length === 1 ? "its own track" : "their own tracks"}, all lined up from 0:00.`);
   };
   const fromFileZ = async (u) => {
@@ -655,6 +679,13 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={() => setLib(true)}><FolderOpen size={13} /> From FileZ</button>
       </div>
 
+      {cleaned && (
+        <p role="status" className="rounded-xl border border-emerald-300/40 bg-emerald-300/10 px-3 py-2 text-xs text-white/80">
+          <span className="font-semibold text-emerald-300">StatZ removed {cleaned.n} cop{cleaned.n === 1 ? "y" : "ies"} of the same audio</span>
+          {" "}so each recording plays once ({cleaned.names.join(", ")}). Undo puts them back.{" "}
+          <button type="button" className="underline" onClick={() => setCleaned(null)}>OK</button>
+        </p>
+      )}
       {copies.map((g) => (
         <div key={g.join()} role="alert" className="flex flex-wrap items-center gap-2 rounded-xl border border-mcz-gold/50 bg-mcz-gold/10 px-3 py-2 text-xs">
           <span className="font-semibold text-mcz-gold">⚠ {g.length} tracks play the same audio</span>
@@ -845,7 +876,7 @@ export default function Workspace({ workflow }) {
           <span className="text-white/55"><span className="text-emerald-300">Free</span> · a 24-bit WAV of everything you can hear, made on your device ({minSec(len, false)} plus a 2-second tail for reverb and delay).</span>
         </div>
         {stemTracks.length > 1 && (
-          <TimingPanel tracks={stemTracks} measure={measureTrackAudio} busy={!!busy || recording}
+          <TimingPanel tracks={stemTracks.filter((t) => !copyIds.has(t.id))} measure={measureTrackAudio} busy={!!busy || recording}
             apply={(fixes) => commit((s) => fixes.reduce((acc, f) => {
               let next = f.move ? shiftTrack(acc, f.id, f.move) : acc;
               if (f.flip) next = setTrack(next, f.id, { invert: !next.tracks.find((t) => t.id === f.id)?.invert });
@@ -853,7 +884,7 @@ export default function Workspace({ workflow }) {
             }, s))} />
         )}
         {stemTracks.length > 1 && (
-          <MixCheck tracks={stemTracks} measure={measureTrackAudio} busy={!!busy || recording}
+          <MixCheck tracks={stemTracks.filter((t) => !copyIds.has(t.id))} measure={measureTrackAudio} busy={!!busy || recording}
             measureMix={async () => { const buf = await daw.bounce(sRef.current, { tail: 0 }); return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate }; }}
             apply={(ch) => commit((s) => {
               let next = s;
@@ -870,7 +901,7 @@ export default function Workspace({ workflow }) {
             })} />
         )}
         {stemTracks.length > 1 && (
-          <StagePanel tracks={stemTracks} measure={measureTrackAudio} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
+          <StagePanel tracks={stemTracks.filter((t) => !copyIds.has(t.id))} measure={measureTrackAudio} apply={(moves) => commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain_db, pan: m.pan }), s))}
              busy={!!busy || recording} />
         )}
         {stemTracks.length > 1 && (
