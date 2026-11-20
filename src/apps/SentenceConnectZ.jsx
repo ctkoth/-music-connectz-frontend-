@@ -211,6 +211,7 @@ export default function SentenceConnectZ() {
   const [picked, setPicked] = useState([]);      // which of them the member is using
   const [hidden, setHidden] = useState(false);   // the suggestions, minimised
   const [fixFactors, setFixFactors] = useState([]);   // Fix my lyrics: only these change
+  const [goal, setGoal] = useState("");                 // the inspiration's principles, applied to the member's own lyrics
   const [fixNotes, setFixNotes] = useState({});       // what Inspiration said about each, if it came from there
   const timer = useRef(null);
 
@@ -275,7 +276,7 @@ export default function SentenceConnectZ() {
     if (dialsHere && Object.keys(prio).length) body.priorities = prio;
     if (inspHere && insp) body.reference = insp.url;
     if (kind === "lyrics") Object.assign(body, { majority, minority });
-    if (kind === "revise") Object.assign(body, { factors: fixFactors, notes: fixNotes });
+    if (kind === "revise") Object.assign(body, { factors: fixFactors, notes: fixNotes, ...(goal ? { goal } : {}) });
     if (current?.hashtags) Object.assign(body, hashtagBody(tags));
     let w;
     try {
@@ -376,7 +377,18 @@ export default function SentenceConnectZ() {
             {!IN_SHELL && current?.takes_voice && <SpeakingIn surface="writer" />}
             {!IN_SHELL && (current?.fixer || ["lyrics", "poem"].includes(kind)) && (
               <SentenceInspiration info={s} kind={kind} label={current?.label || kind}
-                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)} />
+                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)}
+                onRewrite={(d) => {
+                  // The box becomes the member's lyrics again: the direction rides as the edit's goal, not in the text.
+                  setGoal(d); setKind("revise");
+                  takeBrief(topic.split("\n\nInspiration direction")[0].replace(/^Inspiration direction[\s\S]*/, ""));
+                }} />
+            )}
+            {kind === "revise" && goal && (
+              <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 px-3 py-2 text-xs text-white/80">
+                <span className="font-semibold text-mcz-cyan">🎯 Rewriting toward the inspiration:</span> {goal}{" "}
+                <button type="button" className="text-white/55 underline" onClick={() => setGoal("")}>remove</button>
+              </p>
             )}
             {kind === "revise" && (
               <FixPicker factors={current?.factors || []} picked={fixFactors} notes={fixNotes}
@@ -417,7 +429,7 @@ export default function SentenceConnectZ() {
               {/* Live only once the price is known and the run can be paid for: with
                   no answer from the server there is no price to have stated. */}
               <button className="neon-btn-primary !w-auto px-5"
-                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run || (kind === "revise" && !fixFactors.length)} onClick={write}>
+                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run || (kind === "revise" && !fixFactors.length && !goal)} onClick={write}>
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <PenLine size={16} />} Write it
               </button>
               <RunPrice s={s} noun="writes" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
