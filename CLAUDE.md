@@ -2713,3 +2713,8 @@ server's; a failed fetch renders nothing.
 - The privacy policy and `play/bodiez/data-safety.md` name step data and Health Connect. **Not done:** the Play Console Health Connect
   declaration, and none of the native side has been built or run (no Android SDK here) — build `assembleBodiezDebug` in CI and
   try it on a phone with Health Connect and a watch writing to it. Merge the backend first.
+### DesignZ driven against real design posts
+
+Two seeded image posts rendered in the gallery, each with the whole SocialBar on `post:<id>` (Karma, React, Rate with its
++1 ⚡ stated, Comment, Share, Open in…) and no console errors. One trap when seeding: a post's `visibility` is `"public"`;
+the empty string is only the *score* visibility's public, and a post saved with `""` is silently absent from every feed.
