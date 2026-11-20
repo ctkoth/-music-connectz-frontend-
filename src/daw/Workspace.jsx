@@ -254,7 +254,22 @@ export default function Workspace({ workflow }) {
   const startPlay = async (from = playhead) => {
     setErr("");
     flushWrites();
-    try { await daw.play(sRef.current, from, { click }); setPlaying(true); } catch (e) { setErr(e.message); }
+    try { daw.resetPeak(); setClipDb(null); await daw.play(sRef.current, from, { click }); setPlaying(true); } catch (e) { setErr(e.message); }
+  };
+  // Clipping, said while it happens: the loudest peak since Play, checked four times a second. Over 0 dBFS the
+  // output distorts, and across a whole song that is static, not music.
+  const [clipDb, setClipDb] = useState(null);
+  useEffect(() => {
+    if (!playing) return;
+    const t = setInterval(() => { const p = daw.peak(); if (p > 0.05) setClipDb(Math.round(p * 10) / 10); }, 250);
+    return () => clearInterval(t);
+  }, [playing, daw]);
+  const fixClip = () => {
+    const down = Math.ceil((clipDb || 0) + 1);
+    commit((s) => ({ ...s, tracks: s.tracks.map((t) => ({ ...t, gain: shiftFader(t.gain, -down) })) }));
+    setClipDb(null);
+    setMsg(`Every fader down ${down} dB — the balance between tracks is the same. Undo puts it back.`);
+    if (playing) { stopPlay(); }
   };
   const stopPlay = () => {
     const p = daw.stop();
@@ -618,6 +633,14 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={() => setLib(true)}><FolderOpen size={13} /> From FileZ</button>
       </div>
 
+      {clipDb != null && (
+        <div role="alert" className="flex flex-wrap items-center gap-2 rounded-xl border border-mcz-ember/50 bg-mcz-ember/10 px-3 py-2 text-xs">
+          <span className="font-semibold text-mcz-ember">⚠ The mix is clipping</span>
+          <span className="text-white/75">— peaks reach +{clipDb} dB over full scale. Clipping across a song sounds like static or distortion, not your tracks.</span>
+          <button type="button" className="re-btn !w-auto px-3 !py-1" onClick={fixClip}>Turn every fader down {Math.ceil(clipDb + 1)} dB</button>
+          <span className="text-emerald-300">Free · Undo puts it back</span>
+        </div>
+      )}
       {/* Transport */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/40 p-2 text-xs">
         <button type="button" className="re-btn !w-auto px-2" aria-label="Back to the start" onClick={() => seek(0)} disabled={recording}><SkipBack size={14} /></button>

@@ -256,6 +256,20 @@ export function createDaw() {
     }
   }
 
+  // The loudest single sample the master has played since Play, in dBFS. Above 0 the output clips, and a whole
+  // song clipping sounds like static, not like music — the member hears noise and blames the DAW.
+  let peakHold = -Infinity;
+  function peak() {
+    if (!masterMeter) return peakHold;
+    masterMeter.getFloatTimeDomainData(scratch);
+    let p = 0;
+    for (let i = 0; i < scratch.length; i++) { const a = Math.abs(scratch[i]); if (a > p) p = a; }
+    const db = p > 0 ? 20 * Math.log10(p) : -Infinity;
+    if (db > peakHold) peakHold = db;
+    return peakHold;
+  }
+  const resetPeak = () => { peakHold = -Infinity; };
+
   function meters() {
     const out = {};
     if (!graph) return out;
@@ -405,7 +419,7 @@ export function createDaw() {
   }
 
   return {
-    decode, adopt, play, stop, position, setLive, meters, openMic, startRecording, stopRecording, bounce, toWav, destroy,
+    decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,
   };
