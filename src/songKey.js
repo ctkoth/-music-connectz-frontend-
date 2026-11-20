@@ -74,6 +74,16 @@ export function keyFromChroma(c) {
 /** The key of mono samples at a sample rate, or null. */
 export const detectKey = (samples, sampleRate, opts) => keyFromChroma(chroma(samples, sampleRate, opts));
 
+/** The key of a track already in memory as channels (the DAW's own render of it). Reads up to a minute from the middle. */
+export function detectKeyFromChannels({ channels, rate }) {
+  const len = channels?.[0]?.length || 0;
+  if (!len) return null;
+  const want = Math.min(len, rate * 60), from = Math.floor((len - want) / 2);
+  const mono = new Float32Array(want);
+  for (const d of channels) for (let i = 0; i < want; i++) mono[i] += d[from + i] / channels.length;
+  return detectKey(mono, rate);
+}
+
 /** Decode an audio address (a blob: or same-origin URL) and read its key. Browser only. Reads up to a minute from the middle. */
 export async function detectKeyFromUrl(url) {
   const res = await fetch(url);

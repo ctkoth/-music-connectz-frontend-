@@ -3,7 +3,7 @@
 // shows it at the top with the notes that belong in it (cross-pollination: a fact with somewhere to go).
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { detectKeyFromUrl } from "../songKey.js";
+import { detectKeyFromUrl, detectKeyFromChannels } from "../songKey.js";
 import { handOff } from "../handoff.js";
 
 export default function KeyBadge({ url, auto = false, className = "" }) {
@@ -43,5 +43,38 @@ export default function KeyBadge({ url, auto = false, className = "" }) {
           <button type="button" className="underline" onClick={run}>Try again</button></span>
       )}
     </div>
+  );
+}
+
+// A small one for a DAW track's header, where there is room for a word and no more: "🎹" to find the key
+// of what that track plays (the DAW's own render of it, solo, so other tracks never muddy the answer), then
+// the key itself — "Am" / "C" — which opens ChordZ on it. `version` changes when the track's audio does,
+// so a key is never left on a track that has been replaced.
+export function KeyChip({ measure, version = "" }) {
+  const [state, setState] = useState("idle");
+  const [key, setKey] = useState(null);
+  useEffect(() => { setState("idle"); setKey(null); }, [version]);
+  const run = async () => {
+    if (state === "working") return;
+    setState("working");
+    try { const k = detectKeyFromChannels(await measure()); setKey(k); setState(k ? "done" : "none"); }
+    catch { setState("error"); }
+  };
+  if (state === "done" && key) {
+    const short = key.mode === "minor" ? `${key.root}m` : key.root;
+    return (
+      <button type="button" onClick={() => handOff("chordz", "scalez", { root: key.root, mode: key.mode })}
+              title={`Key of this track: ${key.label} (estimated; or its relative, ${key.relative}). Tap for its notes and chords in ChordZ.`}
+              className="shrink-0 rounded bg-mcz-cyan/15 px-1.5 py-0.5 text-[10px] font-bold text-mcz-cyan">🎹 {short}</button>
+    );
+  }
+  return (
+    <button type="button" onClick={run} disabled={state === "working"}
+            title={state === "none" ? "No clear key in this track — it may be drums or very short. Tap to try again."
+              : state === "error" ? "Couldn't read this track. Tap to try again."
+              : "Find this track's key — free, on your device"}
+            className="shrink-0 rounded px-1 text-[11px] text-white/50 hover:text-mcz-cyan">
+      {state === "working" ? <Loader2 size={11} className="animate-spin" /> : state === "none" ? "🎹 ?" : "🎹"}
+    </button>
   );
 }

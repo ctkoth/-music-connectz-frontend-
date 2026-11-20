@@ -11,6 +11,7 @@ import { beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
 import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
+import { KeyChip } from "../components/KeyBadge.jsx";
 
 const HEADER_W = 168;
 const LANE_H = 76;
@@ -67,7 +68,7 @@ export function Playhead({ position, zoom, height }) {
 export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
-  onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick,
+  onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
 }) {
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
@@ -144,6 +145,9 @@ export default function EditWindow({
               <span className="h-3 w-1.5 shrink-0 rounded" style={{ background: t.color }} />
               <input className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-white outline-none" value={t.name}
                      aria-label="Track name" onChange={(e) => onTrack(t.id, { name: e.target.value })} />
+              {onMeasure && regionsOf(t).length > 0 && (
+                <KeyChip measure={() => onMeasure(t)} version={regionsOf(t).map((r) => `${r.src}:${r.in}:${r.out}`).join("|")} />
+              )}
               <button type="button" className="text-white/30 hover:text-mcz-ember" title="Remove track" aria-label={`Remove ${t.name}`}
                       onClick={() => onRemoveTrack(t.id)} disabled={session.tracks.length <= 1 || recording}><Trash2 size={12} /></button>
             </div>

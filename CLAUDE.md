@@ -2636,3 +2636,8 @@ the coach's take player and result (automatic), a DAW bounce (automatic) and Mix
 "estimated"; "Notes & chords in this key" hands the key to ChordZ, which shows it in letters at the very top with its
 notes, and sets the root, scale and chord type to it. Tested on synthesised tunes (C major, A minor, D major) and
 driven in a browser; **not tested on real mixes**, where drums and vocals blur the picture more than a test tone does.
+
+**DAW tracks too.** Every track header with clips has a small 🎹 (`KeyChip`, in `KeyBadge.jsx`): it reads the key of that track
+as the DAW renders it solo (`measureTrackAudio`, the same render Mix check and Autotune use, so other tracks never muddy it),
+then shows "Am" / "C" and opens ChordZ on it. It resets when the track's clips change. Driven in a browser with an A-minor
+tune imported into Arsenal: the chip read "🎹 Am", no console errors, header fits without crowding.

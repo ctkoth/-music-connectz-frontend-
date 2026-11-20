@@ -837,7 +837,7 @@ export default function Workspace({ workflow }) {
             setMsg(`${name} is a new take — moved about ${cents} cents on average${kept ? "; the original is the previous take in the playlist menu" : ""}.`);
           }} />
         <EditWindow
-          picked={pickedLive} onPick={setPicked}
+          picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}

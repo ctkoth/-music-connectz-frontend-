@@ -38,3 +38,12 @@ test("silence and noise-free nothing is no key, never a guess", () => {
   assert.equal(keyFromChroma(new Array(12).fill(1)), null);
 });
 test("names are the twelve pitch classes", () => assert.equal(NAMES.length, 12));
+
+import { detectKeyFromChannels } from "./songKey.js";
+test("a DAW track rendered to channels is read like any audio, stereo or mono", () => {
+  const mono = tune([60, 64, 67, 60, 62, 64, 65, 67, 69, 67, 64, 60]);
+  assert.equal(detectKeyFromChannels({ channels: [mono, mono], rate: SR }).label, "C major");
+  assert.equal(detectKeyFromChannels({ channels: [mono], rate: SR }).label, "C major");
+  assert.equal(detectKeyFromChannels({ channels: [], rate: SR }), null);
+  assert.equal(detectKeyFromChannels({ channels: [new Float32Array(0)], rate: SR }), null);
+});
