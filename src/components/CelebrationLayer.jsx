@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EMOJI } from "../celebrate.js";
 import { coinCount, coinSpec, isCasinoLook } from "../casinoLook.js";
+import RewardReels from "./RewardReels.jsx";
 
 // Renders celebrate()'s chips. Decorative only: aria-live announces the text
 // once for screen readers, and reduced-motion members get the chip without
@@ -12,7 +13,7 @@ export default function CelebrationLayer() {
     const on = (e) => {
       const n = ++id.current;
       setChips((c) => [...c.slice(-4), { n, ...e.detail }]);
-      setTimeout(() => setChips((c) => c.filter((x) => x.n !== n)), e.detail.big ? 2200 : 1500);
+      setTimeout(() => setChips((c) => c.filter((x) => x.n !== n)), e.detail.big ? 3200 : 1500);
     };
     window.addEventListener("mcz-celebrate", on);
     return () => window.removeEventListener("mcz-celebrate", on);
@@ -38,6 +39,9 @@ export default function CelebrationLayer() {
           {c.label && <span className="ml-1">{c.label}</span>}
         </div>
       ))}
+      {bigNow && bigNow.resource && bigNow.amount > 0 && isCasinoLook() && (
+        <RewardReels key={`r${bigNow.n}`} resource={bigNow.resource} amount={bigNow.amount} />
+      )}
     </div>
   );
 }

@@ -347,3 +347,24 @@ html[data-casino] .re-label { color: #fde68a; }
   .mcz-coins { display: none; }
   html[data-casino] .re-card::before { animation: none !important; }
 }
+
+/* ---- Reward reels (Casino look): a neon-tube slot reveal of a number already paid. Lands on the true amount; nothing random. ---- */
+.mcz-reels { display: flex; gap: 0.3rem; align-items: center; justify-content: center; margin-top: 0.5rem; }
+.mcz-reel {
+  position: relative; display: inline-block; height: 2.4rem; width: 1.8rem; overflow: hidden; border-radius: 0.5rem;
+  background: linear-gradient(180deg, #06040f, #120a26 50%, #06040f);
+  border: 1.5px solid #22d3ee;
+  box-shadow: inset 0 0 12px rgba(34, 211, 238, 0.35), 0 0 10px #22d3ee, 0 0 22px rgba(236, 72, 153, 0.55);
+}
+.mcz-reel::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(0,0,0,.7), transparent 28%, transparent 72%, rgba(0,0,0,.7)); }
+.mcz-reel-strip { display: flex; flex-direction: column; animation: mcz-reel-spin 1s cubic-bezier(0.2, 0.75, 0.2, 1) forwards; }
+.mcz-reel-strip b {
+  height: 2.4rem; line-height: 2.4rem; text-align: center; font-weight: 800; font-size: 1.35rem; color: #fdf4ff;
+  text-shadow: 0 0 4px #fff, 0 0 10px #ec4899, 0 0 20px #ec4899;
+}
+.mcz-reel-fixed { font-weight: 800; font-size: 1.35rem; color: #a5f3fc; text-shadow: 0 0 6px #22d3ee, 0 0 14px #22d3ee; padding: 0 0.1rem; }
+@keyframes mcz-reel-spin { from { transform: translateY(0); } to { transform: translateY(calc(var(--n) * -2.4rem)); } }
+@media (prefers-reduced-motion: reduce) {
+  /* no spin: show the landed result straight away */
+  .mcz-reel-strip { animation: none !important; transform: translateY(calc(var(--n) * -2.4rem)); }
+}

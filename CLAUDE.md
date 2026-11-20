@@ -2733,3 +2733,16 @@ Sound already had the casino half (`PACKS.casino` and `PACKS.highroller` in `sou
 - **Movement stops for `prefers-reduced-motion`**; the colours stay. Driven in a 412px browser: gold button, bulb ring on a card, 28 coins
   and a gold "+50 🍥 Level up!" chip, no console errors. Not checked on a real phone, and only `.re-card` and the primary button are restyled —
   other surfaces (the top status card, tab strips) keep the neon look, so "app-wide" is a start, not a full retheme.
+
+### Reward reels: a neon slot-style reveal of a reward that is already decided
+
+`reelReveal.js` + `components/RewardReels.jsx`, shown under a big gain's chip when the Casino look is on. Neon-tube reels (cyan frame, pink glow) spin
+through the resource emoji and each digit and **land on exactly the amount the server paid** (`1,250` reads 🍥 1 , 2 5 0); commas and `$` do not spin. Each
+strip is deterministic and its last symbol is the true one (`reelReveal.test.mjs`), the reels stop left to right, and `prefers-reduced-motion` shows the
+landed number with no spin.
+
+**What was deliberately NOT built** when "slot-style reward mechanics" was asked for: random prizes, a spin the member triggers, a stake, a second spin,
+a near-miss, or any reward that depends on the animation. Variable payouts of 🍥 (a cent each) to a platform with 13-year-olds is gambling mechanics,
+and Play treats simulated gambling in a family app as a policy problem. The reels *show* a result; they never *decide* one. A test fails if the reveal
+gains a random source or a button. If randomized rewards are ever wanted, that is an owner and legal decision (adults verified, nothing purchasable, odds
+published), not a styling one. The big-win layer now stays up 3.2 s so the last reel is seen landing.
