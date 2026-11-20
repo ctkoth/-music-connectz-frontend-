@@ -153,7 +153,7 @@ const TOOLZ_MENU = {
     { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Belong & grow together' },
   ],
   'ToolZ': [
-    ...COACH_GROUPS,
+    // The coaches live in SkillZ (Corey: "SkillZ has the coaches"); ToolZ is the tools around them.
     {
       group: 'Practice Tools',
       apps: [
