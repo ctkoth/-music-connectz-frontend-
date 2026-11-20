@@ -435,7 +435,37 @@ export function createDaw() {
     ctx = null;
   }
 
+  // ---- audio settings: an input meter, a monitor, and where the sound comes out ----
+  let mon = null;
+  /** A meter on a mic stream: `read()` fills one block of samples, `stop()` lets go. Nothing is recorded or heard. */
+  function inputMeter(stream) {
+    const c = audio();
+    const src = c.createMediaStreamSource(stream);
+    const an = c.createAnalyser(); an.fftSize = 2048;
+    src.connect(an);
+    const buf = new Float32Array(an.fftSize);
+    return { read: () => { an.getFloatTimeDomainData(buf); return buf; }, stop: () => { try { src.disconnect(); an.disconnect(); } catch { /* already gone */ } } };
+  }
+  /** Hear the input through the output. Off unless the member turns it on, because a mic next to speakers feeds back. */
+  async function monitorOn(stream, level = 0.8) {
+    const c = audio();
+    if (c.state !== "running") await c.resume();
+    monitorOff();
+    const src = c.createMediaStreamSource(stream); const g = c.createGain(); g.gain.value = level;
+    src.connect(g).connect(c.destination);
+    mon = { src, g };
+  }
+  function monitorOff() { if (mon) { try { mon.src.disconnect(); mon.g.disconnect(); } catch { /* already gone */ } mon = null; } }
+  /** Send everything this DAW plays to another output (Chrome and Edge can; the screen says so where a browser can't). */
+  async function setOutput(id) {
+    const c = audio();
+    if (typeof c.setSinkId !== "function") return { ok: false };
+    await c.setSinkId(id || "");
+    return { ok: true };
+  }
+  const outputCanChange = () => typeof (typeof AudioContext !== "undefined" ? AudioContext.prototype.setSinkId : undefined) === "function";
   return {
+    inputMeter, monitorOn, monitorOff, setOutput, outputCanChange, context: () => audio(),
     decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,

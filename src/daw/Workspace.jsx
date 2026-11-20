@@ -49,6 +49,7 @@ import SelectAllBar from "../components/SelectAllBar.jsx";
 import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import SkillsUsed from "../SkillsUsed.jsx";
+import AudioSettings from "./AudioSettings.jsx";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
@@ -771,6 +772,7 @@ export default function Workspace({ workflow }) {
         </span>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
         <span className="font-mono tabular-nums text-white/60">{minSec(playhead)} / {minSec(len)}</span>
+        <AudioSettings daw={daw} />
         <label className="flex items-center gap-1 text-white/60">Key
           <select className="neon-input !w-auto !py-1" data-nomemo="true" value={session.key || ""} disabled={recording} aria-label="Project key"
                   onChange={(e) => commit((s) => setSession(s, { key: e.target.value }))}>
