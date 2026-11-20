@@ -69,3 +69,12 @@ test("the worklet source carries the core and registers the limiter", () => {
   assert.match(src, /function createLimiterCore/);
   new Function("AudioWorkletProcessor", "registerProcessor", "sampleRate", src + "; return McLimiter;")(class {}, () => {}, FS);
 });
+
+test("the worklet binds the core by name, so a renamed (minified) function still works", () => {
+  const src = limiterWorkletSource();
+  assert.match(src, /const createLimiterCore = function/);
+  // Simulate a minifier: a core whose own name is different, printed the same way the source does.
+  const renamed = createLimiterCore.toString().replace("function createLimiterCore", "function r");
+  const src2 = `const createLimiterCore = ${renamed};\nreturn createLimiterCore(48000, 2).latency;`;
+  assert.equal(new Function(src2)(), 95);
+});

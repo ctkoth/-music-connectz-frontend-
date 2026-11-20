@@ -56,8 +56,11 @@ export function createLimiterCore(fs, lookMs = 2) {
 
 /** The worklet's source text: the core above plus the thin processor around it. */
 export function limiterWorkletSource() {
+  // `const createLimiterCore = <the function>`: a production build RENAMES the function, and the worklet below calls it by its
+  // original name, so printing the bare declaration left the processor throwing "createLimiterCore is not defined" the moment
+  // it was made (silent in dev, where nothing is renamed — found by reading the minified bundle).
   return `
-${createLimiterCore.toString()}
+const createLimiterCore = ${createLimiterCore.toString()};
 class McLimiter extends AudioWorkletProcessor {
   static get parameterDescriptors() {
     return [
