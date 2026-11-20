@@ -33,9 +33,9 @@ export default function KeyActions({ keymap, onKeymap, skin, onSkin }) {
       <h3 className="font-semibold">Actions &amp; shortcuts <span className="text-xs font-normal text-emerald-300">free</span></h3>
       <div className="space-y-1">
         {ACTIONS.map(([id, label]) => (
-          <div key={id} className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs">
-            <span className="flex-1">{label}</span>
-            <kbd className="min-w-[90px] rounded bg-black/40 px-2 py-0.5 text-center">{listening === id ? "press a key…" : keymap[id] || "—"}</kbd>
+          <div key={id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs">
+            <span className="min-w-0 flex-1">{label}</span>
+            <kbd className="min-w-[4.5rem] rounded bg-black/40 px-2 py-0.5 text-center">{listening === id ? "press a key…" : keymap[id] || "—"}</kbd>
             <button className="re-btn !w-auto px-2" onClick={() => { setNote(""); setListening(id); }}>Change</button>
             {keymap[id] !== DEFAULTS[id] && <button className="re-link" onClick={() => onKeymap(assign(keymap, id, DEFAULTS[id]))}>default</button>}
           </div>

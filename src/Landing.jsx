@@ -253,9 +253,9 @@ export default function Landing() {
   return (
     <div className="mx-auto min-h-screen max-w-3xl px-5 py-10">
       <header className="mb-8 flex items-center gap-3">
-        <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-11 w-11 rounded-xl shadow-neon" />
-        <span className="font-display text-lg font-extrabold tracking-tight">MusicConnectZ.Net</span>
-        <Link to="/login" className="ml-auto text-sm text-white/60 hover:text-white">Log in</Link>
+        <img src="/logo.png?v=2" alt="Music ConnectZ" className="h-11 w-11 shrink-0 rounded-xl shadow-neon" />
+        <span className="min-w-0 font-display text-lg font-extrabold tracking-tight [overflow-wrap:anywhere]">MusicConnectZ.Net</span>
+        <Link to="/login" className="ml-auto shrink-0 text-sm text-white/60 hover:text-white">Log in</Link>
       </header>
       <p className="-mt-4 mb-6 text-sm text-white/70">✨ AI Coaching & Gamified👾 way to make professional💲 portfolio📑 of your music🎶 related work❓</p>
 

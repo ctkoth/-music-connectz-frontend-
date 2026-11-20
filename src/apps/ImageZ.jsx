@@ -1086,9 +1086,9 @@ export default function ImageZ() {
 
         <aside className="space-y-3">
           <div className="glass-card space-y-2 p-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="flex items-center gap-1 font-semibold"><Layers size={14} /> Layers <span className="text-xs text-white/55">{cap === undefined ? doc.layers.length : cap === null ? `${doc.layers.length} · unlimited` : `${doc.layers.length}/${cap}`}</span></h3>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 <button className="re-btn !w-auto px-2" title="Paint layer" onClick={() => add({ kind: "paint" })}><Plus size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Text layer" onClick={() => add({ kind: "text", x: Math.round(doc.w * 0.1), y: Math.round(doc.h * 0.1), size: Math.round(doc.h / 10) })}><Type size={14} /></button>
                 <button className="re-btn !w-auto px-2" title="Fill layer" onClick={() => add({ kind: "fill", color: brush.color, opacity: 50 })}><PaintBucket size={14} /></button>
@@ -1273,7 +1273,7 @@ export default function ImageZ() {
                     </button></p>
                 )}
                 {fontCap === null && (
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1">
                     <input className="neon-input" placeholder="Any font on your device, by name" value={customFont} onChange={(e) => setCustomFont(e.target.value)} />
                     <button className="re-btn !w-auto px-2" disabled={!customFont.trim()} onClick={() => patch({ font: customFont.trim() })}>Use</button>
                   </div>
@@ -1398,7 +1398,7 @@ export default function ImageZ() {
               <button className="re-btn" onClick={() => setRecording({ steps: [] })}><Circle size={12} /> Record</button>
             ) : <>
               <p className="text-mcz-cyan">Recording — {recording.steps.length} step{recording.steps.length === 1 ? "" : "s"}{recording.steps.length ? `: ${recording.steps.map(describeStep).join(", ")}` : ""}</p>
-              <div className="flex gap-1">
+              <div className="flex flex-wrap gap-1">
                 <input className="neon-input" placeholder="Name it" value={actName} onChange={(e) => setActName(e.target.value)} />
                 <button className="re-btn !w-auto px-2" onClick={saveRecording}>Stop &amp; save</button>
               </div>
