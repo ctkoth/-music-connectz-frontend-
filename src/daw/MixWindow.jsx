@@ -8,7 +8,7 @@ import { GAIN_DB } from "./session.js";
 import { EQ_GAIN, MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
 import EqBands from "../components/EqBands.jsx";
 import { reads } from "./automation.js";
-import { StatzSample } from "../components/StatzSample.jsx";
+import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 
 const fmtDb = (v) => (v <= GAIN_DB.min ? "−∞" : `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
@@ -66,6 +66,10 @@ function InsertEditor({ insert, onChange, onClose, bands }) {
 function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
+  // The plugin-grade effects (PLUGINS[k].statz) are StatZ's or the sample's to ADD; one already on the track plays.
+  const { s: st } = useStatzTrial();
+  const fxOk = !!(st?.is_statz || st?.active);
+  const [fxLocked, setFxLocked] = useState(false);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
   return (
     // A strip widens while its EQ is open: band rows need room for "2.8 kHz" and "−6.0 dB".
@@ -94,11 +98,20 @@ function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onT
           ))}
           {inserts.length < MAX_INSERTS && (
             <select ref={pick} className="rounded bg-white/10 px-1 py-0.5 text-white/70" data-nomemo="true" value="" aria-label={`Add an effect to ${name}`}
-                    onChange={(e) => { const ins = newInsert(e.target.value); if (ins) { onInserts([...inserts, ins]); setOpen(ins.id); } }}>
-              <option value="">+ Add effect (free)</option>
-              {Object.entries(PLUGINS).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}
+                    onChange={(e) => {
+                      if (PLUGINS[e.target.value]?.statz && !fxOk) { setFxLocked(true); return; }
+                      const ins = newInsert(e.target.value); if (ins) { onInserts([...inserts, ins]); setOpen(ins.id); }
+                    }}>
+              <option value="">+ Add effect</option>
+              <optgroup label="Free">
+                {Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}
+              </optgroup>
+              <optgroup label={fxOk ? "StatZ" : "StatZ — try the free sample"}>
+                {Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{fxOk ? "" : " 🔒"}</option>)}
+              </optgroup>
             </select>
           )}
+          {fxLocked && !fxOk && <StatzSample what="The pro effects (saturation, chorus, de-esser, limiter, glue compressor, pro reverb, pro delay, widener)" />}
           <label className="mt-1 block text-white/60">
             {auto.pan && <span className="mr-1 rounded bg-emerald-500/20 px-1 text-emerald-300" title="Pan follows its automation lane">auto</span>}
             Pan {pan === 0 ? "C" : pan < 0 ? `L${Math.round(-pan * 100)}` : `R${Math.round(pan * 100)}`}

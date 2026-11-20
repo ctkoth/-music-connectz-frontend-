@@ -408,7 +408,7 @@ export function createDaw() {
 
   function toWav(buffer, bitDepth = 24) {
     const chans = Array.from({ length: buffer.numberOfChannels }, (_, i) => buffer.getChannelData(i));
-    return new Blob([encodeWav(chans, buffer.sampleRate, { bitDepth })], { type: "audio/wav" });
+    return new Blob([encodeWav(chans, buffer.sampleRate, { bitDepth, dither: bitDepth === 16 })], { type: "audio/wav" });   // TPDF dither when it is 16-bit
   }
 
   function destroy() {

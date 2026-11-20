@@ -39,6 +39,7 @@ const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuitio
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
+import AutotunePanel from "./AutotunePanel.jsx";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
 import { envelopeOf, sameAudioGroups } from "./dupes.js";
@@ -818,6 +819,14 @@ export default function Workspace({ workflow }) {
             <button type="button" className="pill !text-mcz-ember" disabled={recording} onClick={removePicked}>Remove</button>
           </>)}
         </div>
+        <AutotunePanel tracks={session.tracks.filter((t) => playlistOf(t).regions.length)} measure={measureTrackAudio} toWav={daw.toWav} busy={!!busy || recording}
+          onRendered={async (trackId, wav, name, cents) => {
+            const meta = await daw.decode(await wav.arrayBuffer(), name);
+            let kept = false;
+            commit((s) => { const out = recordInto(addSource(s, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate }), trackId, { src: meta.id, at: 0, name }); kept = out.keptPrevious; return out.session; });
+            try { await putSource(meta.id, wav); } catch { setStoreErr("The tuned take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+            setMsg(`${name} is a new take — moved about ${cents} cents on average${kept ? "; the original is the previous take in the playlist menu" : ""}.`);
+          }} />
         <EditWindow
           picked={pickedLive} onPick={setPicked}
           session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}
