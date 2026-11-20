@@ -81,7 +81,7 @@ function VoiceNote({ kind }) {
     : kind.voice === "koth"
     ? "Written in K-Oth's voice."
     : kind.voice === "academic"
-      ? "Written in K-Oth's academic register: every heading and paragraph opens with an emoji, Music ConnectZ is the recurring example, and it cites in APA 7 only the sources you list — anything else is marked [CITATION NEEDED]."
+      ? "Written in K-Oth's academic register: every heading and paragraph opens with an emoji, contractions and em dashes, and it cites in APA 7 only the sources you list — anything else is marked [CITATION NEEDED]."
       : kind.invents_nothing
         ? "Written plainly from only what you give it. Anything you leave out becomes a [BRACKETED] blank — it adds nothing you did not say."
         : "Written plainly, to what you ask for.";
