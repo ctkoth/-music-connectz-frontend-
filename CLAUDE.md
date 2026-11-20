@@ -2746,3 +2746,22 @@ a near-miss, or any reward that depends on the animation. Variable payouts of �
 and Play treats simulated gambling in a family app as a policy problem. The reels *show* a result; they never *decide* one. A test fails if the reveal
 gains a random source or a button. If randomized rewards are ever wanted, that is an owner and legal decision (adults verified, nothing purchasable, odds
 published), not a styling one. The big-win layer now stays up 3.2 s so the last reel is seen landing.
+
+## Artist message in Video ConnectZ: the coach writes it from your character, face and voice
+
+`components/ArtistMessage.jsx`, mounted under the music-video stitcher in `VideoConnectZ.jsx`. A short vertical
+message to fans: pick a CharacterZ character, a FaceZ photo and a VoiceZ voice (any one is enough), say what you
+want to tell them, the coach plans up to three shots and a caption, you edit every line, then it renders. It decides
+nothing — the spec (vertical, under 30 s, caption under 100), what is checked, every price and the locked saved
+voice are the server's `/api/economy/artistmsg/`, and they are all on screen before a button is pressed.
+
+- **Three honest lines are on it on purpose.** The shape, length and caption are checked (a ✓/✗ list); no music,
+  logos, text or filters is only ASKED of the model, so the finished video carries "Watch it all the way through
+  before you submit it" and the server's `check_note`. The voice you hear is the model's, not yours (VoiceZ shapes
+  the words). It is AI-made and says so. Do not soften any of the three.
+- **The render button saves the plan first** (free), so what is on screen is what renders; a caption over the limit is
+  shown "will be cut" and cut by the server, never refused.
+- **A failed fetch renders a quiet line, not a panel**, the offers-panel rule: nobody asked for it.
+- Driven in a 390px browser against the real stack (no sideways scroll; the fake-key failure answered "Nothing was
+  charged"). **Not driven past the plan**: no Gemini or Veo key here, so the editor and the render states are covered by
+  the backend's tests and by reading, not by eye. Merge the backend first (it needs `/artistmsg/` and migration 0246).

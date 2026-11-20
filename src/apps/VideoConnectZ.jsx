@@ -18,6 +18,7 @@ import { money, runTimeoutMs, splitCost, unknownOutcome, unknownOutcomeNote } fr
 import { firstPollDelay, newestPending, pollIsHopeless } from "../videoz.js";
 import { FACE_FEED_NOTE } from "../facez.js";
 import StitchedMusicVideo from "../components/StitchedMusicVideo.jsx";
+import ArtistMessage from "../components/ArtistMessage.jsx";
 import CoachPromoVideo from "../components/CoachPromoVideo.jsx";
 import { onHandoff } from "../handoff.js";
 
@@ -196,6 +197,8 @@ export default function VideoConnectZ() {
       </p>
 
       <StitchedMusicVideo />
+
+      <ArtistMessage />
 
       {s && !s.configured && <p className="rounded-lg bg-white/5 px-3 py-2 text-sm text-mcz-gold">Video ConnectZ isn't switched on yet.</p>}
 
