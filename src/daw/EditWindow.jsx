@@ -240,7 +240,7 @@ export default function EditWindow({
                       onClick={() => onPlaylist(t.id, { type: "copy" })}><Copy size={12} /></button>
             </div>
             {onInserts && (
-              <div className="relative flex items-center gap-1 text-[10px]">
+              <div className="relative flex items-start gap-1 text-[10px]">
                 <button type="button" aria-expanded={fx === t.id} onClick={() => setFx(fx === t.id ? null : t.id)} title="This track's effects"
                         className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
                   FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
@@ -272,8 +272,9 @@ export default function EditWindow({
                       </select>
                     </label>
                     {fxMsg && <p className="text-mcz-gold">{fxMsg}</p>}
-                    <p className="text-white/60">Preset chains</p>
-                    <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} />
+                    <p className="text-white/60">FX chains — a whole set of effects in one pick (voice, guitar, bass, keys, drums, mix, plus your own). It replaces this track's effects; Undo brings them back.</p>
+                    <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
+                                placeholder="🎛️ Pick an FX chain…" ariaLabel={`Put an FX chain on ${t.name}`} />
                     {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
                   </div>
                 )}

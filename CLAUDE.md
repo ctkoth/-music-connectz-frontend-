@@ -2763,3 +2763,12 @@ Arsenal (every DAW, `Workspace.jsx`) kept sessions on the device as you worked b
   - Driven in a browser: an A-minor tune read A minor / 120; a 93 BPM drum beat moved the project from 120 to 93 and, correctly, reported no key.
     Unit tests cover 70–160 BPM, hats between the beats not doubling the tempo, and a steady tone or silence reading as nothing. **Not tested on real mixes**, where
     a swung or live-drummer track will be less exact than a click.
+
+### A picked tone made the FX button vanish, and the FX panel now says "FX chains"
+
+Picking a tone put its confirmation sentence under the compact Tone menu in the track header. That grew the block, and the FX button beside it (`items-center`)
+was centred in the taller row and slid out of the track's visible height — so the only way into the FX panel was gone. Fixed in two places: the row is
+`items-start` so FX stays level with the menu, and in the compact header the message is one trimmed line (`truncate`, full text in the tooltip) that clears itself
+after 7 s. Driven in a browser: FX and the Tone menu stay at the same y before and after picking, and the message is gone after 7.5 s.
+The FX panel's chain menu is now labelled **FX chains** ("🎛️ Pick an FX chain…", with a sentence saying it replaces the track's effects and Undo brings them back);
+it lists all 130 chains (voice, guitar, bass, keys, drums, mix, StatZ and the member's own) and applying one fills the panel's effect list ("FX 2").
