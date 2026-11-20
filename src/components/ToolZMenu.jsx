@@ -8,7 +8,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
 import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
-import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT } from '../focus.js';
+import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS } from '../focus.js';
 import './ToolZMenu.css';
 
 // Each tile draws through the SAME registry key the tab strip uses (App.jsx
@@ -560,11 +560,18 @@ export default function ToolZMenu() {
         <NeedsView onOpen={openFocus} />
       )}
 
-      {FOCUS_MODE && mine.apps.length > 0 && (
+      {FOCUS_MODE && (
+        <div className="category-grid" data-tour="home-pinned" style={{ marginBottom: 14 }}>
+          {HOME_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+          {HOME_APPS.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+        </div>
+      )}
+
+      {FOCUS_MODE && mine.apps.filter((k) => !HOME_APPS.includes(k)).length > 0 && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
           <div className="category-grid">
-            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
+            {mine.apps.filter((k) => !HOME_APPS.includes(k)).map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
           {mine.own && (
             <button className="toolz-more-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>

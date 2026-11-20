@@ -66,3 +66,11 @@ test("the parents lead the Around-the-coach grid and SkillZ ends the coach grid"
   const support = menu.indexOf("FOCUS_SUPPORT.map");
   assert.ok(coach < hubs && hubs < parents && parents < support);
 });
+
+test("Corey's home screen set is always shown: real categories and real tabs", async () => {
+  const { HOME_PARENTS, HOME_APPS } = await import("./focus.js");
+  for (const k of HOME_PARENTS) assert.match(menu, new RegExp(`key: '${k}', label:`), `${k} is not a category`);
+  for (const k of HOME_APPS) assert.ok(tabs.has(k), `${k} is not a tab`);
+  for (const k of ["ToolZ"]) assert.ok(HOME_PARENTS.includes(k));
+  for (const k of ["bodiez", "singz", "rapz", "guitarz", "drumz"]) assert.ok(HOME_APPS.includes(k));
+});

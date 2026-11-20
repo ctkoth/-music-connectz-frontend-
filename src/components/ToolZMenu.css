@@ -104,7 +104,7 @@
 /* Category Grid (Main View) */
 .category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));   /* fill, not fit: a lone tile stays tile-sized */
   gap: 2rem;
   margin-bottom: 2rem;
 }
@@ -457,7 +457,7 @@
   }
 
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));   /* fill, not fit: a lone tile stays tile-sized */
     gap: 1.5rem;
   }
 
@@ -503,7 +503,7 @@
   }
 
   .category-grid {
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));   /* fill, not fit: a lone tile stays tile-sized */
     gap: 1rem;
   }
 

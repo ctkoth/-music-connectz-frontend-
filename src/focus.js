@@ -44,6 +44,11 @@ export const FOCUS_SUPPORT = [
   "imagez", "dawz", "gamez",   // Corey: up front on the home screen (DawZ is also in StudioZ)
 ];
 
+// Corey's home screen: always shown at the top, whatever else folds away. Categories open their screen;
+// apps open the app. Order is his.
+export const HOME_PARENTS = ["ToolZ", "SkillZ", "IntelligenceZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];
+export const HOME_APPS = ["bodiez", "singz", "rapz", "guitarz", "drumz", "dawz", "imagez", "gamez"];
+
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
 
 /** Is this tab offered up front? Everything is, with focus mode off. */
