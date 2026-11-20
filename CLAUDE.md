@@ -2579,3 +2579,15 @@ untouched. Also: a one-word product name ending in a capital Z is never sent to 
   log-in lead with OAuth.
 - The trial recorder says why the mic did not open right under the button, and says when the browser is still
   deciding (Chrome's quiet permission prompt left the button looking dead), with Upload instead.
+
+## The coach's two big controls, and skill experience in decimal years
+
+`BossTake` leads with two equal tiles: a round **Record** button and **Upload a clip** (on the trial Upload goes
+first, as before); camera and discard sit smaller beneath, and while recording it is one large red Stop with the
+clock. Same handlers and `data-tour` anchors as before. Checked in a 390px browser: both tiles are on the first
+screen.
+
+A skill's experience is **years with one decimal** (`skillsUsed.decimalYears`, `personaSkills.skillYearsDecimal`):
+`.5` is six months, so nobody does the sum. The line says when it STARTED (full date, or just the year when that
+is all the member gave, then "about") — never months. Who rated a skill, and on which post, is StatZ's (or the
+sample's): the server sends `raters` only then and `raters_locked` otherwise; the median and count stay everybody's.

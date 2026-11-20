@@ -1511,50 +1511,67 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {/* Before a take exists, so nobody performs first and finds out after; once there is
           a take, the same card sits beside Send instead. */}
       {!trial && !IN_SHELL_COACH && !url && !recording && <OutOfTakes price={price} />}
-      <div className={`flex flex-wrap items-center gap-2 ${blocked ? "hidden" : ""} ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
+      {/* The two things a member comes here to do are the two biggest things on the screen: a round
+          record button and an upload tile of the same weight. Both are one tap from the first screen
+          on a phone. Camera, attach and discard are smaller and sit beneath. On the trial, Upload leads
+          (see the note above); everywhere else Record does. Every handler is the one it always was. */}
+      <div className={`space-y-2 ${blocked ? "hidden" : ""} ${fromPost && !postUnsendable && !recording ? "opacity-60" : ""}`}>
         <input ref={fileInput} type="file" accept="audio/*,video/*" className="hidden"
           onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { setStopNote(""); attach(f, f.name); playSound((f.type || "").startsWith("video/") ? "upload_video" : "upload_audio"); } }} />
-        {trial && !recording && (
-          <button className="neon-btn-primary !w-auto px-5" onClick={() => fileInput.current?.click()} disabled={busy}>
-            <Upload size={15} /> Upload a clip
+        {recording && !refMode ? (
+          <div className="flex flex-col items-center gap-2 rounded-2xl border border-mcz-ember/30 bg-black/30 px-3 py-4" role="status">
+            <p className="font-display text-4xl font-extrabold tabular-nums text-white">{mmss}</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-mcz-ember">● Recording ●</p>
+            <button type="button" onClick={() => stopRec()} aria-label={`Stop recording, ${mmss} so far`}
+                    className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-mcz-ember/60 bg-gradient-to-b from-red-500 to-red-700 text-white shadow-[0_0_28px_rgba(239,68,68,0.45)] transition active:scale-95">
+              <Square size={34} fill="currentColor" />
+            </button>
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember">Stop recording</span>
+          </div>
+        ) : !refMode ? (
+          <div className={`grid grid-cols-2 gap-2 ${trial ? "[&>*:first-child]:order-2" : ""}`}>
+            {/* On the trial, a device with no usable mic (or an insecure page) is told once, in the
+                message below, and is not offered the same button again - upload is the way through. A
+                blocked permission or a busy mic can be fixed, so it stays. */}
+            {!(trial && ["notfound", "insecure", "other"].includes(micWhy)) ? (
+              <button type="button" onClick={() => startRec(false)} disabled={busy || asking} data-tour="bosstake-mic"
+                      className="flex min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-mcz-cyan/40 bg-gradient-to-b from-mcz-cyan/15 to-transparent px-2 py-3 text-white transition active:scale-[0.97] disabled:opacity-50">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-b from-mcz-cyan to-teal-600 text-black shadow-[0_0_22px_rgba(34,211,238,0.35)]">
+                  <Mic size={30} />
+                </span>
+                <span className="text-sm font-bold">{blob ? "Record again" : micWhy ? "Try the mic again" : "Record now"}</span>
+                <span className="text-[10px] text-white/55">Tap to start</span>
+              </button>
+            ) : <span />}
+            <button type="button" onClick={() => fileInput.current?.click()} disabled={busy || recording}
+                    className="flex min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] px-2 py-3 text-white transition active:scale-[0.97] disabled:opacity-50">
+              <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-mcz-cyan">
+                <Upload size={28} />
+              </span>
+              <span className="text-sm font-bold">{trial ? "Upload a clip" : "Upload a clip"}</span>
+              <span className="text-[10px] text-white/55">Import audio or video</span>
+            </button>
+          </div>
+        ) : (
+          <button type="button" className="re-btn re-btn-emerald w-full px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
+            <Upload size={15} /> Upload their track
           </button>
         )}
-        {!recording && !refMode ? (
-          <>
-            {/* On the trial, a device with no usable mic (or an insecure page)
-                is told once, in the message above, and is not offered the
-                same button again - upload is the way through. A blocked
-                permission or a busy mic can be fixed, so it stays. */}
-            {!(trial && ["notfound", "insecure", "other"].includes(micWhy)) && (
-            <button className="re-btn re-btn-cyan !w-auto px-4" onClick={() => startRec(false)} disabled={busy || asking}
-                    data-tour="bosstake-mic">
-              <Mic size={15} /> {blob ? "Record again" : micWhy ? "Try the mic again" : trial ? "Or record one now" : "Record a take"}
-            </button>
-            )}
-            {/* The coach watches as well as listens. On camera it can mark
-                delivery, breath and posture, which sound alone can't show. */}
-            {!(trial && micWhy) && (
+        {/* The coach watches as well as listens. On camera it can mark delivery, breath and posture,
+            which sound alone can't show. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {!recording && !refMode && !(trial && micWhy) && (
             <button className="re-btn re-btn-pink !w-auto px-4" onClick={() => startRec(true)} disabled={busy || asking}
                     data-tour="bosstake-camera" title="Record with camera — the coach scores delivery too">
               <Video size={15} /> Record on camera
             </button>
-            )}
-          </>
-        ) : refMode ? null : (
-          <button className="neon-btn-primary !w-auto px-4" onClick={() => stopRec()}>
-            <Square size={14} /> Stop · {mmss}
-          </button>
-        )}
-        {!trial && (
-          <button className="re-btn re-btn-emerald !w-auto px-4" onClick={() => fileInput.current?.click()} disabled={busy || recording}>
-            <Upload size={15} /> {refMode ? "Upload their track" : "Attach audio or video"}
-          </button>
-        )}
-        {blob && !recording && (
-          <button aria-label="Discard this take" className="re-btn !w-auto px-3 !text-mcz-ember" onClick={discard} disabled={busy}>
-            <Trash2 size={14} />
-          </button>
-        )}
+          )}
+          {blob && !recording && (
+            <button aria-label="Discard this take" className="re-btn !w-auto px-3 !text-mcz-ember" onClick={discard} disabled={busy}>
+              <Trash2 size={14} />
+            </button>
+          )}
+        </div>
       </div>
       {/* Why the mic did not open, right under the button that was pressed — further down the page it landed
           below the first screen on a phone, and the button just seemed dead. */}

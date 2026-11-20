@@ -18,6 +18,7 @@ import { Check, ChevronDown, ChevronRight, Loader2, X } from "lucide-react";
 import { api } from "./api.js";
 import { goToSpot } from "./goto.js";
 import { RatingNumber } from "./components/Rating.jsx";
+import MemberName from "./MemberName.jsx";
 import { PERSONA_SKILLS, PERSONA_LABELS, labelForSkill } from "./personaSkills.js";
 import { experienceLine, flatSkills, ratingDetail, workLine, workShown } from "./skillsUsed.js";
 
@@ -137,6 +138,21 @@ function SkillRow({ s, picked, onToggle }) {
       </div>
       {/* Experience is declared (learned date + time since), never blended into the rating. */}
       <p className="mt-1 pl-6 text-[10px] text-white/50">{experienceLine(s)}</p>
+      {/* WHO rated is StatZ's (or the sample's): the server sends names only then, and says so otherwise. */}
+      {Array.isArray(s.raters) && s.raters.length > 0 && (
+        <p className="mt-1 pl-6 text-[10px] leading-relaxed text-white/60">
+          Rated by:{" "}
+          {s.raters.map((r, i) => (
+            <span key={`${r.username}-${r.post_id}`}>
+              {i > 0 && " · "}
+              <MemberName username={r.username} bare /> {r.score}/10 on <a href={`/p/${r.post_id}`} target="_blank" rel="noreferrer" className="re-link">{r.title || `Post ${r.post_id}`}</a>
+            </span>
+          ))}
+        </p>
+      )}
+      {s.raters_locked && s.rating != null && (
+        <p className="mt-1 pl-6 text-[10px] text-white/45">Who rated it, and on which post, is StatZ's.</p>
+      )}
       {shown.length > 0 && (
         <p className="mt-1 pl-6 text-[10px] leading-relaxed text-white/60">
           Rated on:{" "}

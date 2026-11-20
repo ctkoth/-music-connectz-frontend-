@@ -603,13 +603,29 @@ export function hasYearOnlyDates(skill) {
   return ps.some((p) => (p.precision === "year" && String(p.start).endsWith("-01-01")) || endIsYearOnly(p));
 }
 
-/** How long a skill has been practised, in words that claim only what the member gave. With any
- *  year-only date it never shows a month or a day: "about 13 years", or "less than a year". */
-export function skillDurationShown(skill) {
-  if (!hasYearOnlyDates(skill)) return skillDuration(skill);
-  const y = skillYears(skill);
+/** Years served with ONE decimal ("21.4"; .5 is six months), summed over every stint and never
+ *  past today. null when undated. */
+export function skillYearsDecimal(skill, now = Date.now()) {
+  const t = new Date(now);
+  const today = Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate());
+  let days = 0, counted = false;
+  for (const p of periodsOf(typeof skill === "string" ? { start: skill } : skill)) {
+    const a = asDate(p.start);
+    if (!a) continue;
+    const b = Math.min(asDate(p.end)?.getTime() ?? today, today);
+    if (b < a.getTime()) continue;
+    days += (b - a.getTime()) / 86400000; counted = true;
+  }
+  return counted ? Math.round((days / 365.2425) * 10) / 10 : null;
+}
+
+/** How long a skill has been practised: years with a decimal ("13.4 years"), not months. With any
+ *  year-only date it says "about", because the day it counts from is a convention, not a claim. */
+export function skillDurationShown(skill, now = Date.now()) {
+  const y = skillYearsDecimal(skill, now);
   if (y == null) return null;
-  return y < 1 ? "less than a year" : `about ${y} year${y === 1 ? "" : "s"}`;
+  const about = hasYearOnlyDates(skill) ? "about " : "";
+  return y < 0.1 ? "less than 0.1 years" : `${about}${y.toFixed(1)} years`;
 }
 
 // What a skill's price is PER. The server stores "hour" (the default, never written) or "work".

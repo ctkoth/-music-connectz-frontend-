@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { flatSkills, ratingDetail, workShown, workLine, monthYear, experienceLine } from "./skillsUsed.js";
+import { flatSkills, ratingDetail, workShown, workLine, monthYear, experienceLine, decimalYears, fullDate } from "./skillsUsed.js";
 
 test("an unrated skill says so and never reads as a 0", () => {
   assert.equal(ratingDetail({ skill: "mixing", rating: null, count: 0 }), "not rated yet");
@@ -35,32 +35,34 @@ test("flatSkills tolerates an empty or failed answer", () => {
   assert.deepEqual(flatSkills({ personas: [{ skills: [{ skill: "a" }] }, { skills: [{ skill: "b" }] }] }).map((s) => s.skill), ["a", "b"]);
 });
 
-test("an old skill is years only: a member knows the year they started, not the month", () => {
-  const line = experienceLine({ learned: "2012-03-01", periods: [{ start: "2012-03-01" }], active: true, years: 13 });
-  assert.equal(line, "Learned 2012 · 13 years");
+const NOW = Date.UTC(2026, 10, 20);
+
+test("experience is years with one decimal, and .5 is six months", () => {
+  assert.equal(decimalYears({ periods: [{ start: "2024-11-20", end: "2025-05-21" }] }, NOW), 0.5);
+  assert.equal(decimalYears({ periods: [{ start: "2005-06-20" }] }, NOW), 21.4);
 });
 
-test("a young skill keeps the precision the member really has", () => {
-  const d = new Date(); d.setMonth(d.getMonth() - 8); d.setDate(1);
-  const iso = d.toISOString().slice(0, 10);
-  const line = experienceLine({ learned: iso, periods: [{ start: iso }], active: true, years: 0 });
-  assert.match(line, new RegExp(`^Learned ${monthYear(iso)} · \\d+ months?$`));
-});
-
-test("the switch to years-only is at two years", () => {
-  assert.equal(experienceLine({ learned: "2000-06-15", periods: [{ start: "2000-06-15" }], years: 1 }).includes("year"), true);
-  assert.match(experienceLine({ learned: "2000-06-15", periods: [{ start: "2000-06-15" }], active: true, years: 2 }), /^Learned 2000 · 2 years$/);
+test("a skill reads the date it started and its years, not months", () => {
+  assert.equal(experienceLine({ learned: "2012-03-04", periods: [{ start: "2012-03-04" }], active: true }, NOW),
+               "Started Mar 4, 2012 · 14.7 years experience");
+  assert.equal(experienceLine({ learned: "2026-05-20", periods: [{ start: "2026-05-20" }], active: true }, NOW),
+               "Started May 20, 2026 · 0.5 years experience");
 });
 
 test("an undated skill says so and never reads as zero experience", () => {
-  assert.equal(experienceLine({ learned: null, periods: [] }), "Learned: no start date yet");
-  assert.equal(experienceLine(undefined), "Learned: no start date yet");
+  assert.equal(experienceLine({ learned: null, periods: [] }, NOW), "Started: no start date yet");
+  assert.equal(experienceLine(undefined, NOW), "Started: no start date yet");
 });
 
-test("a skill the member stopped says which year, and counts only the time served", () => {
+test("a skill the member stopped counts only the time served", () => {
   const line = experienceLine({ learned: "2000-01-01", periods: [{ start: "2000-01-01", end: "2010-01-01" }],
-                                active: false, last_played: "2010-01-01", years: 10 });
-  assert.equal(line, "Learned 2000 · 10 years · last practised 2010");
+                                active: false, last_played: "2010-01-01" }, NOW);
+  assert.equal(line, "Started Jan 1, 2000 · 10.0 years experience · last practised Jan 1, 2010");
+});
+
+test("fullDate refuses what is not a date", () => {
+  assert.equal(fullDate("nope"), "");
+  assert.equal(fullDate("2012-03-04"), "Mar 4, 2012");
 });
 
 test("monthYear refuses what is not a date", () => {
@@ -68,23 +70,14 @@ test("monthYear refuses what is not a date", () => {
   assert.equal(monthYear("2012-13-01"), "");
 });
 
-test("a year-only start says the year and 'about', never a month", () => {
-  assert.equal(experienceLine({ learned: "2012-01-01", learned_precision: "year", periods: [{ start: "2012-01-01", precision: "year" }], active: true, years: 13 }),
-               "Learned 2012 · about 13 years");
-  assert.equal(experienceLine({ learned: "2026-01-01", learned_precision: "year", periods: [{ start: "2026-01-01", precision: "year" }], active: true, years: 0 }),
-               "Learned 2026 · less than a year");
+test("a year-only start says the year and 'about', never a day", () => {
+  assert.equal(experienceLine({ learned: "2012-01-01", learned_precision: "year", periods: [{ start: "2012-01-01", precision: "year" }], active: true }, NOW),
+               "Started 2012 · about 14.9 years experience");
 });
 
 test("a year-only stop makes the length an estimate and the last-practised a year", () => {
   assert.equal(experienceLine({ learned: "2000-03-04", learned_precision: "day", approximate: true, active: false,
-    last_played: "2010-07-01", last_played_precision: "year", years: 10,
-    periods: [{ start: "2000-03-04", end: "2010-07-01", end_precision: "year" }] }),
-    "Learned 2000 · about 10 years · last practised 2010");
-});
-
-test("a young skill stopped within one year says less than a year", () => {
-  const d = new Date(); d.setMonth(d.getMonth() - 10); d.setDate(1);
-  const iso = d.toISOString().slice(0, 10);
-  assert.equal(experienceLine({ learned: iso, learned_precision: "day", approximate: true, active: false,
-    last_played: `${d.getFullYear()}-07-01`, last_played_precision: "year", years: 0, periods: [{ start: iso, end: `${d.getFullYear()}-07-01`, end_precision: "year" }] }).includes("less than a year"), true);
+    last_played: "2010-07-01", last_played_precision: "year",
+    periods: [{ start: "2000-03-04", end: "2010-07-01", end_precision: "year" }] }, NOW),
+    "Started Mar 4, 2000 · about 10.3 years experience · last practised 2010");
 });
