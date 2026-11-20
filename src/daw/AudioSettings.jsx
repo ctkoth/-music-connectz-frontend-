@@ -21,6 +21,7 @@ export default function AudioSettings({ daw, onUseInput }) {
   const [lat, setLat] = useState(null);
   const [lvl, setLvl] = useState({ peakDb: FLOOR_DB, held: FLOOR_DB, clipped: false });
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState(null);
   const stream = useRef(null);
   const meter = useRef(null);
   const raf = useRef(0);
@@ -73,6 +74,10 @@ export default function AudioSettings({ daw, onUseInput }) {
     }
   };
   const prevClip = useRef(false);
+  const test = async () => {
+    setErr("");
+    try { setInfo(await daw.testTone()); } catch (e) { setErr(e?.message || "Couldn't play the test sound."); }
+  };
 
   const toggleMon = async () => {
     if (mon) { daw.monitorOff(); setMon(false); return; }
@@ -103,6 +108,15 @@ export default function AudioSettings({ daw, onUseInput }) {
             </select>
           </label>
           {!canOut && <span className="text-white/50">This browser plays through the system output; Chrome or Edge can switch it here.</span>}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" className="re-btn !w-auto px-3" onClick={test}><Volume2 size={12} /> 🔊 Test sound</button>
+          <span className="text-white/60">
+            {info ? (info.state === "running"
+              ? `Played a tone through the audio engine (${info.rate} Hz${info.latencyMs ? `, about ${info.latencyMs} ms delay` : ""}). Did you hear it? If not, it's the output device or the volume, not the app.`
+              : `The audio engine is ${info.state}: the browser is holding audio until you click something on the page. Press Test sound again.`)
+              : "Plays a short tone through your chosen output, so you can tell a silent output from a silent mix."}
+          </span>
         </div>
         <p className="text-white/50">Choosing an input here sets it on every armed track, and each track can still take its own from its input menu. Armed tracks show a live level bar, so you can see the mic is heard before you record.</p>
         <div className="flex flex-wrap items-center gap-2">

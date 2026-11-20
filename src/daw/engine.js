@@ -463,9 +463,24 @@ export function createDaw() {
     await c.setSinkId(id || "");
     return { ok: true };
   }
+  /** What the audio engine is doing, for the screen: running or blocked, its rate, and the browser's own output delay. */
+  function audioInfo() {
+    const c = ctx;
+    return c ? { state: c.state, rate: c.sampleRate, latencyMs: Math.round(((c.baseLatency || 0) + (c.outputLatency || 0)) * 1000) } : { state: "not started", rate: 0, latencyMs: 0 };
+  }
+  /** A short tone straight out of the output, so "is anything coming out of this device?" has an answer that is not the mix. */
+  async function testTone() {
+    const c = audio();
+    if (c.state !== "running") await c.resume();
+    const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+    o.type = "sine"; o.frequency.value = 440;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    o.connect(g).connect(c.destination); o.start(t); o.stop(t + 1);
+    return audioInfo();
+  }
   const outputCanChange = () => typeof (typeof AudioContext !== "undefined" ? AudioContext.prototype.setSinkId : undefined) === "function";
   return {
-    inputMeter, monitorOn, monitorOff, setOutput, outputCanChange, context: () => audio(),
+    inputMeter, monitorOn, monitorOff, setOutput, outputCanChange, audioInfo, testTone, context: () => audio(),
     decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,

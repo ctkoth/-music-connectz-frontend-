@@ -53,7 +53,7 @@ import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import AudioSettings from "./AudioSettings.jsx";
-import { holdPeak, latencyMs, levelFromSamples } from "./audioIO.js";
+import { holdPeak, latencyMs, levelFromSamples, meterPos } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
@@ -405,6 +405,20 @@ export default function Workspace({ workflow }) {
   // device shows up as a flat bar and a sentence on the track, BEFORE a take is wasted on it. One stream per device, shared by the
   // tracks reading it; nothing is recorded or heard (monitoring is the 🎧). Opened here rather than at Record so the permission prompt
   // and any failure arrive when somebody arms, which is when they are looking at the track.
+  // The mix's own output level while it plays — so "it moves but I hear nothing" has an answer on screen: a moving bar means the app is
+  // producing sound and the silence is the output device (or the volume); a flat bar means the app is not, and says so.
+  const [outDb, setOutDb] = useState(null);
+  const [silentFor, setSilentFor] = useState(0);
+  useEffect(() => {
+    if (!playing) { setOutDb(null); setSilentFor(0); return undefined; }
+    let quiet = 0;
+    const id = setInterval(() => {
+      const db = daw.meters().master;
+      const v = Number.isFinite(db) ? db : -90;
+      setOutDb(v); quiet = v < -60 ? quiet + 0.1 : 0; setSilentFor(quiet);
+    }, 100);
+    return () => clearInterval(id);
+  }, [playing, daw]);
   const [levels, setLevels] = useState({});
   const armedKey = session.tracks.filter((t) => t.armed).map((t) => `${t.id}|${t.input?.device || ""}`).join(",");
   useEffect(() => {
@@ -911,6 +925,17 @@ export default function Workspace({ workflow }) {
         </span>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
         <span className="font-mono tabular-nums text-white/60">{minSec(playhead)} / {minSec(len)}</span>
+        {playing && outDb != null && (
+          <span className="flex items-center gap-1 text-[11px]" role="status" title="The level of the mix the app is sending to your output">
+            <span className="text-white/60">🔊</span>
+            <span className="relative h-2 w-24 overflow-hidden rounded bg-white/15">
+              <span className={`absolute inset-y-0 left-0 ${outDb < -60 ? "bg-white/20" : outDb > -1 ? "bg-red-500" : "bg-emerald-400"}`} style={{ width: `${meterPos(outDb) * 100}%` }} />
+            </span>
+            <span className={silentFor > 1.5 ? "text-mcz-ember" : "text-white/60"}>
+              {silentFor > 1.5 ? "Mix is silent — check track mute, faders and effects" : `${outDb < -60 ? "—" : `${Math.round(outDb)} dB`} · if you hear nothing, check your output below`}
+            </span>
+          </span>
+        )}
         <AudioSettings daw={daw} onUseInput={useInputForArmed} />
         <label className="flex items-center gap-1 text-white/60">Key
           <select className="neon-input !w-auto !py-1" data-nomemo="true" value={session.key || ""} disabled={recording} aria-label="Project key"
