@@ -109,11 +109,14 @@ export default function OnboardZ() {
   const [coach, setCoach] = useState(() => firstCoach({ trialApp: storedTrialApp(), seeds: readSeeds() }));
   const [first, setFirst] = useState(undefined);
   const [showAll, setShowAll] = useState(false);
+  // What the server counts (a post made, ratings given) — a step is done when the thing exists, not when its
+  // button was tapped. Null until it answers; the old tap marks only stand in if it never does.
+  const [prog, setProg] = useState(null);
 
   useEffect(() => {
     api("/api/auth/me/").then((d) => { setMe(d); setBday(d?.birthday || ""); }).catch(() => setMe({}));
     api("/api/auth/referrals/").then(setRef).catch(() => {});
-    api("/api/auth/onboard/complete/").then((d) => setFirst(d?.first_take || null)).catch(() => setFirst(null));
+    api("/api/auth/onboard/complete/").then((d) => { setFirst(d?.first_take || null); setProg(d?.progress || null); }).catch(() => setFirst(null));
   }, []);
 
   async function saveBday() {
@@ -188,16 +191,16 @@ export default function OnboardZ() {
       what: "Your first piece of work on the platform. A track, bars, cover art, a collab call — whatever you've got.",
       why: "PostZ is the front door, and your posts are what everything else hangs off. Rating opens 30 seconds after you post and comments at 60 — that delay exists so nobody can dogpile a track they have not listened to yet. You cannot score your own, which is the whole reason the number is worth anything.",
       how: "PostZ tab, drop it in the box, pick a genre, hit Post. Your char limit goes up with your tier.",
-      done: !!done.post,
+      done: prog ? prog.post : !!done.post,
       tab: "postz", target: "composer", cta: "Open the PostZ composer",
       onGo: () => mark("post") },
 
-    { key: "rate", icon: <Star size={18} />, title: "Rate 3 tracks",
+    { key: "rate", icon: <Star size={18} />, title: prog && prog.ratings < prog.ratings_needed ? `Rate 3 tracks (${prog.ratings} of ${prog.ratings_needed})` : "Rate 3 tracks",
       desc: "Every rating you give earns +1 Energy.",
       what: "Score three other people's PostZ, 1 to 10.",
       why: "+1 Energy each — mana, on top of what regenerates hourly, and Energy is what runs the AI tools. But that is the small reason. The real one: stats only exist because other players hand them out. A feed where everybody posts and nobody scores is just noise. Rate honestly and you get rated honestly.",
       how: "PostZ tab, find any post that isn't yours and is at least 30 seconds old, tap the score.",
-      done: !!done.rate,
+      done: prog ? prog.ratings >= prog.ratings_needed : !!done.rate,
       tab: "postz", target: "feed", cta: "Open the feed and rate",
       onGo: () => mark("rate") },
 
