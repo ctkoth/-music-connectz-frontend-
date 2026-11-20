@@ -10,7 +10,8 @@ import { FLOOR_DB, holdPeak, latencyMs, levelAdvice, levelFromSamples, meterPos 
 
 const TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
-export default function AudioSettings({ daw }) {
+export default function AudioSettings({ daw, onUseInput }) {
+  const box = useRef(null);
   const [inputs, setInputs] = useState([]);
   const [outputs, setOutputs] = useState([]);
   const [input, setInput] = useState("");
@@ -24,10 +25,21 @@ export default function AudioSettings({ daw }) {
   const meter = useRef(null);
   const raf = useRef(0);
   const canOut = daw.outputCanChange();
+  // Open (and bring into view) when a track's level bar is tapped, and remember the chosen output on this device.
+  useEffect(() => {
+    const f = () => { if (box.current) { box.current.open = true; box.current.scrollIntoView({ block: "center", behavior: "smooth" }); } };
+    window.addEventListener("mcz-audio-settings", f);
+    return () => window.removeEventListener("mcz-audio-settings", f);
+  }, []);
+  useEffect(() => {
+    let saved = ""; try { saved = localStorage.getItem("mcz_daw_output") || ""; } catch { /* storage blocked */ }
+    if (saved && canOut) { setOutput(saved); daw.setOutput(saved).catch(() => {}); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const list = useCallback(() => navigator.mediaDevices?.enumerateDevices?.().then((ds) => {
-    setInputs(ds.filter((d) => d.kind === "audioinput" && d.deviceId !== "default"));
-    setOutputs(ds.filter((d) => d.kind === "audiooutput" && d.deviceId !== "default"));
+    // Every device the browser names, "Default" ones included: the Windows default is often the one that is not the mic you mean.
+    setInputs(ds.filter((d) => d.kind === "audioinput"));
+    setOutputs(ds.filter((d) => d.kind === "audiooutput"));
   }).catch(() => {}), []);
   useEffect(() => { list(); navigator.mediaDevices?.addEventListener?.("devicechange", list); return () => navigator.mediaDevices?.removeEventListener?.("devicechange", list); }, [list]);
 
@@ -74,25 +86,25 @@ export default function AudioSettings({ daw }) {
 
   const a = levelAdvice(lvl.held, lvl.clipped);
   return (
-    <details className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-audio-settings">
-      <summary className="cursor-pointer text-white/80"><Volume2 size={12} className="mr-1 inline" />Audio settings: input, output and levels</summary>
+    <details ref={box} className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-audio-settings">
+      <summary className="cursor-pointer font-semibold text-white"><Volume2 size={12} className="mr-1 inline" />🎙️ Input &amp; 🎧 output: choose your mic and speakers, check levels</summary>
       <div className="mt-2 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1 text-white/60"><Mic size={11} /> Input
-            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={input} aria-label="Input device" disabled={on} onChange={(e) => setInput(e.target.value)}>
+            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={input} aria-label="Input device" disabled={on} onChange={(e) => { setInput(e.target.value); onUseInput?.(e.target.value); }}>
               <option value="">System default</option>
               {inputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
             </select>
           </label>
           <label className="flex items-center gap-1 text-white/60"><Headphones size={11} /> Output
-            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={output} aria-label="Output device" disabled={!canOut} onChange={(e) => chooseOutput(e.target.value)}>
+            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={output} aria-label="Output device" disabled={!canOut} onChange={(e) => { try { localStorage.setItem("mcz_daw_output", e.target.value); } catch { /* storage blocked */ } chooseOutput(e.target.value); }}>
               <option value="">System default</option>
               {outputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${i + 1}`}</option>)}
             </select>
           </label>
           {!canOut && <span className="text-white/50">This browser plays through the system output; Chrome or Edge can switch it here.</span>}
         </div>
-        <p className="text-white/50">Each track picks its own input and channel when armed (R). This is for checking the room, the gain and the headphones before you record.</p>
+        <p className="text-white/50">Choosing an input here sets it on every armed track, and each track can still take its own from its input menu. Armed tracks show a live level bar, so you can see the mic is heard before you record.</p>
         <div className="flex flex-wrap items-center gap-2">
           {!on ? <button type="button" className="re-btn !w-auto px-3" onClick={start}><Mic size={12} /> Check level</button>
                 : <button type="button" className="re-btn !w-auto px-3" onClick={stop}>Stop checking</button>}

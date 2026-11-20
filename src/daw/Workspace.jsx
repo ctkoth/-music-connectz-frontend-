@@ -53,7 +53,7 @@ import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import AudioSettings from "./AudioSettings.jsx";
-import { latencyMs } from "./audioIO.js";
+import { holdPeak, latencyMs, levelFromSamples } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
@@ -400,6 +400,50 @@ export default function Workspace({ workflow }) {
     navigator.mediaDevices?.addEventListener?.("devicechange", refreshDevices);
     return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
   }, [refreshDevices]);
+
+  // A live level on every ARMED track, opened the moment it is armed: so a mic that is blocked, held by another app, or simply the wrong
+  // device shows up as a flat bar and a sentence on the track, BEFORE a take is wasted on it. One stream per device, shared by the
+  // tracks reading it; nothing is recorded or heard (monitoring is the 🎧). Opened here rather than at Record so the permission prompt
+  // and any failure arrive when somebody arms, which is when they are looking at the track.
+  const [levels, setLevels] = useState({});
+  const armedKey = session.tracks.filter((t) => t.armed).map((t) => `${t.id}|${t.input?.device || ""}`).join(",");
+  useEffect(() => {
+    const list = armedKey ? armedKey.split(",").map((x) => x.split("|")) : [];
+    if (!list.length) { setLevels({}); return undefined; }
+    let dead = false, raf = 0;
+    const open = new Map();
+    const held = {};
+    (async () => {
+      for (const [, dev] of list) {
+        if (open.has(dev)) continue;
+        try {
+          const stream = await daw.openMic(dev);
+          if (dead) { stream.getTracks().forEach((x) => x.stop()); return; }
+          open.set(dev, { stream, meter: daw.inputMeter(stream) });
+        } catch (e) { open.set(dev, { err: mediaError(e, false).msg || e.message }); }
+      }
+      if (dead) return;
+      refreshDevices();
+      let last = performance.now(), painted = 0;
+      const tick = (now) => {
+        const next = {};
+        for (const [id, dev] of list) {
+          const o = open.get(dev);
+          if (!o) continue;
+          if (o.err) { next[id] = { err: o.err }; continue; }
+          const l = levelFromSamples(o.meter.read());
+          held[id] = holdPeak(held[id], l.peakDb, (now - last) / 1000);
+          next[id] = { peakDb: l.peakDb, held: held[id], clipped: l.clipped };
+        }
+        last = now;
+        if (now - painted > 66) { painted = now; setLevels(next); }
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    })();
+    return () => { dead = true; cancelAnimationFrame(raf); for (const o of open.values()) { o.meter?.stop(); o.stream?.getTracks().forEach((x) => x.stop()); } };
+  }, [armedKey, daw]); // eslint-disable-line react-hooks/exhaustive-deps
+  const useInputForArmed = (dev) => commit((s) => s.tracks.filter((t) => t.armed).reduce((cur, t) => setTrack(cur, t.id, { input: { ...(t.input || {}), device: dev } }), s));
 
   // Monitor: hear the armed track's input through the output. One track at a time, off by default, and only while the track is
   // armed. It is the DIRECT input (before the track's effects), so it adds no processing delay of ours; the browser's own audio
@@ -867,7 +911,7 @@ export default function Workspace({ workflow }) {
         </span>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
         <span className="font-mono tabular-nums text-white/60">{minSec(playhead)} / {minSec(len)}</span>
-        <AudioSettings daw={daw} />
+        <AudioSettings daw={daw} onUseInput={useInputForArmed} />
         <label className="flex items-center gap-1 text-white/60">Key
           <select className="neon-input !w-auto !py-1" data-nomemo="true" value={session.key || ""} disabled={recording} aria-label="Project key"
                   onChange={(e) => commit((s) => setSession(s, { key: e.target.value }))}>
@@ -994,7 +1038,8 @@ export default function Workspace({ workflow }) {
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
           onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
           onOpenMix={() => setView("mix")}
-          monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor}
+          monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor} levels={levels}
+          onAudioSettings={() => window.dispatchEvent(new Event("mcz-audio-settings"))}
           trackLabel={tierCap == null ? "" : `${session.tracks.length} of ${tierCap}`}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {

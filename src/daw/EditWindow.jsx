@@ -18,9 +18,12 @@ import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
 import Popover from "./Popover.jsx";
 import { PLUGINS, newInsert } from "./plugins.js";
+import { levelAdvice, meterPos } from "./audioIO.js";
+
+const LEVEL_TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
 const HEADER_W = 168;
-const LANE_H = 98;
+const LANE_H = 126;
 const EDGE_PX = 10;
 
 /** One region's waveform, drawn from the engine's peaks for the window of the source it plays. */
@@ -75,7 +78,7 @@ export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -287,6 +290,25 @@ export default function EditWindow({
                 )}
               </div>
             )}
+            {t.armed && (() => {
+              const lv = levels?.[t.id];
+              const dev = devices.find((d) => d.deviceId === (t.input?.device || ""));
+              const name = t.input?.device ? (dev?.label || "Chosen input") : "System default mic";
+              const a = lv && !lv.err ? levelAdvice(lv.held, lv.clipped) : null;
+              return (
+                <button type="button" onClick={onAudioSettings} aria-label={`${t.name} input level. Change input and output`}
+                        title={lv?.err || (a ? `${a.say} (click to change the input or output)` : "Opening the microphone…")}
+                        className="flex items-center gap-1 text-left text-[10px] leading-none">
+                  <span className="relative h-2 min-w-0 flex-1 overflow-hidden rounded bg-white/15">
+                    {a && <span className={`absolute inset-y-0 left-0 ${LEVEL_TONE[a.state]}`} style={{ width: `${meterPos(lv.peakDb) * 100}%` }} />}
+                    {a && <span className="absolute inset-y-0 w-0.5 bg-white" style={{ left: `${meterPos(lv.held) * 100}%` }} />}
+                  </span>
+                  <span className={`max-w-[6.5rem] truncate ${lv?.err ? "text-mcz-ember" : a?.state === "silent" ? "text-mcz-gold" : "text-white/60"}`}>
+                    {lv?.err ? "Mic problem — tap" : !lv ? "Opening mic…" : a.state === "silent" ? "No sound — tap" : `🎙️ ${name}`}
+                  </span>
+                </button>
+              );
+            })()}
             {looks?.id === t.id && (
               <Popover rect={looks.rect} onClose={() => setLooks(null)} label={`${t.name} look`}>
                 <EmojiPick value={t.emoji || ""} onChange={(emoji) => onTrack(t.id, { emoji })} label="Track emoji" />
