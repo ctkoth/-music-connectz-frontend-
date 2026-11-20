@@ -53,6 +53,7 @@ import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import AudioSettings from "./AudioSettings.jsx";
+import { latencyMs } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
@@ -399,6 +400,32 @@ export default function Workspace({ workflow }) {
     navigator.mediaDevices?.addEventListener?.("devicechange", refreshDevices);
     return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshDevices);
   }, [refreshDevices]);
+
+  // Monitor: hear the armed track's input through the output. One track at a time, off by default, and only while the track is
+  // armed. It is the DIRECT input (before the track's effects), so it adds no processing delay of ours; the browser's own audio
+  // delay is said beside the button. A mic beside speakers feeds back, so turning it on asks about headphones first.
+  const [monitorTrack, setMonitorTrack] = useState(null);
+  const [monitorLat, setMonitorLat] = useState(null);
+  const monStream = useRef(null);
+  const stopMonitor = useCallback(() => {
+    daw.monitorOff(); monStream.current?.getTracks().forEach((x) => x.stop()); monStream.current = null; setMonitorTrack(null);
+  }, [daw]);
+  const toggleMonitor = async (trackId) => {
+    if (monitorTrack === trackId) { stopMonitor(); return; }
+    const tr = sRef.current.tracks.find((x) => x.id === trackId);
+    if (!tr) return;
+    if (!window.confirm("Hear this track's input through your output while you record? Use headphones: a mic beside speakers will squeal. You may also hear a small delay.")) return;
+    setErr("");
+    try {
+      stopMonitor();
+      monStream.current = await daw.openMic(tr.input?.device || "");
+      await daw.monitorOn(monStream.current);
+      setMonitorTrack(trackId); setMonitorLat(latencyMs(daw.context()));
+    } catch (e) { stopMonitor(); setErr(mediaError(e, false).msg || e.message); }
+  };
+  // Disarming the track (or leaving) ends the monitor: nothing keeps listening to a mic the member is not recording from.
+  useEffect(() => { if (monitorTrack && !session.tracks.some((t) => t.id === monitorTrack && t.armed)) stopMonitor(); }, [session, monitorTrack, stopMonitor]);
+  useEffect(() => stopMonitor, [stopMonitor]);
 
   const record = async () => {
     setErr(""); setMsg("");
@@ -967,6 +994,7 @@ export default function Workspace({ workflow }) {
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
           onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
           onOpenMix={() => setView("mix")}
+          monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor}
           trackLabel={tierCap == null ? "" : `${session.tracks.length} of ${tierCap}`}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {

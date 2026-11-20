@@ -75,7 +75,7 @@ export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -242,6 +242,12 @@ export default function EditWindow({
             </div>
             {onInserts && (
               <div className="relative flex items-start gap-1 text-[10px]">
+                {t.armed && onMonitor && (
+                  <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
+                          title={monitorTrack === t.id ? `Hearing ${t.name}'s input${monitorLat ? ` (about ${monitorLat} ms of delay)` : ""}. Click to stop.` : "Hear this track's input while you record (use headphones)"}
+                          aria-label={`Monitor ${t.name}`}
+                          className={`rounded px-1.5 py-0.5 font-bold ${monitorTrack === t.id ? "bg-emerald-500 text-black" : "bg-red-900/50 text-white"}`}>🎧</button>
+                )}
                 <button type="button" data-popover-anchor aria-expanded={fx?.id === t.id} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFx(fx?.id === t.id ? null : { id: t.id, rect: r }); }} title="Add effects or pick a preset chain"
                         className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
                   FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
