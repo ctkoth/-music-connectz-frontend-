@@ -24,7 +24,7 @@ import Doors from "../components/Doors.jsx";
 // A script is a text run, so a free daily prompt covers it; a drawing is an image run,
 // which the daily allowance never covers (the server bills them that way).
 function Cost({ s, drawing = false }) {
-  return <span className="text-[11px]"><Price amount={s.cost_cents} emoji={PROMPTZ} freeToday={!drawing && s.free_today} /> <AiEnergy />{" "}
+  return <span className="text-[11px]"><Price amount={drawing ? (s.panel_cost_cents ?? s.cost_cents) : s.cost_cents} emoji={PROMPTZ} freeToday={!drawing && s.free_today} /> <AiEnergy />{" "}
     <span className="text-white/55">{drawing ? "per image · " : ""}not charged if nothing comes back</span></span>;
 }
 
@@ -69,7 +69,7 @@ function PageEditor({ s, page, chars, onChange }) {
             onClick={() => handOff("imagez", "", { url: q.image, name: `${p.title} · panel ${q.n}` })}>Edit panel {q.n} in ImageZ</button>}
           <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={!!busy} onClick={() => draw(q.n)}>
             {busy === `d${q.n}` ? <Loader2 size={12} className="animate-spin" /> : <Brush size={12} />} {q.image ? "Redraw" : "Draw"} panel {q.n}{" "}
-            <Price amount={s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />
+            <Price amount={s.panel_cost_cents ?? s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />
           </button>
         </div>
       ))}
