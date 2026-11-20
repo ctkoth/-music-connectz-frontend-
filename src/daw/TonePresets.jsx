@@ -24,13 +24,20 @@ export function useTonePresets() {
   return { state, failed, save, remove };
 }
 
-export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true, compact = false }) {
+export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true, compact = false, placeholder = "🎛️ Tone…", ariaLabel }) {
   const { state, failed, save, remove } = tones;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("tone");      // save as a track TONE or a track FX chain — each has its own ceiling
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  // In the narrow track header the confirmation is one trimmed line that clears itself: a paragraph there grows the block
+  // and pushes the FX button out of the track's visible height (found when a picked tone made FX vanish).
+  useEffect(() => {
+    if (!compact || (!msg && !err)) return undefined;
+    const t = setTimeout(() => { setMsg(""); setErr(""); }, 7000);
+    return () => clearTimeout(t);
+  }, [compact, msg, err]);
   const room = presetRoom(state, kind);
   const all = (state?.presets || []).filter((p) => p.kind === "tone" || p.kind === "fx");
   const mine = all.filter((p) => p.kind === kind);
@@ -61,8 +68,8 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
   return (
     <div className="space-y-1">
       <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value=""
-              aria-label={`Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
-        <option value="">🎛️ Tone…</option>
+              aria-label={ariaLabel || `Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
+        <option value="">{placeholder}</option>
         {["tone", "fx"].map((k) => all.some((p) => p.kind === k) && (
           <optgroup key={k} label={`Your ${KIND_LABEL[k].toLowerCase()} presets`}>
             {all.filter((p) => p.kind === k).map((p) => <option key={p.id} value={`m:${p.id}`}>{p.name}</option>)}
@@ -107,8 +114,8 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
           <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button>
         </p>
       )}
-      {msg && <p className="text-emerald-300">{msg}</p>}
-      {err && <p className="text-mcz-ember">{err}</p>}
+      {msg && <p className={`text-emerald-300 ${compact ? "truncate" : ""}`} title={compact ? msg : undefined} role="status">{msg}</p>}
+      {err && <p className={`text-mcz-ember ${compact ? "truncate" : ""}`} title={compact ? err : undefined} role="alert">{err}</p>}
       {saving && mine.length > 0 && (
         <ul className="space-y-0.5">
           {mine.map((p) => (
