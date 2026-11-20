@@ -286,7 +286,9 @@ export function buildInsert(ctx, insert, { bpm = 120 } = {}) {
           node.parameters.get("release").value = q.release;
         };
         update(p);
-        return { input, output, update, meter: node.port };
+        // `dispose` ends the processor. Without it every Play left one more limiter running in the audio thread, and after a few presses
+        // the audio engine was out of time and NOTHING played, not even tracks with no effects.
+        return { input, output, update, meter: node.port, dispose: () => { try { node.port.postMessage("stop"); node.disconnect(); } catch { /* already gone */ } } };
       }
       const drive = ctx.createGain(), c = ctx.createDynamicsCompressor(), ceil = ctx.createGain();
       c.ratio.value = 20; c.knee.value = 0; c.attack.value = 0.001;

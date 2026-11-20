@@ -82,12 +82,14 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
   const heard = new Set(audible(session).map((t) => t.id));
   const tracks = {};
   const sources = [];
+  const disposers = [];     // effects that need telling they are finished (the worklet ones keep running until they are)
   for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
     const sum = ctx.createGain();
     sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
     let tail = sum;
     for (const ins of t.inserts || []) {
       const node = buildInsert(ctx, ins, { bpm: session.bpm });
+      if (node.dispose) disposers.push(node.dispose);
       tail.connect(node.input);
       tail = node.output;
     }
@@ -142,7 +144,7 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       sources.push(s);
     }
   }
-  return { master, tracks, sources };
+  return { master, tracks, sources, disposers };
 }
 
 /** Stop whatever a param was scheduled to do and keep it where it is now (no jump when a lane is switched off). */
@@ -198,6 +200,7 @@ export function createDaw() {
     if (graph) {
       graph.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
       try { graph.master.disconnect(); } catch { /* gone */ }
+      graph.disposers?.forEach((d) => d());
       graph = null;
     }
   }

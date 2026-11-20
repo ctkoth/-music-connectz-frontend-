@@ -78,3 +78,31 @@ test("the worklet binds the core by name, so a renamed (minified) function still
   const src2 = `const createLimiterCore = ${renamed};\nreturn createLimiterCore(48000, 2).latency;`;
   assert.equal(new Function(src2)(), 95);
 });
+
+test("the worklet ends itself when told to, so a stopped playback leaves nothing running in the audio engine", () => {
+  const src = limiterWorkletSource();
+  assert.match(src, /e\.data === "stop"/);
+  assert.match(src, /if \(this\.dead\) return false/);
+  // Drive the processor the way the browser does: it processes, is told to stop, and then returns false (false = release me).
+  let Proc;
+  const reg = (n, c) => { Proc = c; };
+  const Base = class { constructor() { this.port = {}; } };
+  new Function("AudioWorkletProcessor", "registerProcessor", "sampleRate", src)(Base, reg, 48000);
+  const p = new Proc();
+  const blk = [new Float32Array(128).fill(0.5), new Float32Array(128).fill(0.5)];
+  const out = [new Float32Array(128), new Float32Array(128)];
+  const par = { drive: [1], ceiling: [0.89], release: [100] };
+  assert.equal(p.process([blk], [out], par), true);
+  p.port.onmessage({ data: "stop" });
+  assert.equal(p.process([blk], [out], par), false);
+});
+
+test("the limiter is cheap: ten seconds of stereo audio takes a small fraction of real time", () => {
+  const n = 48000 * 10, l = new Float32Array(n), r = new Float32Array(n);
+  for (let i = 0; i < n; i++) { l[i] = Math.sin(i * 0.01) * 1.4; r[i] = l[i]; }
+  const core = createLimiterCore(48000), o1 = new Float32Array(128), o2 = new Float32Array(128);
+  const t0 = performance.now();
+  for (let i = 0; i + 128 <= n; i += 128) core.process(l.subarray(i, i + 128), r.subarray(i, i + 128), o1, o2, 128, 1.4, 0.89, 100);
+  const ms = performance.now() - t0;
+  assert.ok(ms < 1500, `10 s of audio took ${ms.toFixed(0)} ms`);   // generous bound: it is a fraction of the 10 000 ms it represents
+});

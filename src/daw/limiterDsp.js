@@ -18,9 +18,12 @@ export function createLimiterCore(fs, lookMs = 2) {
   const L = Math.max(2, Math.round((lookMs / 1000) * fs));
   const D = L - 1;                              // the signal is late by this many samples
   const dl = new Float32Array(D), dr = new Float32Array(D);   // signal delay lines
-  const req = new Float32Array(L);              // last L requested gains
+  // Sliding minimum of the last L requests in O(1) per sample (a monotonic queue), not a scan of L values per sample: a limiter that
+  // costs ~100 operations a sample, times every copy running, is how a long session ends up out of audio time.
+  const qv = new Float32Array(L), qi = new Float64Array(L);
+  let qh = 0, qt = 0, qn = 0;
   const hold = new Float64Array(L);             // last L held gains (for the moving mean)
-  req.fill(1); hold.fill(1);                    // nothing requested yet: no reduction
+  hold.fill(1);                                 // nothing requested yet: no reduction
   let w = 0, sum = L, prev = 1, grMax = 1, n = 0;
 
   /** In: channels l, r (r may be the same array as l) and the settings. Out: o1/o2. Returns the gain
@@ -32,9 +35,11 @@ export function createLimiterCore(fs, lookMs = 2) {
       const a = l[i], b = r[i];
       const peak = Math.max(Math.abs(a), Math.abs(b)) * drive;
       const wi = w % L;
-      req[wi] = peak > ceiling ? ceiling / peak : 1;
-      let m = 1;
-      for (let k = 0; k < L; k++) if (req[k] < m) m = req[k];     // min over the last L requests
+      const want = peak > ceiling ? ceiling / peak : 1;
+      while (qn > 0 && qv[(qt - 1 + L) % L] >= want) { qt = (qt - 1 + L) % L; qn--; }
+      qv[qt] = want; qi[qt] = w; qt = (qt + 1) % L; qn++;
+      while (qi[qh] <= w - L) { qh = (qh + 1) % L; qn--; }
+      const m = qv[qh];                                            // min over the last L requests
       // release: the held gain may fall at once but climbs back no faster than the release allows
       const up = prev + (1 - prev) * rc;
       prev = m < up ? m : up;
@@ -69,8 +74,13 @@ class McLimiter extends AudioWorkletProcessor {
       { name: "release", defaultValue: 100, minValue: 1, maxValue: 5000, automationRate: "k-rate" },
     ];
   }
-  constructor() { super(); this.core = createLimiterCore(sampleRate, 2); this.t = 0; }
+  constructor() {
+    super(); this.core = createLimiterCore(sampleRate, 2); this.t = 0; this.dead = false;
+    // A worklet keeps running for as long as process() returns true, connected or not, so the page tells it when it is finished.
+    this.port.onmessage = (e) => { if (e.data === "stop") this.dead = true; };
+  }
   process(inputs, outputs, p) {
+    if (this.dead) return false;
     const inp = inputs[0], out = outputs[0];
     if (!inp || !inp.length || !out || !out.length) return true;
     const l = inp[0], r = inp[1] || inp[0];
