@@ -14,6 +14,9 @@ const NUM = /\d+(?:[.,:]\d+)*/g;
 /** Short, and with words in it. Numbers, emoji, money and single letters are not sent anywhere. */
 export function worth(s) {
   const t = String(s || "").trim();
+  // A product name — one word ending in a capital Z (StatZ, STATZ, PostZ, SkillZ) — is a name, never a word to
+  // translate: "STATZ" came back as "ESTADO".
+  if (/^[\p{L}\d]+Z$/u.test(t)) return false;
   return t.length >= 2 && t.length <= MAX_LEN && /\p{L}{2,}/u.test(t);
 }
 

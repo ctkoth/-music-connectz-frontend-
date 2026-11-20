@@ -10,6 +10,10 @@ import { startAutoMemo } from "./autoMemo.js";
 import { startAutoTranslate } from "./autoTranslate.js";
 import { apply as applyGlow, load as loadGlow, PALETTE as GLOW_PALETTE } from "./glow.js";
 import "./index.css";
+import { guardDomForTranslators } from "./domGuard.js";
+
+// Before React renders anything: a page translator rewriting our text must never take a screen down.
+guardDomForTranslators();
 
 // Wire native rewarded ads (no-op on web).
 initAdMob();
