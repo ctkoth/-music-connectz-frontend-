@@ -369,8 +369,8 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                   {canSplit && current !== a.key && (
                     <button
                       onClick={() => { onSplit(a.key); setDrawer(false); }}
-                      aria-label={`SplitZ: open ${a.label} beside the current app`}
-                      title={`SplitZ: open ${a.label} beside the current app`}
+                      aria-label={`PaneZ: open ${a.label} beside the current app`}
+                      title={`PaneZ: open ${a.label} beside the current app`}
                       className="absolute -bottom-1 -right-1 rounded-full bg-mcz-cyan/80 p-1 text-black transition hover:bg-mcz-cyan"
                     >
                       <Columns2 size={9} />

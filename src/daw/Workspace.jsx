@@ -653,6 +653,10 @@ export default function Workspace({ workflow }) {
       {/* The helpers a session needs beside it — each opens as a mini pane next to the DAW, which stays
           open and keeps playing or recording. Tap again to close. Free at every tier. */}
       <div className="flex flex-wrap items-center gap-1.5 text-xs" data-tour="daw-helpers">
+        {/* One tap for the whole practice kit on one page: MetZ, TunerZ, ChordZ and Sentence ConnectZ as
+            mini panes beside the DAW. Tap again and they all close. Free; mini panes are not PaneZ opens. */}
+        <button type="button" className="pill !border-mcz-cyan/60 text-[11px] font-semibold !text-mcz-cyan"
+                onClick={() => window.dispatchEvent(new CustomEvent("mcz-kit"))}>🧰 Whole kit on one page</button>
         <span className="text-white/60">Keep open beside it:</span>
         {[["metz", "🎚️ MetZ"], ["tunerz", "🎯 TunerZ"], ["chordz", "🎼 ChordZ"], ["sentenceconnectz", "✍️ Sentence ConnectZ"]].map(([k, label]) => (
           <button key={k} type="button" className="pill text-[11px]" onClick={() => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}>{label}</button>

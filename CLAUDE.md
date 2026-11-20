@@ -2610,3 +2610,18 @@ side by side once each pane keeps 340px (and the screen is at least 360px tall),
 itself (`paneMax`), so the app being worked in is never pushed a full screen away. Driven in a browser at 390x844 (stacked),
 844x390 and 768x1024 (side by side), no sideways scroll at any. 1024 and 1280 were not driven: the day's free split opens
 ran out on the test account.
+
+## PaneZ, the tuner's verdict, ScaleZ, and the whole kit on one page
+
+- **The split is called PaneZ everywhere a member reads it** (it was SplitZ on the pane header and the dock). Opens a day are the
+  server's `split_opens` (Free 3, Premium 6, StatZ unlimited); mini panes are not counted. No time-of-day windows were added:
+  a per-day count is the one number `/panez/` serves and a second rule would be a second place the limit lives.
+- **TunerZ had the flat/sharp words backwards.** Cents are positive when the note is ABOVE the pitch, i.e. sharp, and the screen
+  printed "cents flat" for them, so somebody following the arrow tuned the wrong way. `tuning.js` `tuneVerdict` is the one
+  wording (positive = sharp, "bring it down"; negative = flat, "bring it up"; within 5 cents in tune), tested. The screen names the
+  note being played above it.
+- **ScaleZ lives in ChordZ** (`scales.js`, pure and tested): seven scales from the chord's own root, the notes as tappable chips
+  (tap to hear, or play the whole scale rising), and the chords of the key for major and natural minor. Sine-wave audio on the
+  same context as the chord player.
+- **"Whole kit on one page"** (DAW header) fires `mcz-kit`: MetZ, TunerZ, ChordZ and Sentence ConnectZ open as mini panes beside
+  the DAW; again closes them. Minis already existed (`MAX_MINIS` 4, zoomed to 0.72, free at every tier).

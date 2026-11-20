@@ -1148,8 +1148,11 @@ function Home() {
   useEffect(() => {
     const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
       : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
+    // The whole kit at once: all four tools beside whatever is open, or all closed if they already are.
+    const kit = () => setMinis((m) => (MINI_TOOLS.every((k) => m.includes(k)) ? m.filter((k) => !MINI_TOOLS.includes(k)) : [...new Set([...m.filter((k) => !MINI_TOOLS.includes(k)), ...MINI_TOOLS])].slice(-MAX_MINIS)));
     window.addEventListener("mcz-mini", h);
-    return () => window.removeEventListener("mcz-mini", h);
+    window.addEventListener("mcz-kit", kit);
+    return () => { window.removeEventListener("mcz-mini", h); window.removeEventListener("mcz-kit", kit); };
   }, []);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -1462,11 +1465,11 @@ function Home() {
                 <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
                   <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""
                            className="h-4 w-4 rounded object-cover" />
-                  SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
+                  PaneZ — {TABS.find((t) => t.key === splitKey)?.label}
                 </span>
                 <button onClick={() => setSplitKey(null)}
                         className="rounded p-1 text-white/55 hover:bg-white/10 hover:text-white"
-                        aria-label="Close SplitZ">
+                        aria-label="Close PaneZ">
                   <X size={13} />
                 </button>
               </div>

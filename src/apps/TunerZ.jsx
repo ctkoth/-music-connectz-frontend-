@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { tuneVerdict, IN_TUNE_CENTS } from "../tuning.js";
 import { Mic, MicOff, Volume2 } from "lucide-react";
 import { api } from "../api.js";
 import { onHandoff } from "../handoff.js";
@@ -444,14 +445,20 @@ function TunerZ() {
               {!isDrillMode && <div className="text-2xl text-slate-400 mb-2">Target: {STANDARD_TUNING[instrument][targetString].string}</div>}
               {note ? (
                 <>
-                  <div className="mb-2 text-6xl font-bold text-cyan-400">{note.name}</div>
+                  {/* The note being played, then whether it is in tune or how far off — the two things a
+                      tuner is for, for an instrument and for a voice alike. */}
+                  <div className="mb-1 text-6xl font-bold text-cyan-400">{note.name}</div>
+                  <div className="mb-2 text-[11px] uppercase tracking-widest text-slate-400">Note you're playing</div>
                   <div className="text-lg text-slate-300">
                     Detected: {frequency.toFixed(1)} Hz | Target: {targetFreq?.toFixed(1)} Hz
                   </div>
                   <div className={`text-lg font-semibold ${
-                    Math.abs(deviation) < 5 ? "text-emerald-400" : "text-amber-400"
+                    Math.abs(deviation) <= IN_TUNE_CENTS ? "text-emerald-400" : "text-amber-400"
                   }`}>
-                    {deviation > 0 ? `↓ ${deviation} cents flat` : deviation < 0 ? `↑ ${Math.abs(deviation)} cents sharp` : "✓ In tune"}
+                    {(() => {
+                      const v = tuneVerdict(deviation);
+                      return v.state === "in" ? `✓ ${v.text}` : `${v.state === "sharp" ? "↓" : "↑"} ${v.text} — ${v.action.toLowerCase()}`;
+                    })()}
                   </div>
 
                   {/* Drill mode accuracy */}
