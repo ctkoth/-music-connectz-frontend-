@@ -36,3 +36,10 @@ test("coach notes are taken only in the shape the server sends, with every label
   assert.equal(notesFromHandoff(null), null);
   assert.equal(notesFromHandoff({ notes: {} }), null);
 });
+
+test("a profile photo's notes keep their purpose and carry no overall", () => {
+  const n = notesFromHandoff({ notes: { purpose: "profile", overall: null, caveat: "About the photo.", scores: { framing: { label: "Framing", score: 7, why: "ok", how: "crop" } } } });
+  assert.equal(n.purpose, "profile");
+  assert.equal(n.overall, null);
+  assert.equal(n.caveat, "About the photo.");
+});

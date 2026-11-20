@@ -20,7 +20,7 @@ export function notesFromHandoff(p) {
     .map(([key, d]) => ({ key, label: String(d.label), score: typeof d.score === "number" ? d.score : null, why: String(d.why || ""), how: String(d.how || "") }));
   if (!rows.length) return null;
   const image = typeof p.image === "string" && p.image.startsWith("data:image/") ? p.image : "";
-  return { overall: typeof n.overall === "number" ? n.overall : null, verdict: String(n.verdict || ""), next: String(n.next || ""), rows, image };
+  return { purpose: n.purpose === "profile" ? "profile" : "", caveat: String(n.caveat || ""), overall: typeof n.overall === "number" ? n.overall : null, verdict: String(n.verdict || ""), next: String(n.next || ""), rows, image };
 }
 
 /** The posts that are design work: they carry a picture, or they name a design skill. Order is the server's. A post with

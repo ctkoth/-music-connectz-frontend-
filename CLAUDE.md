@@ -2681,3 +2681,19 @@ so nobody leaves for another app; the answer is a door, not a widening. `LooksDo
 ONLY when `/economy/identity/` says `verified_18plus` — nothing at all for anyone else, because inviting a minor (or someone who may be one) to
 have their face scored is the harm the feature is built around, and a locked door is still an invitation. Not widened to minors or to other
 people's photos (Corey has asked more than once; refused each time for the same reason). Not driven in a browser: it needs a verified account.
+
+## The ID check could say "still checking" for weeks, and a profile photo gets photo feedback with no overall
+
+**ID verification (`Verify18Card`).** A member's check read "reading your ID" for weeks. Server cause (backend `identity.py`): `refresh` only re-asked
+Stripe about checks younger than two days, so one that ended while no webhook listened stayed open for ever, and a "processing" row also made
+`POST` answer "pending" instead of starting a new check. Screen cause: the button was disabled for ANY pending result. Now pending is three
+states: **Stripe really is checking** (spinner, button waits), **`needs_you`** (started, not finished: amber, "Open the check again") and
+**`stale`** (Stripe has had it for hours/days: says how long, "Start a new check"). Only the first holds the button, and only it keeps polling.
+A check Stripe no longer knows is closed; a link unfinished after 48h is closed as abandoned. Any old check is re-read on the next visit, so
+someone whose pass was never recorded gets it applied. Tested server-side (six cases); not driven against real Stripe.
+
+**Profile photo, as a photograph.** ImageZ's "Check my profile photo" (`purpose: "profile"` on `/imagez/rate/`) scores framing, lighting,
+background, sharpness and colour — what the maker can change in a minute — and judges NOTHING about the person (no face, body, age,
+expression, looks). There is **no overall number** (one number beside a face reads as a score on the face), the caveat says so, and any age may
+use it for that reason. The notes open in DesignZ like the craft score, without the ring and without `LooksDoor`. This is the safe version of
+"feedback on my profile photo" for teens: it was offered in place of rating their looks, which stays refused.

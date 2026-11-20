@@ -61,7 +61,7 @@ function Verify18Card() {
     let tries = 0, timer;
     const go = async () => {
       const r = await load();
-      if (back && r?.last?.result === "pending" && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
+      if (back && r?.last?.result === "pending" && !r.last.needs_you && !r.last.stale && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
       else setWaiting(false);
     };
     go();
@@ -88,6 +88,7 @@ function Verify18Card() {
   if (!st) return null;
   const verified = !!st.verified_18plus;
   const last = st.last;
+  const holding = last?.result === "pending" && !last.stale && !last.needs_you;   // Stripe is genuinely working on it
   return (
     <div data-tour="verify-18" className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
       <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
@@ -103,14 +104,20 @@ function Verify18Card() {
           {last?.result === "failure" && (
             <p className="text-sm text-mcz-ember"><span className="font-semibold">Failure — your last check did not pass.</span> {last.detail}</p>
           )}
-          {last?.result === "pending" && (
+          {/* Pending is three different things. Stripe really is checking (spinner, and the button waits); the member
+              has not finished (their move); or Stripe has had it for far too long (start a new one). Only the first holds
+              the button: a stuck check used to lock the member out of ever starting another. */}
+          {last?.result === "pending" && !holding && (
+            <p className="text-sm text-mcz-gold">{last.detail}</p>
+          )}
+          {last?.result === "pending" && holding && (
             <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
           )}
           <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock VybeZ (finding a date), LookZMaxZ and other adult features. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
-            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || holding}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.needs_you ? "Open the check again" : last?.stale ? "Start a new check" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>
-          {st.can_start === false && last?.result !== "pending" && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
+          {st.can_start === false && !holding && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
           {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/55">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
           {!st.stripe_enabled && <p className="text-[11px] text-white/55">Verification is being switched on — check back soon.</p>}
         </>

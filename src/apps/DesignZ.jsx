@@ -112,14 +112,14 @@ function CoachNotes({ notes, onClose }) {
     <section className="re-card space-y-3" data-tour="designz-notes" aria-label="Coach notes">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-cyan">Coach notes · from ImageZ</p>
-          <p className="text-[11px] text-white/55">Free to read — you paid when it was scored. It scores the picture's craft, never anybody's looks.</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-cyan">{notes.purpose === "profile" ? "Profile photo notes · from ImageZ" : "Coach notes · from ImageZ"}</p>
+          <p className="text-[11px] text-white/55">Free to read — you paid when it was scored. {notes.purpose === "profile" ? (notes.caveat || "These notes are about the photo, never about you.") : "It scores the picture's craft, never anybody's looks."}</p>
         </div>
         <button type="button" className="text-white/50 hover:text-white" aria-label="Close the coach notes" onClick={onClose}>✕</button>
       </div>
       <div className="flex flex-wrap items-center gap-4">
         {notes.image && <img src={notes.image} alt="The picture that was scored" className="h-32 w-32 rounded-xl object-cover" />}
-        <RatingRing value={notes.overall} size={128} label="Overall" />
+        {notes.overall != null && <RatingRing value={notes.overall} size={128} label="Overall" />}
         {notes.verdict && <p className="min-w-[12rem] flex-1 text-sm leading-relaxed text-white/85">{notes.verdict}</p>}
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
@@ -129,7 +129,7 @@ function CoachNotes({ notes, onClose }) {
         ))}
       </div>
       {notes.next && <p className="text-sm text-white/80"><span className="font-semibold text-white">Next:</span> {notes.next}</p>}
-      <LooksDoor />
+      {notes.purpose !== "profile" && <LooksDoor />}
       <div className="flex flex-wrap gap-2">
         <button type="button" className="re-btn !w-auto px-4" onClick={() => goToSpot("imagez", "")}>Make the changes in ImageZ</button>
         <button type="button" className="re-btn !w-auto px-4" onClick={() => handOff("postz", "composer", {})}>Post it for other members to rate</button>
