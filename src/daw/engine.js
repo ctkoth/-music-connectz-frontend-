@@ -16,6 +16,7 @@ import { audible, beatSeconds, lengthOf, playlistOf } from "./session.js";
 import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
+import { limiterWorkletSource } from "./limiterDsp.js";
 
 const CAPTURE_WORKLET = `
 class Capture extends AudioWorkletProcessor {
@@ -26,6 +27,20 @@ class Capture extends AudioWorkletProcessor {
   }
 }
 registerProcessor("mcz-capture", Capture);`;
+
+/** Add the DSP worklets a session needs to this context, once, BEFORE its graph is built (a worklet can only be
+ *  made after its module is in). Only when the session has an effect that uses one; a failure leaves the plain
+ *  fallback chain in place, never a silent session. Works on a live context and on an OfflineAudioContext, so
+ *  the bounce is the same DSP as the speakers. */
+export async function loadDsp(ctx, session) {
+  const uses = (session.tracks || []).some((t) => (t.inserts || []).some((i) => i.type === "limiter" && i.on));
+  if (!uses || ctx.__mczLimiter || !ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return;
+  try {
+    const url = URL.createObjectURL(new Blob([limiterWorkletSource()], { type: "text/javascript" }));
+    try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+    ctx.__mczLimiter = true;
+  } catch { /* fall back to the node chain */ }
+}
 
 let seq = 0;
 const srcId = () => `s${Date.now().toString(36)}${(seq++).toString(36)}`;
@@ -216,6 +231,7 @@ export function createDaw() {
     if (c.state !== "running") await c.resume();
     stopSources();
     const t0 = c.currentTime + 0.06;
+    await loadDsp(c, session);
     graph = buildGraph(c, session, buffers, { from, t0, live: true });
     masterMeter = c.createAnalyser();
     masterMeter.fftSize = 1024;
@@ -402,6 +418,7 @@ export function createDaw() {
     if (len <= 0) throw new Error("There's nothing on the timeline to bounce.");
     const frames = Math.ceil((len + tail) * sr);
     const off = new OfflineAudioContext(2, frames, sr);
+    await loadDsp(off, session);
     buildGraph(off, session, buffers, { from: 0, t0: 0, live: false });
     return off.startRendering();
   }

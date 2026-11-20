@@ -67,7 +67,7 @@ export const PLUGINS = {
     params: { freq: P("Frequency", 3000, 12000, 6000, "Hz"), threshold: P("Threshold", -60, 0, -30, "dB"), ratio: P("Amount", 1, 20, 6, ":1") },
   },
   limiter: {
-    label: "Limiter", emoji: "🧱", statz: true, what: "Makes a track louder while stopping its peaks at the ceiling, so it never clips.",
+    label: "Limiter", emoji: "🧱", statz: true, what: "Makes a track louder while stopping its peaks at the ceiling, so it never clips. It looks 2 ms ahead, so the gain is already down when a peak arrives — it turns peaks down smoothly instead of chopping them off. Both channels move together, so the stereo image holds. It delays the track by 2 ms.",
     params: { drive: P("Drive", 0, 18, 3, "dB"), ceiling: P("Ceiling", -12, 0, -1, "dB"), release: P("Release", 10, 1000, 100, "ms") },
   },
   glue: {
@@ -273,6 +273,21 @@ export function buildInsert(ctx, insert, { bpm = 120 } = {}) {
       return { input, output, update };
     }
     case "limiter": {
+      // The real one: a lookahead limiter in an AudioWorklet (limiterDsp.js), which turns the gain down BEFORE a
+      // peak arrives instead of clipping it. It needs the module added to this context first (`loadDsp` in
+      // engine.js does, before the graph is built); where that is not possible — an old browser — the chain
+      // below is the fallback, so a session never goes silent for lack of it.
+      if (ctx.__mczLimiter && typeof AudioWorkletNode !== "undefined") {
+        const node = new AudioWorkletNode(ctx, "mcz-limiter", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [2], channelCount: 2, channelCountMode: "explicit" });
+        input.connect(node).connect(output);
+        const update = (q) => {
+          node.parameters.get("drive").value = dbToGain(q.drive);
+          node.parameters.get("ceiling").value = dbToGain(q.ceiling);
+          node.parameters.get("release").value = q.release;
+        };
+        update(p);
+        return { input, output, update, meter: node.port };
+      }
       const drive = ctx.createGain(), c = ctx.createDynamicsCompressor(), ceil = ctx.createGain();
       c.ratio.value = 20; c.knee.value = 0; c.attack.value = 0.001;
       // The compressor alone lets the first millisecond of a hit through (measured: 0.98 at a −1 dB ceiling), so a
