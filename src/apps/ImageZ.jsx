@@ -38,6 +38,7 @@ import {
   duplicateLayer, fitImage, fromProject, gradeOpacity, moveLayerTo, replaceLayer, layerOf, moveLayer, newDoc, pick, removeLayer, resizeCanvas,
   shapeFromDrag, toProject, uid, updateLayer, boxOf, scaleDoc, rotateDoc, effective, groupLayers, ungroup, updateGroup, snap,
 } from "../imageedit/layers.js";
+import ImageScore from "../components/ImageScore.jsx";
 import { colourAt, dataUrlOf, exportDoc, loadImage, rasterize, renderDoc, selCanvas, selOverlay } from "../imageedit/render.js";
 import {
   allSel, applyLUT, blurDab, bounds, clearSelected, cloneDab, combine, curveLUT, ellipseSel, feather, fillSelected,
@@ -1367,6 +1368,11 @@ export default function ImageZ() {
               {cutState && !cutState.configured && <p className="text-white/50">The AI isn&apos;t switched on yet.</p>}
               <p className="text-white/55">{cutState?.cost_note} Not charged when no subject is found. StatZ.</p>
             </div>
+            <ImageScore busy={!!busy} getImage={() => {
+              const d = docRef.current, c = document.createElement("canvas"); c.width = d.w; c.height = d.h;
+              renderDoc(c.getContext("2d"), d, images.current);
+              return canvasToData(c);
+            }} />
             <div className="space-y-1 rounded-lg border border-white/10 p-2">
               <p className="font-semibold">Edit with AI</p>
               <textarea className="neon-input" rows={2} placeholder="What to change — e.g. make the sky purple, add rain, turn it into a painting" value={edit.prompt} onChange={(e) => setEdit({ ...edit, prompt: e.target.value })} />
