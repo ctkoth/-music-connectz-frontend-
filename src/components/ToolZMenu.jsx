@@ -171,6 +171,7 @@ const TOOLZ_MENU = {
         { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
         { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
         IMAGEZ,
+        IMAGEZ,
         { key: 'arsenal', label: 'Arsenal', color: 'yellow', desc: 'Multitrack DAW like Pro Tools — record takes, playlists, edit, mix with built-in effects, bounce a WAV; free' },
         { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW we are building — open one, vote for the next' },
       ]
@@ -198,7 +199,6 @@ const TOOLZ_MENU = {
     {
       group: 'Progress & Analytics',
       apps: [
-        { key: 'sonday', label: 'Sonday', color: 'gold', desc: 'Boards for your projects — drafts to released, shared with your team' },
         { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
         { key: 'viewz', label: 'ViewZ', color: 'cyan', desc: 'Who viewed your posts & profile — a DAW timeline (StatZ)' },
       ]
@@ -209,6 +209,14 @@ const TOOLZ_MENU = {
         { key: 'widgetz', tab: 'profilez', label: 'WidgetZ', color: 'magenta', desc: 'Your links open on screen — add them in ProfileZ' },
         { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
       ]
+    },
+    {
+      group: 'Plan & train',
+      apps: [
+        { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
+        { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
+        { key: 'sonday', label: 'Sonday', color: 'gold', desc: 'Boards for your projects — drafts to released, shared with your team' },
+      ],
     },
   ],
   'SkillZ': [
