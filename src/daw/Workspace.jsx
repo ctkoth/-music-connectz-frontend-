@@ -657,6 +657,10 @@ export default function Workspace({ workflow }) {
         {[["metz", "🎚️ MetZ"], ["tunerz", "🎯 TunerZ"], ["chordz", "🎼 ChordZ"], ["sentenceconnectz", "✍️ Sentence ConnectZ"]].map(([k, label]) => (
           <button key={k} type="button" className="pill text-[11px]" onClick={() => window.dispatchEvent(new CustomEvent("mcz-mini", { detail: k }))}>{label}</button>
         ))}
+        <span className="text-white/60">· Split the page with:</span>
+        {[["sentencez", "📝 SentenceZ"], ["sentenceconnectz", "✍️ Sentence ConnectZ"]].map(([k, label]) => (
+          <button key={`split-${k}`} type="button" className="pill text-[11px]" onClick={() => window.dispatchEvent(new CustomEvent("mcz-split", { detail: k }))}>⊞ {label}</button>
+        ))}
       </div>
 
       <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">

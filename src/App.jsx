@@ -539,6 +539,9 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // full size; a mini is the small version, free to everybody.
 export const MINI_TOOLS = ["metz", "tunerz", "chordz", "sentenceconnectz"];
 export const canMini = () => true;
+// PaneZ — the split page. Every plan can split; how many times a day is the plan's (`split_opens`: Free 3,
+// Premium 6, StatZ unlimited, Corey's numbers), counted by the server (`/api/economy/panez/`). Swapping the app in a
+// split already open is not a new open. Mini panes are not counted.
 // Four, so a DAW can keep MetZ, TunerZ, ChordZ and Sentence ConnectZ open beside it at once.
 const MAX_MINIS = 4;
 
@@ -1135,6 +1138,9 @@ function Home() {
     try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => TABS.some((t) => t.key === k)); } catch { return []; }
   });
   useEffect(() => { try { localStorage.setItem("mcz_minis", JSON.stringify(minis)); } catch { /* per-session then */ } }, [minis]);
+  const [paneNote, setPaneNote] = useState("");
+  const [paneLeft, setPaneLeft] = useState(null);     // { left, limit } from the server, null until it answers
+  const splitRef = useRef(null);
   useEffect(() => {
     const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
       : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
@@ -1210,7 +1216,18 @@ function Home() {
   // ToolZ's ⊞ Split opens the app beside the current one — the same pane the
   // Dock's split opens, with the same StatZ / sample note on it.
   useEffect(() => {
-    const h = (e) => { if (TABS.some((t) => t.key === e.detail)) setSplitKey(e.detail); };
+    const h = async (e) => {
+      if (!TABS.some((t) => t.key === e.detail)) return;
+      // Swapping the app in an open split is free; a new split asks the server, which counts the day.
+      if (splitRef.current) { setSplitKey(e.detail); return; }
+      try {
+        const st = await api("/api/economy/panez/", { method: "POST", body: { app: e.detail } });
+        setPaneLeft(st); setPaneNote(""); setSplitKey(e.detail);
+      } catch (err) {
+        if (err?.status === 429 || /split pages/.test(err?.message || "")) setPaneNote(err.message);
+        else { setPaneNote(""); setSplitKey(e.detail); }      // the counter being down never blocks a split
+      }
+    };
     window.addEventListener("mcz-split", h);
     return () => window.removeEventListener("mcz-split", h);
   }, []);
@@ -1378,6 +1395,13 @@ function Home() {
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
             other down with it. */}
+        {paneNote && (
+          <p role="alert" className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-mcz-gold/40 bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">
+            {paneNote}
+            <button type="button" className="underline" onClick={() => openTab("membershipz")}>See the plans</button>
+            <button type="button" className="text-white/60 underline" onClick={() => setPaneNote("")}>OK</button>
+          </p>
+        )}
         <div className={minis.some((k) => k !== tab && canMini(k, user?.tier)) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
         {minis.some((k) => k !== tab && canMini(k, user?.tier)) && (
           <aside className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 lg:order-last lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
@@ -1444,14 +1468,9 @@ function Home() {
                   every time it opens, cost/gain-style, because a StatZ perk
                   discovered by using it once and losing it the next session
                   reads as a bug rather than a reason to upgrade. */}
-              {!isStatZTier(user?.tier) && (
-                <button
-                  onClick={() => { setSplitKey(null); openTab("membershipz"); }}
-                  className="mb-2 flex w-full items-center justify-between rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-left text-[11px] text-mcz-gold hover:bg-mcz-gold/15"
-                >
-                  <span>✨ You're sampling SplitZ — StatZ keeps it permanently.</span>
-                  <span className="shrink-0 font-semibold underline">Upgrade →</span>
-                </button>
+
+              {paneLeft && paneLeft.limit != null && (
+                <p className="mb-2 text-[11px] text-white/60">PaneZ · {paneLeft.left} of {paneLeft.limit} split pages left today</p>
               )}
               <ErrorBoundary key={splitKey} label={TABS.find((t) => t.key === splitKey)?.label}>
                 <Suspense fallback={<RouteFallback />}>{appEl(splitKey)}</Suspense>
