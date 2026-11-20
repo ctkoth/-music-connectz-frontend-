@@ -2601,3 +2601,12 @@ controls on tuner, DAW record, interest voice and calls.
 NOT changed: the neon-tube button language, Corey's own icons, and the PickConnectZ dock / menu layout — the
 mockups are flat purple and the app's identity is the neon art he drew. Matching the flat look everywhere would be
 a redesign of every screen, which is his call.
+
+## SplitZ sits side by side wherever each pane keeps its width (`splitLayout`)
+
+The split was `lg:grid-cols-2` (1024px), so a tablet in portrait, a landscape phone and any 700-1000px window stacked
+the two apps and left half the screen empty. `splitLayout({w,h})` in `useScreenShape.js` decides from the measured screen:
+side by side once each pane keeps 340px (and the screen is at least 360px tall), else stacked. Each pane scrolls inside
+itself (`paneMax`), so the app being worked in is never pushed a full screen away. Driven in a browser at 390x844 (stacked),
+844x390 and 768x1024 (side by side), no sideways scroll at any. 1024 and 1280 were not driven: the day's free split opens
+ran out on the test account.

@@ -1,6 +1,7 @@
 import { clearLanding, peekLanding } from "./landing.js";
 import { needsDoorList, trialPathFor, TRIAL_DOOR_FALLBACK } from "./trialLinks.js";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useScreenShape, splitLayout } from "./useScreenShape.js";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
@@ -1130,6 +1131,9 @@ function Home() {
   // together" moment, not a standing layout that should survive navigating
   // away and quietly still be there ten screens later.
   const [splitKey, setSplitKey] = useState(null);
+  // How the split pane sits, from the MEASURED screen (see splitLayout) — not a 1024px breakpoint.
+  const screen = useScreenShape();
+  const split = splitLayout(screen);
   // Mini tools — MetZ, TunerZ, ChordZ docked beside whatever app is open, at
   // a fraction of the size, so a metronome, a tuner and a chord chart can sit
   // next to the coach (and a SplitZ pane) at once: four panes on one screen.
@@ -1432,8 +1436,9 @@ function Home() {
             })}
           </aside>
         )}
-        <div className={splitKey ? "grid min-w-0 gap-4 lg:grid-cols-2" : "min-w-0"}>
-          <div className="min-w-0">
+        <div className={splitKey ? `grid min-w-0 gap-4 ${split.side ? "grid-cols-2" : "grid-cols-1"}` : "min-w-0"}>
+          <div className="min-w-0"
+               style={splitKey && split.capFirst ? { maxHeight: split.paneMax, overflowY: "auto", overscrollBehavior: "contain" } : undefined}>
             <ErrorBoundary key={tab} label={active?.label}>
               <StatzTimerBanner />
               <CelebrationLayer />
@@ -1451,7 +1456,8 @@ function Home() {
             ))}
           </div>
           {splitKey && (
-            <div className="min-w-0">
+            <div className="min-w-0" data-splitpane
+                 style={{ maxHeight: split.paneMax, overflowY: "auto", overscrollBehavior: "contain" }}>
               <div className="mb-2 flex items-center justify-between rounded-lg bg-mcz-cyan/10 px-3 py-1.5">
                 <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
                   <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""

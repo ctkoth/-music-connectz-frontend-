@@ -62,6 +62,27 @@ export function shapeOf({ w, h, coarse }) {
   };
 }
 
+/** How a SplitZ pane sits beside the app, decided from the measured screen and nothing else.
+ *
+ *  Side by side as soon as each pane would still be PANE_MIN_PX wide: that is a tablet in portrait, a
+ *  landscape phone and any laptop window, where the old `lg` breakpoint (1024px) stacked all of them and
+ *  left half the screen empty. Under it the panes stack, and the second one is capped to a share of the
+ *  height and scrolls inside itself, so the app being worked in is never pushed a full screen away.
+ *  When side by side, each pane scrolls on its own inside the visible height (a real split), which
+ *  needs a height worth splitting: under PANE_MIN_H the panes stack and scroll with the page instead. */
+export const PANE_MIN_PX = 340;
+export const PANE_MIN_H = 360;
+export function splitLayout({ w, h }) {
+  const side = w >= PANE_MIN_PX * 2 + GAP_PX * 2 && h >= PANE_MIN_H;
+  return {
+    side,
+    // Pixel cap for one pane's own scroll area: the viewport less the sticky header and its padding.
+    paneMax: side ? Math.max(280, h - 96) : Math.max(260, Math.round(h * 0.7)),
+    // Stacked: only the second pane is capped (the first keeps the page's own scroll).
+    capFirst: side,
+  };
+}
+
 /** Which of three screens this is: phone, tablet, desktop.
  *
  * The funnel needs a bucket, not a layout — "the mic dialog loses people on
