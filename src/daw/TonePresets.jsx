@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Save, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
-import { KIND_LABEL, STARTERS, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
+import { KIND_LABEL, STARTERS, chainNeedsStatz, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
 
 export function useTonePresets() {
   const [state, setState] = useState(null);     // GET /tonez/: { presets, count, limit, full, ladder, who }
@@ -24,7 +24,7 @@ export function useTonePresets() {
   return { state, failed, save, remove };
 }
 
-export default function TonePicker({ tones, inserts, onApply, trackName }) {
+export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true }) {
   const { state, failed, save, remove } = tones;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -41,9 +41,11 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
     const [kind, key] = value.split(":");
     if (kind === "s") {
       const s = STARTERS.find((x) => x.key === key);
+      if (s && s.statz && !statzOk) { setErr(`${s.name} uses StatZ's plugin-grade effects. Try StatZ free, or pick a starter without 🔒.`); return; }
       if (s) { onApply(chainToInserts(s.chain())); setMsg(`${s.name}: ${s.what} It replaced this track's effects (Undo brings them back).`); }
     } else if (kind === "m") {
       const p = all.find((x) => String(x.id) === key);
+      if (p && chainNeedsStatz(p.chain) && !statzOk) { setErr(`"${p.name}" holds StatZ's plugin-grade effects, so it plays again with StatZ or the daily sample.`); return; }
       if (p) { onApply(chainToInserts(p.chain)); setMsg(`${p.name} is on ${trackName}, in place of its effects (Undo brings them back).`); }
     }
   };
@@ -68,7 +70,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
         ))}
         {[...new Set(STARTERS.map((s) => s.group))].map((g) => (
           <optgroup key={g} label={`${g} starters (built in)`}>
-            {STARTERS.filter((s) => s.group === g).map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}</option>)}
+            {STARTERS.filter((s) => s.group === g).map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}{s.statz && !statzOk ? " 🔒" : ""}</option>)}
           </optgroup>
         ))}
       </select>

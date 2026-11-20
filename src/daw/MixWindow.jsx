@@ -80,7 +80,7 @@ function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onT
       </div>
       {!master && (
         <>
-          {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} />}
+          {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} statzOk={fxOk} />}
           <p className="uppercase tracking-wider text-white/55">Inserts</p>
           {inserts.map((ins) => (
             <div key={ins.id}>

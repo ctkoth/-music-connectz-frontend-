@@ -4,7 +4,7 @@
 // tier's ceiling: Free 3, Premium 6, StatZ unlimited). The STARTERS here are built-in voice chains to
 // begin from: free, not counted, and made only of the built-in effects, so nothing here can sound any
 // different in the bounce than it does on the speakers.
-import { cleanInserts, newInsert } from "./plugins.js";
+import { PLUGINS, cleanInserts, newInsert } from "./plugins.js";
 
 const fx = (type, params, on = true) => ({ ...newInsert(type), on, params: { ...newInsert(type).params, ...params } });
 // An EQ as three bands (low shelf, bell, high shelf) — every starter fits the Free plan's three.
@@ -80,7 +80,40 @@ export const INSTRUMENT_STARTERS = [
     chain: () => [hp(250), fx("reverb", { decay: 0.9, predelay: 8, mix: 100 })] },
 ];
 
-export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS];
+// StatZ's: whole chains built from the plugin-grade effects (de-esser, saturation, glue, limiter, pro reverb and
+// delay, widener). They are marked `statz` and the picker refuses them without the plan or the daily sample, the
+// same gate as adding one of those effects by hand. Max eight effects a track, and every one fits it.
+const sat = (drive, tone, mix) => fx("saturate", { drive, tone, mix });
+export const STATZ_STARTERS = [
+  { group: "StatZ chains", statz: true, key: "pro_lead_vocal", name: "Pro lead vocal", what: "Rumble cut, a little presence, even compression, the \"s\" sounds tamed, a touch of warmth, a plate and a safety limiter so a loud take never clips.",
+    chain: () => [hp(90), eq(-2, 200, 2, 3200, 1, 2.5, 11000), comp(-20, 3, 5, 120, 6, 4), fx("deess", { freq: 6500, threshold: -30, ratio: 5 }),
+      sat(3, 12000, 40), fx("proverb", { type: 1, decay: 1.6, predelay: 25, damp: 8000, width: 120, mix: 14 }), fx("limiter", { drive: 1, ceiling: -1, release: 80 })] },
+  { group: "StatZ chains", statz: true, key: "pro_rap_vocal", name: "Pro rap vocal", what: "Tight and forward: firm compression, bite at 2.5 kHz, de-essed, a slap echo that bounces side to side and a limiter at the end.",
+    chain: () => [hp(100), eq(-3, 250, 3, 2500, 1.2, 2, 9000), comp(-24, 4, 3, 80, 4, 6), fx("deess", { freq: 7000, threshold: -28, ratio: 6 }),
+      sat(4, 11000, 35), fx("prodelay", { time: 220, sync: 0, feedback: 18, lowcut: 300, highcut: 5000, mix: 10 }), fx("limiter", { drive: 2, ceiling: -1, release: 60 })] },
+  { group: "StatZ chains", statz: true, key: "pro_rap_lead_hard", name: "Pro rap lead, hard", what: "Aggressive and upfront: heavy compression, grit from saturation, a sharp de-ess, nearly dry so every word hits.",
+    chain: () => [hp(110), eq(-3, 250, 3.5, 3000, 1.2, 2, 10000), comp(-26, 6, 2, 60, 3, 8), fx("deess", { freq: 7500, threshold: -26, ratio: 8 }),
+      sat(7, 10000, 55), fx("proverb", { type: 0, decay: 0.6, predelay: 5, damp: 9000, width: 100, mix: 6 }), fx("limiter", { drive: 3, ceiling: -1, release: 50 })] },
+  { group: "StatZ chains", statz: true, key: "pro_melodic_rap", name: "Pro melodic rap", what: "Smooth and warm for sung-rap: softer compression, air on top, a plate and a beat-synced echo on the tails.",
+    chain: () => [hp(90), eq(1.5, 150, -1.5, 3500, 1, 3, 12000), comp(-20, 3, 8, 130, 8, 4), fx("deess", { freq: 6500, threshold: -30, ratio: 5 }),
+      sat(3, 13000, 30), fx("prodelay", { time: 375, sync: 0.5, feedback: 28, lowcut: 250, highcut: 5500, mix: 16 }), fx("proverb", { type: 1, decay: 1.8, predelay: 25, damp: 7500, width: 125, mix: 15 })] },
+  { group: "StatZ chains", statz: true, key: "pro_adlibs", name: "Pro ad-libs, far and wide", what: "Thinned, crushed a little, pushed back with a ping-pong echo and a big tail so the lead stays in front.",
+    chain: () => [hp(180), lp(11000), eq(-2, 300, 1, 2000, 1, 2, 9000), comp(-24, 4, 4, 90, 5, 5), fx("deess", { freq: 7000, threshold: -30, ratio: 5 }),
+      fx("prodelay", { time: 375, sync: 0.75, feedback: 38, lowcut: 350, highcut: 4500, mix: 30 }), fx("proverb", { type: 2, decay: 3.2, predelay: 40, damp: 6000, width: 170, mix: 35 }), fx("widen", { width: 160 })] },
+  { group: "StatZ chains", statz: true, key: "pro_sung_lead", name: "Pro sung lead, polished", what: "Natural, open compression, presence and air, a de-esser set for singing, a hall and a limiter as a safety net.",
+    chain: () => [hp(80), eq(0, 180, 1.5, 4000, 0.9, 3, 12000), comp(-18, 2.5, 12, 160, 10, 3), fx("deess", { freq: 6000, threshold: -32, ratio: 4 }),
+      sat(2, 14000, 25), fx("proverb", { type: 2, decay: 2.2, predelay: 30, damp: 8000, width: 130, mix: 18 }), fx("limiter", { drive: 1, ceiling: -1, release: 100 })] },
+  { group: "StatZ chains", statz: true, key: "pro_backing_vocals", name: "Pro backing vocals, wide", what: "Thinned out, doubled and spread wide so they sit around the lead and not on top of it.",
+    chain: () => [hp(160), eq(-2, 250, 0, 1000, 1, 2, 9000), comp(-22, 3, 8, 140, 6, 3), fx("deess", { freq: 6500, threshold: -30, ratio: 4 }),
+      fx("chorus", { rate: 0.6, depth: 4, mix: 35 }), fx("proverb", { type: 2, decay: 2.4, predelay: 35, damp: 6500, width: 160, mix: 28 }), fx("widen", { width: 150 })] },
+  { group: "StatZ chains", statz: true, key: "pro_mix_bus", name: "Pro mix bus, glue and limit", what: "Gentle bus glue with the dry mix underneath, a little width, then a limiter that holds the ceiling. Loudness is still set in Mix ConnectZ.",
+    chain: () => [eq(1, 70, 0, 1000, 1, 1.2, 10000), fx("glue", { threshold: -16, ratio: 2, attack: 30, release: 200, makeup: 1.5, mix: 60 }), fx("widen", { width: 110 }), fx("limiter", { drive: 2, ceiling: -1, release: 100 })] },
+];
+
+export const STARTERS = [...VOICE_STARTERS.map((s) => ({ group: "Voice", ...s })), ...INSTRUMENT_STARTERS, ...STATZ_STARTERS];
+
+/** True when a chain holds a plugin-grade effect (the StatZ ones). */
+export const chainNeedsStatz = (inserts) => (Array.isArray(inserts) ? inserts : []).some((i) => PLUGINS[i?.type]?.statz);
 
 /** A stored chain made into fresh inserts for a track: new ids, every value back in range. */
 export function chainToInserts(chain) {

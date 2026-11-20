@@ -54,6 +54,10 @@ test("starters have unique keys, cover the whole kit, and borrow nobody's preset
   for (const s of STARTERS) assert.ok(!/fabfilter|ozone|izotope|waves|pro-?q|pro-?c|pro tools|logic|bitwig/i.test(`${s.name} ${s.what}`), s.name);
 });
 
-test("only free effects are used, so a Free member can apply every starter", () => {
-  for (const s of STARTERS) for (const i of s.chain()) assert.ok(!PLUGINS[i.type].statz, `${s.name} uses ${i.type}`);
+test("a starter uses a StatZ effect only if it says so, so the picker can lock it", () => {
+  for (const s of STARTERS) {
+    const pro = s.chain().some((i) => PLUGINS[i.type].statz);
+    assert.equal(!!s.statz, pro, `${s.name}: statz flag must match what it contains`);
+  }
+  assert.ok(STARTERS.filter((s) => s.statz).length >= 4);
 });
