@@ -28,7 +28,7 @@ export const FOCUS_COACH_PARENTS = ["SkillZ"];
 // and IntelligenceZ (every AI app and what each costs before it is opened). These are the ToolZ
 // CATEGORIES (ToolZMenu's TOOLZ_MENU keys), so one tap opens the whole group, not one app in it.
 // They were two cards among thirteen behind "More apps"; a parent nobody can find is not one.
-export const FOCUS_PARENTS = ["ToolZ", "IntelligenceZ", "StudioZ"];   // StudioZ: DawZ, MangaZ and AnimeZ on one screen
+export const FOCUS_PARENTS = ["ToolZ", "IntelligenceZ", "StudioZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];   // Corey's line-up; StudioZ is DawZ, MangaZ and AnimeZ
 // The apps a parent opens onto that must still be offered up front in the ⊞ drawer.
 const FOCUS_PARENT_APPS = ["intelligencez"];
 
@@ -36,12 +36,12 @@ const FOCUS_PARENT_APPS = ["intelligencez"];
 // a profile, messages, a friend to challenge, practice tools the coach's own
 // notes link into, and the account screens that make it payable.
 export const FOCUS_SUPPORT = [
-  "postz", "filez", "profilez", "messagez", "battlez",
+  "postz", "filez", "profilez", "messagez",
   "metz", "tunerz", "chordz", "breathz",
   "membershipz", "onboardz", "logz",
   // Not music, kept on purpose: Corey uses them.
   "bodiez", "lilith",
-  "imagez",   // Corey: ImageZ on the home screen (DawZ, MangaZ and AnimeZ are under StudioZ)
+  "imagez", "dawz", "gamez",   // Corey: up front on the home screen (DawZ is also in StudioZ)
 ];
 
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
