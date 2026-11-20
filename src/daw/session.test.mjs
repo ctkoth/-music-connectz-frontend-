@@ -259,3 +259,83 @@ test("tracks stop at the tier's count (3 / 6 / unlimited), and a session over it
   assert.equal(addTrack(s, undefined, 3), s);
   assert.ok(MAX_TRACKS >= 100);
 });
+
+import { addMarker, updateMarker, removeMarker, sortedMarkers, markerAfter, markerBefore, cleanSession as _clean, cleanColor, cleanEmoji, setTrack as _setTrack, newSession as _new, MAX_MARKERS } from "./session.js";
+
+test("markers: add at the playhead with a default name and colour, edit name, emoji, colour and time, remove", () => {
+  let s = _new();
+  s = addMarker(s, 12.5);
+  assert.equal(s.markers.length, 1);
+  assert.equal(s.markers[0].name, "Marker 1");
+  assert.match(s.markers[0].color, /^#[0-9a-f]{6}$/);
+  const id = s.markers[0].id;
+  s = updateMarker(s, id, { name: "Verse 2", emoji: "🎤", color: "#FF0000", t: 20 });
+  assert.deepEqual([s.markers[0].name, s.markers[0].emoji, s.markers[0].color, s.markers[0].t], ["Verse 2", "🎤", "#ff0000", 20]);
+  assert.equal(removeMarker(s, id).markers.length, 0);
+});
+
+test("markers: two at one moment are nudged apart, order is by time, and next/previous find the neighbours", () => {
+  let s = _new();
+  s = addMarker(s, 30, { name: "Chorus" }); s = addMarker(s, 10, { name: "Intro" }); s = addMarker(s, 10, { name: "Intro 2" });
+  const ts = sortedMarkers(s).map((m) => m.t);
+  assert.ok(ts[0] < ts[1] && ts[1] < ts[2]);
+  assert.equal(markerAfter(s, 5).name, "Intro");
+  assert.equal(markerAfter(s, 31), null);
+  assert.equal(markerBefore(s, 29).name, "Intro 2");
+  assert.equal(markerBefore(s, 1), null);
+});
+
+test("markers: junk is repaired on load, a bad colour or letters-as-emoji are not kept, and the count is bounded", () => {
+  const raw = { ...(_new()), markers: [{ id: "a", t: "7", name: "x".repeat(100), emoji: "abc", color: "red" }, { t: "nope" }, null] };
+  const s = _clean(raw);
+  assert.equal(s.markers.length, 1);
+  assert.equal(s.markers[0].name.length, 40);
+  assert.equal(s.markers[0].emoji, "");
+  assert.match(s.markers[0].color, /^#[0-9a-f]{6}$/);
+  let big = _new(); for (let i = 0; i < MAX_MARKERS + 20; i++) big = addMarker(big, i * 2);
+  assert.equal(big.markers.length, MAX_MARKERS);
+});
+
+test("tracks: a name with an emoji, a colour and an emoji mark can be set, and a bad colour is refused", () => {
+  let s = _new();
+  const id = s.tracks[0].id;
+  s = _setTrack(s, id, { name: "🔥 Lead vox", emoji: "🎤", color: "#a78bfa" });
+  assert.deepEqual([s.tracks[0].name, s.tracks[0].emoji, s.tracks[0].color], ["🔥 Lead vox", "🎤", "#a78bfa"]);
+  const before = s.tracks[0].color;
+  assert.equal(_setTrack(s, id, { color: "javascript:alert(1)" }).tracks[0].color, before);
+  assert.equal(cleanEmoji("🎤🥁🎸"), "🎤🥁");
+  assert.equal(cleanEmoji("🇺🇸"), "🇺🇸");
+  assert.equal(cleanColor("#ABCDEF"), "#abcdef");
+});
+
+import { snapIf as _snapIf, setSession as _setSession, SESSION_KEYS } from "./session.js";
+
+test("snap: a click lands on the grid while Snap is on and exactly where it was while it is off", () => {
+  let s = _setSession(_new(), { bpm: 120, grid: "1/4" });       // a quarter note is 0.5 s
+  assert.equal(_snapIf(s, 1.3), 1.5);
+  assert.equal(_snapIf(s, 1.2), 1);
+  s = _setSession(s, { snap: false });
+  assert.equal(_snapIf(s, 1.3), 1.3);
+  assert.equal(_setSession(_new(), {}).snap, true);
+});
+
+test("project: the key is one of the twenty-four names or empty, and the name is kept short", () => {
+  assert.equal(SESSION_KEYS.length, 24);
+  assert.equal(_setSession(_new(), { key: "A minor" }).key, "A minor");
+  assert.equal(_setSession(_new(), { key: "H sharp" }).key, "");
+  assert.equal(_setSession(_new(), { name: "x".repeat(200) }).name.length, 60);
+  assert.equal(_clean({ ..._new(), key: "Eb major", snap: false }).key, "Eb major");
+  assert.equal(_clean({ ..._new(), key: "Eb major", snap: false }).snap, false);
+});
+
+import { projectTitle } from "./session.js";
+
+test("a project is titled Genre - Key - Name, leaving out what is not set, and keeps its genre and skills used", () => {
+  const s = _setSession(_new("Late night"), { genre: "Trap", key: "F minor", skills: ["rapping", "mixing", "rapping"] });
+  assert.equal(projectTitle(s), "Trap - F minor - Late night");
+  assert.equal(projectTitle(_new("Late night")), "Late night");
+  assert.deepEqual(s.skills, ["rapping", "mixing"]);
+  assert.equal(_setSession(s, { skills: Array.from({ length: 30 }, (_, i) => `s${i}`) }).skills.length, 12);
+  const back = _clean(JSON.parse(JSON.stringify(s)));
+  assert.deepEqual([back.genre, back.key, back.skills], ["Trap", "F minor", ["rapping", "mixing"]]);
+});

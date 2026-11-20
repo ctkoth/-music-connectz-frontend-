@@ -41,7 +41,7 @@ async function run(store, mode, fn) {
 const req = (r) => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
 
 export const listSessions = () => run("sessions", "readonly", (os) => req(os.getAll()))
-  .then((rows) => (rows || []).map(({ id, name, app, updated }) => ({ id, name, app, updated })).sort((a, b) => b.updated - a.updated));
+  .then((rows) => (rows || []).map(({ id, name, app, updated, session }) => ({ id, name, app, updated, genre: session?.genre || "", key: session?.key || "", bpm: session?.bpm, skills: Array.isArray(session?.skills) ? session.skills : [] })).sort((a, b) => b.updated - a.updated));
 
 export const loadSession = (id) => run("sessions", "readonly", (os) => req(os.get(id))).then((row) => row || null);
 

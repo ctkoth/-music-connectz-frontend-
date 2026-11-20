@@ -42,9 +42,24 @@ export const uid = (p = "x") => `${p}${Date.now().toString(36)}${(seq++).toStrin
 
 // ---- making things ----------------------------------------------------------------------------
 
+/** A colour as "#rrggbb", or the fallback: a stored or typed value is never trusted to be a colour. */
+export function cleanColor(c, fallback = COLORS[0]) {
+  const v = String(c || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : fallback;
+}
+
+/** An emoji mark for a track or marker: at most two characters as a person sees them (a flag or a family is one), nothing
+ *  that is only letters and digits, so the field stays a mark and the name stays the name. */
+export function cleanEmoji(e) {
+  const chars = typeof Intl !== "undefined" && Intl.Segmenter
+    ? Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(String(e || "").trim()), (x) => x.segment)
+    : Array.from(String(e || "").trim());
+  return chars.slice(0, 2).join("").replace(/[A-Za-z0-9\s]/g, "").slice(0, 16);
+}
+
 export function newTrack(n = 1, name) {
   return {
-    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length],
+    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length], emoji: "",
     gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [], auto: {},
     input: { device: "", channel: "both" },
     playlists: [{ id: uid("p"), name: "Take 1", regions: [] }], active: 0,
@@ -59,7 +74,50 @@ export function cleanInput(i) {
 
 export function newSession(name = "Untitled session") {
   const t = newTrack(1);
-  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t] };
+  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], key: "", snap: true, genre: "", skills: [] };
+}
+
+// ---- markers ----------------------------------------------------------------------------------
+// A marker is a named, coloured, optionally emoji'd point on the timeline ("Verse 2", "🔥 Drop"). It belongs to the
+// SESSION, not a track, so it is the same in every DAW and survives a session being copied from one DAW to another.
+export const MAX_MARKERS = 200;
+export const MAX_PROJECT_SKILLS = 12;
+export const MARKER_COLORS = COLORS;
+
+export function sortedMarkers(s) { return [...(s.markers || [])].sort((a, b) => a.t - b.t); }
+
+/** Add a marker at `t` seconds. A second one at the same moment is nudged out of the first's way rather than refused. */
+export function addMarker(s, t, { name, emoji = "", color } = {}) {
+  const list = s.markers || [];
+  if (list.length >= MAX_MARKERS) return s;
+  const n = list.length + 1;
+  let at = Math.max(0, num(t, 0));
+  while (list.some((m) => Math.abs(m.t - at) < 0.05)) at += 0.1;
+  const m = { id: uid("m"), t: at, name: String(name || `Marker ${n}`).slice(0, 40), emoji: cleanEmoji(emoji),
+              color: cleanColor(color, MARKER_COLORS[(n - 1) % MARKER_COLORS.length]) };
+  return { ...s, markers: [...list, m] };
+}
+
+export function updateMarker(s, id, patch) {
+  return { ...s, markers: (s.markers || []).map((m) => (m.id !== id ? m : {
+    ...m, ...(patch.name !== undefined ? { name: String(patch.name).slice(0, 40) || m.name } : {}),
+    ...(patch.emoji !== undefined ? { emoji: cleanEmoji(patch.emoji) } : {}),
+    ...(patch.color !== undefined ? { color: cleanColor(patch.color, m.color) } : {}),
+    ...(patch.t !== undefined ? { t: Math.max(0, num(patch.t, m.t)) } : {}),
+  })) };
+}
+
+export function removeMarker(s, id) { return { ...s, markers: (s.markers || []).filter((m) => m.id !== id) }; }
+
+/** The next marker after `t`, or the previous one before it (null at either end) — for jumping around a song. */
+export function markerAfter(s, t) { return sortedMarkers(s).find((m) => m.t > t + 0.01) || null; }
+export function markerBefore(s, t) { return [...sortedMarkers(s)].reverse().find((m) => m.t < t - 0.01) || null; }
+
+export function cleanMarkers(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_MARKERS).filter((m) => m && Number.isFinite(Number(m.t))).map((m, i) => ({
+    id: String(m.id || uid("m")), t: Math.max(0, num(m.t, 0)), name: String(m.name || `Marker ${i + 1}`).slice(0, 40),
+    emoji: cleanEmoji(m.emoji), color: cleanColor(m.color, MARKER_COLORS[i % MARKER_COLORS.length]),
+  }));
 }
 
 // ---- reading ----------------------------------------------------------------------------------
@@ -110,6 +168,17 @@ export function snapTime(s, sec) {
   const g = gridSeconds(s);
   return Math.max(0, Math.round(sec / g) * g);
 }
+/** What a project is called when it is saved or exported: "Genre - Key - Name", leaving out what was not set. */
+export const projectTitle = (s) => [s.genre, s.key, s.name].map((x) => String(x || "").trim()).filter(Boolean).join(" - ");
+
+/** The time a click or a new marker lands on: the nearest grid line while Snap is on (the default), exactly where it was while it is off. */
+export const snapIf = (s, sec) => (s.snap === false ? Math.max(0, sec) : snapTime(s, sec));
+
+// The project's key, same twenty-four names as Instrumental ConnectZ and the key estimator, or "" for not set.
+export const SESSION_KEYS = [
+  ...["C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F"].map((k) => `${k} major`),
+  ...["A", "E", "B", "F#", "C#", "G#", "Eb", "Bb", "F", "C", "G", "D"].map((k) => `${k} minor`),
+];
 
 // ---- writing ----------------------------------------------------------------------------------
 
@@ -131,6 +200,11 @@ export function setSession(s, patch) {
   if (!EDIT_MODES.includes(out.editMode)) out.editMode = "slip";
   if (!(out.grid in GRIDS)) out.grid = "1/4";
   out.master = clamp(num(out.master, 0), GAIN_DB.min, GAIN_DB.max);
+  out.name = String(out.name || "Untitled session").slice(0, 60);
+  out.key = SESSION_KEYS.includes(out.key) ? out.key : "";
+  out.snap = out.snap !== false;
+  out.genre = String(out.genre || "").trim().slice(0, 60);
+  out.skills = [...new Set((Array.isArray(out.skills) ? out.skills : []).map((k) => String(k).slice(0, 60)).filter(Boolean))].slice(0, MAX_PROJECT_SKILLS);
   return out;
 }
 
@@ -166,6 +240,8 @@ export function setTrack(s, id, patch) {
     out.gain = clamp(num(out.gain, 0), GAIN_DB.min, GAIN_DB.max);
     out.pan = clamp(num(out.pan, 0), -1, 1);
     out.name = String(out.name || t.name).slice(0, 40);
+    out.color = cleanColor(out.color, t.color);
+    out.emoji = cleanEmoji(out.emoji);
     out.input = cleanInput(out.input);
     return out;
   });
@@ -373,11 +449,12 @@ export function cleanSession(raw) {
     }));
     return {
       ...d, ...t, id: String(t?.id || d.id), name: String(t?.name || d.name).slice(0, 40),
+      color: cleanColor(t?.color, d.color), emoji: cleanEmoji(t?.emoji),
       gain: clamp(num(t?.gain, 0), GAIN_DB.min, GAIN_DB.max), pan: clamp(num(t?.pan, 0), -1, 1),
       mute: !!t?.mute, solo: !!t?.solo, armed: false, inserts: Array.isArray(t?.inserts) ? t.inserts : [],
       input: cleanInput(t?.input), auto: cleanAuto(t?.auto),
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });
-  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)] };
+  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers) };
 }

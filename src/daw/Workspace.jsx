@@ -32,6 +32,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
+  addMarker, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -47,6 +48,8 @@ import { envelopeOf, sameAudioGroups } from "./dupes.js";
 import SelectAllBar from "../components/SelectAllBar.jsx";
 import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
+import SkillsUsed from "../SkillsUsed.jsx";
+import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 
 const MODE_LABEL = {
@@ -337,6 +340,8 @@ export default function Workspace({ workflow }) {
     setPlayhead(at); headRef.current = at;
     if (playing && !recording) startPlay(at);
   };
+  // A click on the timeline lands on the grid while Snap is on; a jump to a marker never does (it goes exactly there).
+  const seekClick = (t) => seek(snapIf(sRef.current || session, t));
   const restartIfPlaying = () => { if (playing && !recording) startPlay(headRef.current); };
 
   // ---- stem transposition: a track up or down in key, its tempo kept (pitch.js) ----
@@ -609,7 +614,7 @@ export default function Workspace({ workflow }) {
       setBounced({ blob, url: URL.createObjectURL(blob), seconds: buf.duration });
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
-  const fileName = () => `${(session.name || workflow.app).replace(/[^\w-]+/g, "_").slice(0, 40)}.wav`;
+  const fileName = () => `${(projectTitle(session) || workflow.app).replace(/[^\w-]+/g, "_").slice(0, 40)}.wav`;
   const saveToFileZ = async () => {
     if (!bounced) return;
     setBusy("Saving to FileZ…"); setErr("");
@@ -684,7 +689,7 @@ export default function Workspace({ workflow }) {
         <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Open a saved session"
                 onChange={(e) => e.target.value && open(e.target.value)}>
           <option value="">Open a session on this device…</option>
-          {saved.map((r) => <option key={r.id} value={r.id}>{r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
+          {saved.map((r) => <option key={r.id} value={r.id}>{[r.genre, r.key, r.name].filter(Boolean).join(" - ")}{r.skills?.length ? ` · ${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : ""} · {new Date(r.updated).toLocaleDateString()}</option>)}
         </select>
         {others.length > 0 && (
           <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Copy in a session from another DAW"
@@ -694,6 +699,28 @@ export default function Workspace({ workflow }) {
             {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
           </select>
         )}
+        <details className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-project-details">
+          <summary className="cursor-pointer text-white/80">Project details: <b>{projectTitle(session) || "not set"}</b>{session.skills?.length ? ` · ${session.skills.length} skill${session.skills.length === 1 ? "" : "s"} used` : ""}</summary>
+          <div className="mt-2 space-y-2">
+            <p className="text-white/60">Saved with the project and used to name it: <b>Genre - Key - Name</b>. Skills used are your own learned skills, the same list a post uses.</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-1 text-white/60">Genre
+                <select className="neon-input !w-auto !py-1" data-nomemo="true" aria-label="Project genre" value={GENRES.includes(session.genre) ? session.genre : ""}
+                        onChange={(e) => commit((s) => setSession(s, { genre: e.target.value }))}>
+                  <option value="">{session.genre && !GENRES.includes(session.genre) ? `Your own: ${session.genre}` : "not set"}</option>
+                  {GENRE_GROUPS.map((grp) => (
+                    <optgroup key={grp.key} label={`${grp.emoji} ${grp.label}`}>
+                      {grp.genres.map(([name, emoji]) => <option key={name} value={name}>{name} {emoji}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </label>
+              <input className="neon-input !w-40 !py-1" maxLength={60} placeholder="…or type your own" aria-label="Project genre, your own"
+                     value={session.genre || ""} onChange={(e) => commit((s) => setSession(s, { genre: e.target.value }))} />
+            </div>
+            <SkillsUsed value={session.skills || []} onChange={(skills) => commit((s) => setSession(s, { skills }))} label="Skills used on this project" />
+          </div>
+        </details>
         <button type="button" className="re-btn !w-auto px-3" onClick={newOne}><Plus size={13} /> New</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={dropSession}><Trash2 size={13} /> Delete</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={() => fileIn.current?.click()}><Upload size={13} /> Import audio</button>
@@ -739,8 +766,18 @@ export default function Workspace({ workflow }) {
           <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
+        <span className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-sm font-semibold text-white" title="This project">
+          🎼 {session.name} <span className="font-mono text-mcz-cyan">· {session.bpm} BPM</span> <span className="text-emerald-300">· {session.key || "key not set"}</span>
+        </span>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
         <span className="font-mono tabular-nums text-white/60">{minSec(playhead)} / {minSec(len)}</span>
+        <label className="flex items-center gap-1 text-white/60">Key
+          <select className="neon-input !w-auto !py-1" data-nomemo="true" value={session.key || ""} disabled={recording} aria-label="Project key"
+                  onChange={(e) => commit((s) => setSession(s, { key: e.target.value }))}>
+            <option value="">not set</option>
+            {SESSION_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-1 text-white/60">BPM
           <input type="number" className="neon-input !w-16 !py-1" min={BPM.min} max={BPM.max} value={session.bpm} disabled={recording}
                  onChange={(e) => commit((s) => setSession(s, { bpm: e.target.value }))} />
@@ -769,6 +806,9 @@ export default function Workspace({ workflow }) {
               ))}
             </div>
             <label className="flex items-center gap-1 text-white/60">Grid
+              <button type="button" aria-pressed={session.snap !== false} title="Snap clicks on the timeline and new markers to the grid"
+                      className={`rounded-lg border px-2 py-1 ${session.snap !== false ? "border-mcz-cyan bg-mcz-cyan/20 text-white" : "border-white/15 text-white/55"}`}
+                      onClick={() => commit((s) => setSession(s, { snap: s.snap === false }))}>🧲 Snap {session.snap !== false ? "on" : "off"}</button>
               <select className="neon-input !w-auto !py-1" data-nomemo="true" value={session.grid} onChange={(e) => commit((s) => setSession(s, { grid: e.target.value }))}>
                 {Object.keys(GRIDS).map((g) => <option key={g} value={g}>{g === "1" ? "1 bar" : `${g} note`}</option>)}
               </select>
@@ -838,7 +878,7 @@ export default function Workspace({ workflow }) {
           }} />
         <EditWindow
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
-          session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seek} playhead={playhead}
+          session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
@@ -846,6 +886,11 @@ export default function Workspace({ workflow }) {
           keyRange={keyRange} onTranspose={transposeTrack}
           onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoAllowed={autoAllowed}
           onAddTrack={addOneTrack}
+          onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
+          onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}
+          onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
+          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onOpenMix={() => setView("mix")}
           trackLabel={tierCap == null ? "" : `${session.tracks.length} of ${tierCap}`}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {

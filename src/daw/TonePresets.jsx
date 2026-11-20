@@ -24,7 +24,7 @@ export function useTonePresets() {
   return { state, failed, save, remove };
 }
 
-export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true }) {
+export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true, compact = false }) {
   const { state, failed, save, remove } = tones;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
@@ -74,7 +74,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
           </optgroup>
         ))}
       </select>
-      {!failed && (saving ? (
+      {!failed && !compact && (saving ? (
         <div className="space-y-1 rounded bg-black/40 p-1">
           <div className="flex gap-1" role="radiogroup" aria-label="Save as">
             {["tone", "fx"].map((k) => (

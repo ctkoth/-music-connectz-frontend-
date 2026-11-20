@@ -12,9 +12,14 @@ import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
 import { KeyChip } from "../components/KeyBadge.jsx";
+import { useStatzTrial } from "../components/StatzSample.jsx";
+import TonePicker, { useTonePresets } from "./TonePresets.jsx";
+import { ColorPick, EmojiPick } from "./Looks.jsx";
+import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
+import { PLUGINS } from "./plugins.js";
 
 const HEADER_W = 168;
-const LANE_H = 76;
+const LANE_H = 98;
 const EDGE_PX = 10;
 
 /** One region's waveform, drawn from the engine's peaks for the window of the source it plays. */
@@ -69,7 +74,13 @@ export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump,
 }) {
+  const tones = useTonePresets();
+  const { s: trial } = useStatzTrial();
+  const statzOk = !!(trial?.is_statz || trial?.active);
+  const [looks, setLooks] = useState(null);      // the track whose name / emoji / colour panel is open
+  const [fx, setFx] = useState(null);            // the track whose FX panel is open
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
@@ -133,16 +144,20 @@ export default function EditWindow({
     <div className="flex overflow-hidden rounded-xl border border-white/10 bg-black/30">
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
+        {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
         <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55">
           <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title="Add a track" aria-label="Add a track"><Plus size={14} /></button>
         </div>
         {session.tracks.map((t) => (
-          <div key={t.id} className="flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
+          <div key={t.id} className="relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
             <div className="flex items-center gap-1">
               {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
                                 onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
-              <span className="h-3 w-1.5 shrink-0 rounded" style={{ background: t.color }} />
+              <button type="button" className="relative flex h-5 shrink-0 items-center gap-0.5 rounded px-0.5 hover:bg-white/10" onClick={() => setLooks(looks === t.id ? null : t.id)}
+                      aria-label={`Change ${t.name}'s emoji and colour`} aria-expanded={looks === t.id} title="Change this track's emoji and colour">
+                <span className="h-3 w-1.5 rounded" style={{ background: t.color }} />{t.emoji && <span className="text-xs">{t.emoji}</span>}
+              </button>
               <input className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-white outline-none" value={t.name}
                      aria-label="Track name" onChange={(e) => onTrack(t.id, { name: e.target.value })} />
               {onMeasure && regionsOf(t).length > 0 && (
@@ -216,6 +231,29 @@ export default function EditWindow({
               <button type="button" className="text-white/50 hover:text-white" title="Copy this take to a new playlist" aria-label="Duplicate playlist" disabled={recording}
                       onClick={() => onPlaylist(t.id, { type: "copy" })}><Copy size={12} /></button>
             </div>
+            {onInserts && (
+              <div className="relative flex items-center gap-1 text-[10px]">
+                <button type="button" aria-expanded={fx === t.id} onClick={() => setFx(fx === t.id ? null : t.id)} title="This track's effects"
+                        className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
+                  FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
+                </button>
+                <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>
+                {fx === t.id && (
+                  <div className="absolute left-0 top-full z-40 mt-1 w-64 space-y-2 rounded-lg border border-white/15 bg-[#12121c] p-2 shadow-xl" role="dialog" aria-label={`${t.name} effects`}>
+                    <p className="text-white/70">{(t.inserts || []).length ? (t.inserts || []).map((i) => `${PLUGINS[i.type]?.emoji || ""} ${PLUGINS[i.type]?.label || i.type}${i.on ? "" : " (off)"}`).join(" → ") : "No effects yet. Pick a preset, or open the mixer to add one."}</p>
+                    <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} />
+                    {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer</button>}
+                  </div>
+                )}
+              </div>
+            )}
+            {looks === t.id && (
+              <div className="absolute left-2 top-full z-40 mt-1 w-60 space-y-2 rounded-lg border border-white/15 bg-[#12121c] p-2 text-xs shadow-xl" role="dialog" aria-label={`${t.name} look`}>
+                <EmojiPick value={t.emoji || ""} onChange={(emoji) => onTrack(t.id, { emoji })} label="Track emoji" />
+                <ColorPick value={t.color} onChange={(color) => onTrack(t.id, { color })} label="Track colour" />
+                <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => setLooks(null)}>Done</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -223,6 +261,7 @@ export default function EditWindow({
       {/* Timeline */}
       <div className="min-w-0 flex-1 overflow-x-auto">
         <div className="relative" style={{ width }}>
+          {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
           <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
