@@ -2543,3 +2543,39 @@ the ⚡ (`<AiEnergy engine=…>`) and whether a free prompt covers it. **A free 
 engine isn't covered (Fable)**: the price line says so and how to use a free one, and the out-of-takes upsell does not show.
 Radar reads, reference listens, the trial and the standalone shells get no picker and are priced without an engine, because
 no Claude pass runs for them. Driven in a browser at Free, Premium and StatZ (default engine, locked rows, switch re-prices).
+
+## Chrome's translate rewrites our text, and React must survive it (`domGuard.js`)
+
+A member reading the app in Portuguese got "Failed to execute 'insertBefore' on 'Node'" and Arsenal went down. Page
+translators replace React's text nodes with `<font>` wrappers (React issue #11538). `guardDomForTranslators()` runs in
+`main.jsx` before React and makes `insertBefore` / `removeChild` aim at the wrapper instead of throwing; normal calls are
+untouched. Also: a one-word product name ending in a capital Z is never sent to our own translator (`uiLang.worth`) —
+"STATZ" came back "ESTADO". The translator shows a status line when a screen is still half English.
+
+## DAW: copies, clipping, ticking tracks, and the StatZ checks
+
+- **Copies of one recording on several tracks sound like static** (they comb and cancel). `dupes.js` compares each
+  track's loudness envelope; only a near-exact match at the same level counts, so different stems are never called
+  copies. A banner offers Mute / Remove the copies (free). On StatZ, copies that arrive WITH an import are removed by
+  themselves; the watch ends 1.5 s after the import so an Undo sticks.
+- **Clipping is said while it plays**: the master's loudest peak since Play; over 0 dBFS a red line offers one free,
+  undoable "turn every fader down N dB". There is no master limiter, on purpose (drawn = heard = bounced).
+- **Ticking tracks is free; "Select all tracks" is StatZ** (SelectAllBar, Corey's select-all rule). Mute / unmute /
+  solo / unsolo / remove apply to the ticked set; remove always leaves one track.
+- **Import stems** lands each file on its own track at 0:00 with a guessed role. **Mix check** (headroom, frequency-clash
+  EQ dips, ducking), **timing & polarity** and **gain staging from a prompt** are StatZ (or the sample), measured on the
+  device; the prompt one sends numbers only. All three work on one of each recording (copies skipped). Every strip has
+  a free Ø polarity button. A session can be copied in from another DAW (the original is untouched).
+
+## The home screen and the first session
+
+- `focus.js` `HOME_PARENTS` / `HOME_APPS` are Corey's set, always shown at the top whatever folds below. StudioZ is a
+  category (DawZ, MangaZ, AnimeZ on one screen); its name was my pick and is one line to change. The grid uses
+  `auto-fill` so one tile never stretches into a giant box, and Poppins, not Courier New.
+- OnboardZ leads with ONE step, "Get your first score", on the coach they tried (else picked, else SingZ), then one
+  next step at a time; profile fields come after posting and rating. The bonus needs a score, a post and 3 ratings and
+  the server checks it (`onboard/complete/` GET has `progress`). FunnelZ shows "Joined → first scored take within 24h".
+- Logged-out visitors get `/explore` (public posts) and a Join bar with one-tap OAuth on every public page; sign-up and
+  log-in lead with OAuth.
+- The trial recorder says why the mic did not open right under the button, and says when the browser is still
+  deciding (Chrome's quiet permission prompt left the button looking dead), with Upload instead.
