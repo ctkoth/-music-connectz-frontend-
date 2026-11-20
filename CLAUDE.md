@@ -2659,3 +2659,18 @@ large, a line on what it is and the coaches it holds. SingZ, RapZ, GuitarZ and D
 they belong in SkillZ); they are still in the SkillZ screen, still routed, and a coach opened often still lands in "Your apps".
 The art itself was never lost: `skillz.png` is his image (committed at 480px by the size pass) and the `SkillZ.<coach>.png` files
 are byte-for-byte the same art as the root coach icons. Driven in a 412px browser: icon left, title and coaches right.
+
+## DesignZ is in SkillZ: designers put work up to be rated, and ImageZ's coach notes open there
+
+`apps/DesignZ.jsx` (tab `designz`, listed in the SkillZ category under "Designers") is a gallery of design work from PostZ's own feed
+(`/api/economy/postz/?sort=hot|new|top`; `designz.js` keeps a post that carries a picture or names a design skill and pads nothing in).
+Under every design is the one `SocialBar` on `post:<id>` — Karma (vote + mood), Rate, Comment, Share, Open — the same item PostZ rates,
+so a design has one number wherever it is seen. Posting is PostZ's composer (one tap, its price shown there). It decides nothing.
+
+**ImageZ's coach notes open in DesignZ.** `ImageScore` (ImageZ's "Score it") scores the picture's CRAFT with why and how; after a score it
+offers "Read the full coach notes in DesignZ · free" (`handOff("designz", …, {notes, image})`), and DesignZ shows them in full — the ring,
+every dimension's why and how, Next — with doors back to ImageZ and on to PostZ. `notesFromHandoff` refuses a payload with a missing label
+and only shows a data-URL picture. **It never rates anybody's looks**, which is Corey's repeated ask and stays refused (a number on a kid's
+looks on a platform with strangers is harm; LookZMaxZ is verified adults, own photo); the notes panel says so. Driven in a 412px browser:
+the tab loads, the handed-over notes render, no console errors, no sideways scroll. The gallery was empty in the local seed (no design
+posts), so the SocialBar under a real design card was not seen.

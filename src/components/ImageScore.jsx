@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { PROMPTZ, ENERGY } from "../resources.js";
 import { RatingRow } from "./Rating.jsx";
+import { handOff } from "../handoff.js";
 
 export default function ImageScore({ getImage, busy }) {
   const [info, setInfo] = useState(null);
@@ -39,6 +40,12 @@ export default function ImageScore({ getImage, busy }) {
                        detail={<>{d.why}{d.how && <span className="block text-emerald-300">How: {d.how}</span>}</>} />
           ))}
           {res.next && <p className="text-white/70"><span className="font-semibold text-white">Next:</span> {res.next}</p>}
+          {/* The full coach notes open in DesignZ: the same numbers with room to read each why and how, beside the
+              designs other members have put up. Free — it was paid for when it was scored. */}
+          <button type="button" className="re-btn" data-tour="imagez-notes-door"
+                  onClick={() => { let img = ""; try { const g = getImage(); if (typeof g === "string" && g.length < 1_500_000) img = g; } catch { /* no preview */ } handOff("designz", "designz-notes", { notes: res, image: img }); }}>
+            Read the full coach notes in DesignZ <span className="text-emerald-300">· free</span>
+          </button>
           <p className="text-white/55">{res.charged_cents ? `Charged −${res.charged_cents} ${PROMPTZ}.` : "Covered by a free prompt."}</p>
         </div>
       )}

@@ -241,7 +241,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (39)
+## Tabs and apps that ask for an icon no supplied file covers (40)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -249,6 +249,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `budgetz.jpg` → /icons/budgetz.jpg
 - `callz.png` → /icons/callz-neon.svg
 - `clarinetz.png` → /icons/clarinetz-neon.png
+- `designz.png` → /icons/designz.png
 - `dupez.png` → /icons/dupez.jpg
 - `facez.png` → /icons/facez.png
 - `flutez.png` → /icons/flutez-neon.png
