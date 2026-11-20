@@ -440,25 +440,34 @@ export default function Workspace({ workflow }) {
     if (!armed.length) { setErr("Arm a track first — press R on the track (or tracks) you want to record onto."); return; }
     const clash = inputClash(armed);
     if (clash) { setErr(`${clash[0].name} and ${clash[1].name} are set to the same input, so they'd record the same sound twice — give each its own input (a different device, or Left and Right of a stereo one).`); return; }
+    // Say what it is doing while it waits. A microphone that is slow to open (another app holding it — Windows Voice Access, Zoom,
+    // Teams, OBS, a second tab) used to look like a button that only glowed; now every stage is on screen, a slow one says why, and
+    // a mic that never answers ends in a sentence instead of silence.
+    const SLOW = "Still waiting for the microphone… Another app may be holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or pick another input in Audio settings.";
+    const slow = setTimeout(() => setBusy(SLOW), 4000);
+    const giveUp = (p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("The microphone didn't answer in 15 seconds. Another app is probably holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or choose a different input in Audio settings, then press Record again.")), 15000))]);
     try {
+      setBusy("Opening the microphone…");
       // One stream per device; the tracks reading it take their own channel of it.
       const streams = new Map();
       for (const t of armed) {
         const dev = t.input?.device || "";
         if (streams.has(dev)) continue;
         let stream;
-        try { stream = await daw.openMic(dev); } catch (e) {
+        try { stream = await giveUp(daw.openMic(dev)); } catch (e) {
           const m = mediaError(e, false);
-          if (!m.retry) throw new Error(m.msg);
-          stream = await navigator.mediaDevices.getUserMedia({ audio: dev ? { deviceId: { exact: dev } } : true });
+          if (!m.retry) throw new Error(m.msg || e.message);
+          stream = await giveUp(navigator.mediaDevices.getUserMedia({ audio: dev ? { deviceId: { exact: dev } } : true }));
         }
         streams.set(dev, stream);
       }
+      clearTimeout(slow);
+      setBusy("Starting playback and recording…");
       refreshDevices();
       await daw.startRecording(sRef.current, playhead, { click,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       setRecording(true); setPlaying(true);
-    } catch (e) { setErr(e.message); }
+    } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
   };
 
   // A take keeps running when the member opens another app (recordingHold.js):
