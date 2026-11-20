@@ -15,7 +15,7 @@ export function useTonePresets() {
   // `value` is a DAW insert list for "tone" / "fx", or the object itself for "master" (Mix ConnectZ's
   // settings) and "strip" (a TrackZ channel strip).
   const save = useCallback(async (name, value, id, kind = "tone") => {
-    const chain = kind === "master" || kind === "strip" ? value : insertsToChain(value);
+    const chain = kind === "master" || kind === "strip" || kind === "vst" ? value : insertsToChain(value);
     const d = await api("/api/economy/tonez/", { method: "POST", body: { kind, name, chain, ...(id ? { id } : {}) } });
     setState(d);
     return d.preset;

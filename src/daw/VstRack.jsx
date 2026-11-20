@@ -11,6 +11,8 @@ import { Download, ExternalLink, Wand2 } from "lucide-react";
 import { BUILDS } from "../downloadBuilds.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
+import { useTonePresets } from "./TonePresets.jsx";
+import { pluginRoom } from "./tonePresets.js";
 
 const vst = () => (typeof window !== "undefined" ? window.mczVst : null);
 
@@ -25,6 +27,9 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
   const [values, setValues] = useState({});
   const [busy, setBusy] = useState("");
   const [lim, setLim] = useState(null);
+  const tones = useTonePresets();
+  const [presetName, setPresetName] = useState("");
+  const [presetMsg, setPresetMsg] = useState("");
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
 
@@ -50,6 +55,22 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
     bridge.params(plugin.path, plugin.uid, state[pick] || "").then((r) => { if (r.ok) setParams(r.params); });
   }, [pick]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const room = plugin ? pluginRoom(tones.state, plugin.uid) : null;
+  const mine = (tones.state?.presets || []).filter((p) => p.kind === "vst" && p.chain?.uid === plugin?.uid);
+  const sameName = mine.find((p) => p.name.toLowerCase() === presetName.trim().toLowerCase());
+  const savePreset = async () => {
+    setErr(""); setPresetMsg("");
+    if (!state[pick]) { setErr("Open the plugin's window or render once so there are settings to save."); return; }
+    try {
+      const p = await tones.save(presetName.trim(), { uid: plugin.uid, plugin: plugin.name, vendor: plugin.vendor, state: state[pick] }, sameName?.id, "vst");
+      setPresetMsg(`Saved "${p.name}" for ${plugin.name}.`); setPresetName("");
+    } catch (e) { setErr(e.message); }
+  };
+  const usePreset = async (p) => {
+    setState((s) => ({ ...s, [pick]: p.chain.state })); setValues({}); setPresetMsg(`${p.name} is loaded. Render to hear it.`);
+    const r = await bridge.params(plugin.path, plugin.uid, p.chain.state);
+    if (r.ok) setParams(r.params);
+  };
   const openWindow = async () => {
     setErr(""); setBusy(`${plugin.name} is open in its own window — close it to keep the settings.`);
     try {
@@ -114,6 +135,29 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
         <div className="flex flex-wrap gap-2">
           <button className="re-btn !w-auto px-3" disabled={!!busy} onClick={openWindow}><ExternalLink size={14} /> Open {plugin.name}&apos;s window</button>
           <button className="neon-btn-primary !w-auto px-3" disabled={!!busy || !!working} onClick={render}><Wand2 size={14} /> Render {track?.name} through it</button>
+        </div>
+        <div className="space-y-1 rounded bg-black/30 p-2 text-xs" data-tour="daw-vst-presets">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">{plugin.name} presets</span>
+            <span className={room.ok ? "text-white/60" : "text-mcz-gold"}>{room.line}</span>
+            <span className="text-emerald-300">free</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            <input className="neon-input !w-auto !py-1 text-xs" placeholder="Name, e.g. Vocal glue" maxLength={60} value={presetName}
+                   aria-label="Plugin preset name" onChange={(e) => setPresetName(e.target.value)} />
+            <button className="re-btn !w-auto px-3" disabled={!presetName.trim() || (!sameName && !room.ok)} onClick={savePreset}>{sameName ? "Update it" : "Save these settings"}</button>
+          </div>
+          {!room.ok && !sameName && presetName.trim() && (
+            <p className="text-mcz-gold">Your plan keeps {tones.state.limit} per plugin — update or delete one, or Premium keeps {tones.state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
+              <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button></p>)}
+          {mine.length > 0 && <ul className="space-y-0.5">{mine.map((p) => (
+            <li key={p.id} className="flex items-center gap-2">
+              <button className="min-w-0 flex-1 truncate text-left text-white/80 hover:text-white" onClick={() => usePreset(p)}>{p.name}</button>
+              <button className="text-white/40 hover:text-mcz-ember" aria-label={`Delete preset ${p.name}`}
+                      onClick={() => { if (window.confirm(`Delete your "${p.name}" preset?`)) tones.remove(p.id).catch((e) => setErr(e.message)); }}>✕</button>
+            </li>))}</ul>}
+          {presetMsg && <p className="text-emerald-300">{presetMsg}</p>}
+          <p className="text-white/50">Saved on your account, so they follow you to every device. Nothing is charged; a failed save is not counted.</p>
         </div>
         {params?.length > 0 && (
           <details className="text-xs">
