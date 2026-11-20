@@ -7,7 +7,7 @@
 //   * tap the ruler or an empty lane → put the playhead there
 import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
-import { beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
+import { REC_MODES, beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
 import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
@@ -175,6 +175,13 @@ export default function EditWindow({
                       onClick={() => onTrack(t.id, { solo: !t.solo })}>S</button>
               <button type="button" aria-pressed={t.mute} className={`rounded px-1.5 py-0.5 ${t.mute ? "bg-sky-500 text-black" : "bg-white/10 text-white/60"}`}
                       onClick={() => onTrack(t.id, { mute: !t.mute })}>M</button>
+              {t.armed && (
+                <select className="min-w-0 flex-1 rounded bg-red-900/40 px-1 py-0.5 text-[10px] font-normal text-white" data-nomemo="true" value={t.recMode || "takes"}
+                        aria-label={`${t.name} record mode`} title={REC_MODES[t.recMode || "takes"].what} disabled={recording}
+                        onChange={(e) => onTrack(t.id, { recMode: e.target.value })}>
+                  {Object.entries(REC_MODES).map(([k, m]) => <option key={k} value={k} title={m.what}>{m.label}</option>)}
+                </select>
+              )}
               {onAuto && !t.armed && (
                 // Clips, or a lane of automation drawn over them. A lane with points is marked ●.
                 <select className="min-w-0 flex-1 rounded bg-white/10 px-1 py-0.5 text-[10px] font-normal text-white/80" data-nomemo="true"

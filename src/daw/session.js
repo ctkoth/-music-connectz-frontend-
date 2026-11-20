@@ -57,9 +57,19 @@ export function cleanEmoji(e) {
   return chars.slice(0, 2).join("").replace(/[A-Za-z0-9\s]/g, "").slice(0, 16);
 }
 
+/** How a recording lands on a track that already has audio under it. Takes keeps what was there on a new playlist (the default, and
+ *  the only one that never loses anything); Replace cuts it out of THIS playlist for good; Overdub lays the new audio on top and
+ *  leaves what was there playing underneath it. */
+export const REC_MODES = {
+  takes: { label: "Takes", what: "Keeps what was there: the old take is the previous take in the playlist menu." },
+  replace: { label: "Replace", what: "Cuts the old audio out of this take where you record (Undo brings it back)." },
+  overdub: { label: "Overdub", what: "Records on top of what is there; both play together." },
+};
+export const cleanRecMode = (m) => (m in REC_MODES ? m : "takes");
+
 export function newTrack(n = 1, name) {
   return {
-    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length], emoji: "",
+    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length], emoji: "", recMode: "takes",
     gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [], auto: {},
     input: { device: "", channel: "both" },
     playlists: [{ id: uid("p"), name: "Take 1", regions: [] }], active: 0,
@@ -242,6 +252,7 @@ export function setTrack(s, id, patch) {
     out.name = String(out.name || t.name).slice(0, 40);
     out.color = cleanColor(out.color, t.color);
     out.emoji = cleanEmoji(out.emoji);
+    out.recMode = cleanRecMode(out.recMode);
     out.input = cleanInput(out.input);
     return out;
   });
@@ -382,9 +393,10 @@ export function recordInto(s, trackId, { src, at, name }) {
   const from = Math.max(0, at);
   const to = from + source.duration;
   const hits = playlistOf(t).regions.some((r) => r.at < to && endOf(r) > from);
-  const keep = hits && t.playlists.length < MAX_PLAYLISTS;
+  const mode = cleanRecMode(t.recMode);
+  const keep = mode === "takes" && hits && t.playlists.length < MAX_PLAYLISTS;
   let out = keep ? newPlaylist(s, trackId, { copy: true }) : s;
-  if (hits) {
+  if (hits && mode !== "overdub") {
     out = mapTrack(out, trackId, (tr) => mapPlaylist(tr, (p) => ({
       ...p,
       regions: p.regions.flatMap((r) => {
@@ -449,7 +461,7 @@ export function cleanSession(raw) {
     }));
     return {
       ...d, ...t, id: String(t?.id || d.id), name: String(t?.name || d.name).slice(0, 40),
-      color: cleanColor(t?.color, d.color), emoji: cleanEmoji(t?.emoji),
+      color: cleanColor(t?.color, d.color), emoji: cleanEmoji(t?.emoji), recMode: cleanRecMode(t?.recMode),
       gain: clamp(num(t?.gain, 0), GAIN_DB.min, GAIN_DB.max), pan: clamp(num(t?.pan, 0), -1, 1),
       mute: !!t?.mute, solo: !!t?.solo, armed: false, inserts: Array.isArray(t?.inserts) ? t.inserts : [],
       input: cleanInput(t?.input), auto: cleanAuto(t?.auto),

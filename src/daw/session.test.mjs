@@ -339,3 +339,30 @@ test("a project is titled Genre - Key - Name, leaving out what is not set, and k
   const back = _clean(JSON.parse(JSON.stringify(s)));
   assert.deepEqual([back.genre, back.key, back.skills], ["Trap", "F minor", ["rapping", "mixing"]]);
 });
+
+import { recordInto as _rec, addSource as _addSource, addRegion as _addRegion, setTrack as _st, playlistOf as _pl, REC_MODES } from "./session.js";
+
+function withTake(mode) {
+  let s = _addSource(_new(), { id: "old", name: "Old", duration: 10, channels: 1, rate: 48000 });
+  const id = s.tracks[0].id;
+  s = _addRegion(s, id, { src: "old", at: 0, name: "Old" });
+  s = _st(s, id, { recMode: mode });
+  s = _addSource(s, { id: "new", name: "New", duration: 2, channels: 1, rate: 48000 });
+  return { ..._rec(s, id, { src: "new", at: 4, name: "New" }), id };
+}
+
+test("record modes: Takes keeps the old take on a new playlist, Replace cuts it out for good, Overdub layers over it", () => {
+  const takes = withTake("takes"), replace = withTake("replace"), over = withTake("overdub");
+  const t = (r) => r.session.tracks[0];
+  assert.equal(takes.keptPrevious, true);
+  assert.equal(t(takes).playlists.length, 2);
+  assert.equal(replace.keptPrevious, false);
+  assert.equal(t(replace).playlists.length, 1);
+  assert.ok(_pl(t(replace)).regions.filter((r) => r.src === "old").every((r) => r.out - r.in + r.at <= 4 || r.at >= 6), "the old audio is gone from 4 to 6 s");
+  assert.equal(over.keptPrevious, false);
+  const regs = _pl(t(over)).regions;
+  assert.equal(regs.length, 2);
+  assert.equal(regs.find((r) => r.src === "old").out, 10, "overdub leaves the old region whole");
+  assert.deepEqual(Object.keys(REC_MODES), ["takes", "replace", "overdub"]);
+  assert.equal(_st(_new(), _new().tracks[0].id, {}).tracks[0].recMode, "takes");
+});
