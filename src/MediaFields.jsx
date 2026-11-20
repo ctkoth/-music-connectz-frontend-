@@ -173,41 +173,53 @@ export default function MediaFields({ value, onChange, label = "The work" }) {
     <div className="space-y-2 rounded-xl border border-white/10 bg-white/[0.02] p-3">
       <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{label}</p>
 
+      {/* Same two big controls as the coach: a round Record button and an Audio upload tile. Video and
+          Image are the smaller ones beneath. While recording it is one large red Stop with the clock. */}
+      <input ref={audioInput} type="file" accept="audio/*" className="hidden"
+             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "audio")) playSound("upload_audio"); }} />
+      <input ref={videoInput} type="file" accept="video/*" className="hidden"
+             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "video")) playSound("upload_video"); }} />
+      <input ref={imageInput} type="file" accept="image/*" className="hidden"
+             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "image")) playSound("upload_image"); }} />
+      {recording ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-mcz-ember/30 bg-black/30 px-3 py-4">
+          <p className="font-display text-3xl font-extrabold tabular-nums text-white">{mmss}</p>
+          <button type="button" onClick={stopRec} aria-label={`Stop recording, ${mmss} so far`}
+                  className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-mcz-ember/60 bg-gradient-to-b from-red-500 to-red-700 text-white shadow-[0_0_24px_rgba(239,68,68,0.45)] transition active:scale-95">
+            <Square size={28} fill="currentColor" />
+          </button>
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-mcz-ember">Stop recording</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={startRec}
+                  className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-mcz-ember/40 bg-gradient-to-b from-mcz-ember/15 to-transparent px-2 py-3 text-white transition active:scale-[0.97]">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-b from-red-500 to-red-700 shadow-[0_0_20px_rgba(239,68,68,0.35)]">
+              <Mic size={26} />
+            </span>
+            <span className="text-sm font-bold">{v.audio_url ? "Record again" : "Record"}</span>
+            <span className="text-[10px] text-white/55">Tap to start</span>
+          </button>
+          <button type="button" onClick={() => audioInput.current?.click()}
+                  className="flex min-h-[7.5rem] flex-col items-center justify-center gap-1.5 rounded-2xl border border-white/15 bg-white/[0.04] px-2 py-3 text-white transition active:scale-[0.97]">
+            <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-white/[0.06] text-mcz-cyan">
+              <Upload size={24} />
+            </span>
+            <span className="text-sm font-bold">Upload audio</span>
+            <span className="text-[10px] text-white/55">Import a file</span>
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2">
-        {!recording ? (
-          <button type="button" className="re-btn re-btn-red !w-auto px-3 text-xs" onClick={startRec}>
-            <Mic size={13} /> {v.audio_url ? "Record again" : "Record"}
-          </button>
-        ) : (
-          <button type="button" className="neon-btn-primary !w-auto px-3 text-xs" onClick={stopRec}>
-            <Square size={12} /> Stop · {mmss}
-          </button>
-        )}
-        <input ref={audioInput} type="file" accept="audio/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "audio")) playSound("upload_audio"); }} />
-        <button type="button" className="re-btn re-btn-cyan !w-auto px-3 text-xs"
-                onClick={() => audioInput.current?.click()} disabled={recording}>
-          <Upload size={13} /> Audio
-        </button>
-        <input ref={videoInput} type="file" accept="video/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "video")) playSound("upload_video"); }} />
         <button type="button" className="re-btn re-btn-purple !w-auto px-3 text-xs"
                 onClick={() => videoInput.current?.click()} disabled={recording}>
           <Film size={13} /> Video
         </button>
-        <input ref={imageInput} type="file" accept="image/*" className="hidden"
-               onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && pickFile(f, "image")) playSound("upload_image"); }} />
         <button type="button" className="re-btn re-btn-gold !w-auto px-3 text-xs"
                 onClick={() => imageInput.current?.click()}>
           <ImageIcon size={13} /> Image
         </button>
       </div>
-
-      {recording && (
-        <p className="flex items-center gap-2 text-[11px] text-mcz-ember">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-mcz-ember" /> Recording — {mmss}
-        </p>
-      )}
 
       {/* Each slot previews with its own remove control, so clearing the
           video can't take the audio with it. */}
