@@ -25,7 +25,8 @@ import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
-import NowPlayingBar from "./components/NowPlayingBar.jsx";
+import NowPlayingBar, { useNpCompact } from "./components/NowPlayingBar.jsx";
+import { useNowPlaying } from "./nowPlaying.js";
 import { usePageTitle } from "./pageTitle.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -1130,6 +1131,8 @@ function Home() {
   // the pane. Nulls out on every tab change: a split is a "look at these two
   // together" moment, not a standing layout that should survive navigating
   // away and quietly still be there ten screens later.
+  const nowPlaying = useNowPlaying();
+  const npCompact = useNpCompact();
   const [splitKey, setSplitKey] = useState(null);
   // How the split pane sits, from the MEASURED screen (see splitLayout) — not a 1024px breakpoint.
   const screen = useScreenShape();
@@ -1386,7 +1389,9 @@ function Home() {
       </header>
 
       {/* pb leaves room for the fixed PickConnectZ dock */}
-      <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
+      {/* A playing track adds its bar (and a compact bar is smaller) above the dock, so the bottom of whatever is
+          open — an editor's last tools, a form's save button — stays reachable instead of sitting under it. */}
+      <main className={`mx-auto max-w-4xl px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
         <p className="mb-4 text-xs text-white/60">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>

@@ -2641,3 +2641,12 @@ driven in a browser; **not tested on real mixes**, where drums and vocals blur t
 as the DAW renders it solo (`measureTrackAudio`, the same render Mix check and Autotune use, so other tracks never muddy it),
 then shows "Am" / "C" and opens ChordZ on it. It resets when the track's clips change. Driven in a browser with an A-minor
 tune imported into Arsenal: the chip read "🎹 Am", no console errors, header fits without crowding.
+
+## A track keeps playing while somebody designs
+
+PostZ audio plays in the app-wide `NowPlayingBar`, which already survived a tab change (verified: a track started on PostZ
+kept advancing after the shell switched to ImageZ, no console errors). What it got wrong for DESIGN screens: the bar sat over
+the bottom of the editor. Now `<main>` adds bottom room while a track plays (`pb-64`, `pb-52` compact), and the bar has a small
+mode (⤡ / ⤢, kept on this device as `mcz_np_compact`): a round play/pause and the title, bottom-left, with the track
+playing either way. Beside each other, PostZ and ImageZ also work in PaneZ. Video posts (`ListenedMedia`) are the element
+in the card and still stop with it; only audio plays in the bar.
