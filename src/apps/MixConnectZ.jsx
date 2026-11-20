@@ -1,4 +1,5 @@
 import Doors from "../components/Doors.jsx";
+import KeyBadge from "../components/KeyBadge.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Loader2, Lock, Pause, Play, Save, Trash2, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
@@ -887,7 +888,7 @@ export default function MixConnectZ() {
             </div>
             {m.missing
               ? <p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p>
-              : m.url && <audio controls preload="none" src={m.url} className="w-full" />}
+              : m.url && <><audio controls preload="none" src={m.url} className="w-full" /><KeyBadge url={m.url} /></>}
             <div className="flex flex-wrap gap-3 text-xs">
               {m.url && !m.missing && <a className="re-link" href={m.url} download>Download</a>}
               {m.settings && Object.keys(m.settings).length > 0 && (

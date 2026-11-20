@@ -23,6 +23,7 @@
 // been PLAYED — the age gate stopped nobody on a post older than a minute,
 // which was every post anybody ever scrolled past. See `listen.js`.
 import SendTo from "../components/SendTo.jsx";
+import KeyBadge from "../components/KeyBadge.jsx";
 import { Gain } from "../components/Price.jsx";
 import { useInViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
@@ -998,8 +999,11 @@ function PostCard({ post, now, charLimit, onFlash, isOwner, onChanged, onDerive 
         return (
           <>
             {m.audio && (
-              <BarPlay src={m.audio} item={item} title={post.title} author={post.author}
-                       url={`/p/${post.id}`} onProgress={onHeard} />
+              <>
+                <BarPlay src={m.audio} item={item} title={post.title} author={post.author}
+                         url={`/p/${post.id}`} onProgress={onHeard} />
+                <KeyBadge url={m.audio} className="mt-1.5" />
+              </>
             )}
             {m.video && (
               <ListenedMedia kind="video" src={m.video} item={item}

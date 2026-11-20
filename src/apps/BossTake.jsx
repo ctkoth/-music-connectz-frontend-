@@ -5,6 +5,7 @@
 // file; the take goes up with genre, target range and difficulty, and comes
 // back scored out of 10 with what worked, what to fix, and one drill.
 import SocialBar from "../components/SocialBar.jsx";
+import KeyBadge from "../components/KeyBadge.jsx";
 import SendTo from "../components/SendTo.jsx";
 import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
 import EnginePick from "../components/EnginePick.jsx";
@@ -1710,6 +1711,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           {isVideo
             ? <video src={url} controls playsInline className="w-full rounded-lg" />
             : <audio src={url} controls className="w-full" />}
+          {!isVideo && <KeyBadge url={url} auto />}
           {/* What is actually in the take, measured by us.
               The player says 0:00 / 0:00 on a perfectly good recording,
               every time: a MediaRecorder WebM carries no Duration in its

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Volume2 } from "lucide-react";
 import { SCALES, scaleNotes, diatonicChords, noteFreq } from "../scales.js";
+import { onHandoff } from "../handoff.js";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -149,6 +150,14 @@ function ChordZ() {
   const notesInKey = scaleNotes(rootNote, scaleKey);
   const chordsInKey = diatonicChords(rootNote, scaleKey);
   const [lit, setLit] = useState(-1);
+  // The key of a song somebody handed over (from PostZ, the coaches, a DAW bounce or Mix ConnectZ): shown in
+  // letters at the very top, and the chord root and scale follow it so everything below is already in that key.
+  const [songKey, setSongKey] = useState(null);
+  useEffect(() => onHandoff("chordz", (d) => {
+    if (!d?.root || !["major", "minor"].includes(d.mode) || !NOTES.includes(d.root)) return;
+    setSongKey({ root: d.root, mode: d.mode });
+    setRootNote(d.root); setScaleKey(d.mode); setChordType(d.mode === "minor" ? "minor" : "major");
+  }), []);
   const playNotes = (names) => {
     if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
     const ctx = audioContextRef.current;
@@ -216,6 +225,18 @@ function ChordZ() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-3 sm:p-8">
       <div className="mx-auto max-w-3xl">
+        {songKey && (
+          <div className="mb-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-center" data-tour="chordz-songkey" role="status">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-300">Key of your song · estimated</p>
+            <p className="mt-1 text-3xl font-extrabold text-white">{songKey.root} {songKey.mode}</p>
+            <p className="mt-1 flex flex-wrap justify-center gap-1.5">
+              {scaleNotes(songKey.root, songKey.mode).map((n, i) => (
+                <span key={n} className={`rounded px-2 py-0.5 text-sm font-bold ${i === 0 ? "bg-cyan-400 text-slate-900" : "bg-slate-700 text-slate-100"}`}>{n}</span>
+              ))}
+            </p>
+            <button type="button" className="mt-1 text-[11px] text-slate-400 underline" onClick={() => setSongKey(null)}>Clear</button>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-6 text-center sm:mb-12">
           <h1 className="mb-2 text-3xl font-bold text-white sm:text-5xl">ChordZ</h1>

@@ -2625,3 +2625,14 @@ ran out on the test account.
   same context as the chord player.
 - **"Whole kit on one page"** (DAW header) fires `mcz-kit`: MetZ, TunerZ, ChordZ and Sentence ConnectZ open as mini panes beside
   the DAW; again closes them. Minis already existed (`MAX_MINIS` 4, zoomed to 0.72, free at every tier).
+
+## Songs say their key — estimated, on the device, and it opens ChordZ
+
+`songKey.js` reads a recording's key (Goertzel energy per pitch class over C2..B6, Krumhansl-Kessler major/minor
+profiles in 12 rotations) with no upload and no charge; silence or no tonal content is `null`, never a guess, and every
+answer names its relative key because relative keys share every note and are how it goes wrong. `components/KeyBadge.jsx`
+sits under the audio in PostZ cards ("Find the key", on demand — a feed of forty cards must not decode forty songs),
+the coach's take player and result (automatic), a DAW bounce (automatic) and Mix ConnectZ's masters. The label says
+"estimated"; "Notes & chords in this key" hands the key to ChordZ, which shows it in letters at the very top with its
+notes, and sets the root, scale and chord type to it. Tested on synthesised tunes (C major, A minor, D major) and
+driven in a browser; **not tested on real mixes**, where drums and vocals blur the picture more than a test tone does.

@@ -3,6 +3,7 @@
 // on the shared engine. Everything runs on the member's device; nothing is uploaded until they press
 // Save to FileZ, and the screen says so before anything else.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import KeyBadge from "../components/KeyBadge.jsx";
 import {
   ArrowLeftRight, ChevronLeft, ChevronRight, Circle, Copy, Download, FolderOpen, Loader2, Minus, Play, Plus, Redo2, Save, Scissors,
   SkipBack, Square, Trash2, Undo2, Upload, Wand2,
@@ -961,6 +962,7 @@ export default function Workspace({ workflow }) {
         {bounced && (
           <div className="space-y-2">
             <audio src={bounced.url} controls className="w-full" />
+            <KeyBadge url={bounced.url} auto />
             <div className="flex flex-wrap items-center gap-2">
               <a className="re-btn !w-auto px-3" href={bounced.url} download={fileName()}><Download size={13} /> Download WAV ({mb.toFixed(1)} MB)</a>
               {!upload && (
