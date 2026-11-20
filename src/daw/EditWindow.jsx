@@ -16,7 +16,7 @@ import { useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
-import { PLUGINS } from "./plugins.js";
+import { PLUGINS, newInsert } from "./plugins.js";
 
 const HEADER_W = 168;
 const LANE_H = 98;
@@ -81,6 +81,7 @@ export default function EditWindow({
   const statzOk = !!(trial?.is_statz || trial?.active);
   const [looks, setLooks] = useState(null);      // the track whose name / emoji / colour panel is open
   const [fx, setFx] = useState(null);            // the track whose FX panel is open
+  const [fxMsg, setFxMsg] = useState("");
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
@@ -247,9 +248,33 @@ export default function EditWindow({
                 <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>
                 {fx === t.id && (
                   <div className="absolute left-0 top-full z-40 mt-1 w-64 space-y-2 rounded-lg border border-white/15 bg-[#12121c] p-2 shadow-xl" role="dialog" aria-label={`${t.name} effects`}>
-                    <p className="text-white/70">{(t.inserts || []).length ? (t.inserts || []).map((i) => `${PLUGINS[i.type]?.emoji || ""} ${PLUGINS[i.type]?.label || i.type}${i.on ? "" : " (off)"}`).join(" → ") : "No effects yet. Pick a preset, or open the mixer to add one."}</p>
+                    <p className="font-semibold text-white/80">{t.emoji} {t.name} effects</p>
+                    {(t.inserts || []).length === 0 && <p className="text-white/60">No effects yet. Pick a preset chain below, or add one effect at a time.</p>}
+                    <ul className="space-y-1">
+                      {(t.inserts || []).map((i, n) => (
+                        <li key={i.id || n} className="flex items-center gap-1 text-white/80">
+                          <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
+                          <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
+                          <button type="button" className="text-white/40 hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>✕</button>
+                        </li>
+                      ))}
+                    </ul>
+                    <label className="block text-white/60">Add an effect
+                      <select className="mt-0.5 w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value="" aria-label="Add an effect"
+                              onChange={(e) => {
+                                const type = e.target.value; if (!type) return;
+                                if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(`${PLUGINS[type].label} is a StatZ effect. Try StatZ free, or pick one without 🔒.`); return; }
+                                setFxMsg(""); onInserts(t.id, [...(t.inserts || []), newInsert(type)]);
+                              }}>
+                        <option value="">Choose an effect…</option>
+                        <optgroup label="Free">{Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}</optgroup>
+                        <optgroup label="StatZ">{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
+                      </select>
+                    </label>
+                    {fxMsg && <p className="text-mcz-gold">{fxMsg}</p>}
+                    <p className="text-white/60">Preset chains</p>
                     <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} />
-                    {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer</button>}
+                    {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
                   </div>
                 )}
               </div>

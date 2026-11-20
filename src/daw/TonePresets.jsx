@@ -60,7 +60,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
 
   return (
     <div className="space-y-1">
-      <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80" data-nomemo="true" value=""
+      <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value=""
               aria-label={`Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
         <option value="">🎛️ Tone…</option>
         {["tone", "fx"].map((k) => all.some((p) => p.kind === k) && (
