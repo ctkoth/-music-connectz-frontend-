@@ -2591,3 +2591,13 @@ A skill's experience is **years with one decimal** (`skillsUsed.decimalYears`, `
 `.5` is six months, so nobody does the sum. The line says when it STARTED (full date, or just the year when that
 is all the member gave, then "about") — never months. Who rated a skill, and on which post, is StatZ's (or the
 sample's): the server sends `raters` only then and `raters_locked` otherwise; the median and count stay everybody's.
+
+## The Grok mockups: what was matched, and what was deliberately not
+
+Matched app-wide through shared pieces: every rating row carries a progress bar under its number and stars
+(`RatingRow`), the coach's headline score is a ring (`RatingRing`, same `ratingTone` colours, no ring fill for a
+missing score), and `.re-card` is rounder. Big Record/Upload tiles: coach, composer recorder; larger primary
+controls on tuner, DAW record, interest voice and calls.
+NOT changed: the neon-tube button language, Corey's own icons, and the PickConnectZ dock / menu layout — the
+mockups are flat purple and the app's identity is the neon art he drew. Matching the flat look everywhere would be
+a redesign of every screen, which is his call.

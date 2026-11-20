@@ -9,7 +9,6 @@ import SendTo from "../components/SendTo.jsx";
 import AiEnergy, { useAiEnergy } from "../components/AiEnergy.jsx";
 import EnginePick from "../components/EnginePick.jsx";
 import { ENERGY } from "../resources.js";
-import { CountUp } from "../components/Ticker.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Loader2, Mic, Play, Share2, Square, Trash2, Upload, Video } from "lucide-react";
@@ -22,7 +21,7 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
-import { RatingGrid, RatingStars } from "./../components/Rating.jsx";
+import { RatingGrid, RatingRing, RatingStars } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
@@ -1954,12 +1953,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
             </p>
           )}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="flex flex-col items-start gap-1.5">
-              <span className={`font-display text-8xl font-extrabold leading-none [filter:drop-shadow(0_0_10px_currentColor)] ${scoreColor(result.score)}`}>
-                {typeof result.score_exact === "number" ? result.score_exact.toFixed(1)
-                  : typeof result.score === "number" ? <CountUp to={result.score} /> : result.score}<span className="text-2xl text-white/30">/10</span>
-              </span>
-              <RatingStars size="xl" value={result.score} exact={result.score_exact} />
+            <span className="mx-auto flex flex-col items-center gap-1.5">
+              <RatingRing value={result.score} exact={result.score_exact} size={176} label="Overall score" />
             </span>
             <p className="min-w-[12rem] flex-1 text-[13px] leading-relaxed text-white/80">{result.verdict}</p>
           </div>

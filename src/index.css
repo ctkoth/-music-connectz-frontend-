@@ -134,7 +134,7 @@ body {
   /* RepostExchange-inspired layer: flat surfaces, one orange accent,
      uppercase section labels, honest microcopy. Simplicity + transparency. */
   .re-card {
-    @apply rounded-xl border border-white/[0.06] bg-white/[0.03] p-4;
+    @apply rounded-2xl border border-white/[0.08] bg-white/[0.04] p-4;
   }
   .re-label {
     @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55;
