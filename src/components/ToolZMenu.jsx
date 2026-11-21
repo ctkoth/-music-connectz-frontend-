@@ -567,7 +567,6 @@ export default function ToolZMenu() {
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <h1>MusicConnectZ.Net</h1>
-        <p className="toolz-subtitle">✨ AI Coaching & Gamified👾 way to make professional💲 portfolio📑 of your music🎶 related work❓</p>
         <p className="toolz-subtitle">
           {FOCUS_MODE ? '🎤 Score a take. Send it again. Watch the number move.' : '🧰 Every app, one place'}
         </p>
@@ -582,47 +581,25 @@ export default function ToolZMenu() {
         </>
       )}
 
-      {/* SkillZ, featured: the coaches' home, with Corey's art large. Not one tile among fifteen. */}
-      {FOCUS_MODE && <FeaturedSkillZ onOpen={setSelectedCategory} />}
-
-      {FOCUS_MODE && (
-        <div className="category-grid" data-tour="home-pinned" style={{ marginBottom: 14 }}>
-          {HOME_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
-          {HOME_APPS.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
-        </div>
-      )}
-
-      {FOCUS_MODE && mine.apps.filter((k) => !HOME_APPS.includes(k)).length > 0 && (
+      {/* One home: your apps (once you have some), then every coach and tool in one grid.
+          Everything else is one tap behind More apps. */}
+      {FOCUS_MODE && mine.apps.length > 0 && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
           <div className="category-grid">
-            {mine.apps.filter((k) => !HOME_APPS.includes(k)).map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
+            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
-          {mine.own && (
-            <button className="toolz-more-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
-              {showAll ? 'Hide the coaches & tools' : 'All coaches & tools'}
-            </button>
-          )}
         </>
       )}
 
-      {FOCUS_MODE && (!mine.own || showAll) && (
+      {FOCUS_MODE && (
         <>
-          <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
-          <div className="category-grid">
+          <div className="category-grid" data-tour="home-pinned" style={{ margin: '14px 0' }}>
             {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
-            {/* SkillZ is the coaches' own skill tree: a coach app, so it sits with them. */}
-            {FOCUS_COACH_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
-          </div>
-          <p className="toolz-subtitle" style={{ margin: '20px 0 8px' }}>Around the coach</p>
-          <div className="category-grid">
-            {FOCUS_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+            {[...FOCUS_COACH_PARENTS, ...FOCUS_PARENTS].map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
             {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
-          <button
-            className="toolz-more-button"
-            onClick={() => setShowMore((v) => !v)}
-          >
+          <button className="toolz-more-button" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
             {showMore ? 'Hide the other apps' : `More apps (${CATEGORIES.length} categories)`}
           </button>
         </>
@@ -644,23 +621,6 @@ export default function ToolZMenu() {
       </div>
       )}
 
-      {/* Quick Stats */}
-      {showMore && (
-      <div className="toolz-stats">
-        <div className="stat-item">
-          <span className="stat-icon">🎵</span>
-          <span>{CATEGORIES.length} Categories</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-icon">👥</span>
-          <span>{countLine(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c)), true)}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-icon">⭐</span>
-          <span>Explore & Create</span>
-        </div>
-      </div>
-      )}
       <p className="mt-6 pb-2 text-center"><VersionBadge /></p>
     </div>
   );

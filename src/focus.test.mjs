@@ -59,12 +59,11 @@ test("the home screen's parents are each a real category with art, offered up fr
   assert.ok(inFocus("intelligencez"));
 });
 
-test("the parents lead the Around-the-coach grid and SkillZ ends the coach grid", () => {
+test("one home grid: coaches, then SkillZ and the parents, then the support apps", () => {
   const coach = menu.indexOf("FOCUS_COACHES.map");
-  const hubs = menu.indexOf("FOCUS_COACH_PARENTS.map");
-  const parents = menu.indexOf("FOCUS_PARENTS.map");
+  const hubs = menu.indexOf("...FOCUS_COACH_PARENTS, ...FOCUS_PARENTS");
   const support = menu.indexOf("FOCUS_SUPPORT.map");
-  assert.ok(coach < hubs && hubs < parents && parents < support);
+  assert.ok(coach > 0 && coach < hubs && hubs < support);
 });
 
 test("Corey's home screen set is always shown: real categories and real tabs", async () => {
