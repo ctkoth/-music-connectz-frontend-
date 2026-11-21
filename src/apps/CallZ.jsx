@@ -16,6 +16,7 @@
 // this backend runs gunicorn with no ASGI and no channels layer, so there are
 // no WebSockets to signal over. Polling costs a few seconds at connect and
 // nothing afterwards — the audio never touches the server.
+import PlansLink from "../components/PlansLink.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onHandoff } from "../handoff.js";
 import { Loader2, Phone, PhoneOff, PhoneIncoming, Mic, MicOff, AlertTriangle } from "lucide-react";
@@ -367,6 +368,7 @@ export default function CallZ() {
                   Placing a call is a <b className="text-white/85">StatZ</b> perk — your tier is{" "}
                   <span className="uppercase">{quote.tier}</span>. Answering one is free at
                   every tier, and it pays you.
+                  <PlansLink label="🔒 See StatZ" />
                 </p>
               )}
               {quote.stun_only && (

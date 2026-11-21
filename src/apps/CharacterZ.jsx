@@ -8,6 +8,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
+import PlansLink from "../components/PlansLink.jsx";
 import { onHandoff } from "../handoff.js";
 import LoadGate from "../components/LoadGate.jsx";
 import Empty from "../components/Empty.jsx";
@@ -133,7 +134,7 @@ export default function CharacterZ() {
         </h2>
         <p className="text-sm text-white/60">A face, a personality and a voice. MangaZ draws them and writes their lines in that voice.</p>
         <p className="text-[11px] text-white/55">{d.characters.length} / {d.limit} on your plan
-          {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}</p>
+          {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}{d.tiers?.statz > d.limit && <> <PlansLink /></>}</p>
       </div>
       {edit ? (
         <Editor d={d} start={edit === "new" ? null : edit} onCancel={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />

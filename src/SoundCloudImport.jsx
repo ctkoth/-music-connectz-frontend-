@@ -1,3 +1,4 @@
+import PlansLink from "./components/PlansLink.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Download } from "lucide-react";
 import { api } from "./api.js";
@@ -126,6 +127,7 @@ export default function SoundCloudImport({ clientId: given = "", compact = false
           <span className="text-[11px] text-white/50">
             Leave it blank for {info.whole_catalogue || info.max_tracks == null ? "your whole library" : `your plan's ${info.max_tracks}`}.
             Fewer in means fewer drafts to sort afterwards.
+            {!(info.whole_catalogue || info.max_tracks == null) && <PlansLink />}
           </span>
         </label>
       )}

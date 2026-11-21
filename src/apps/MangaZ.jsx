@@ -1,3 +1,4 @@
+import PlansLink from "../components/PlansLink.jsx";
 import InspirationRef from "../components/InspirationRef.jsx";
 import MangaPageDesigner from "../components/MangaPageDesigner.jsx";
 // MangaZ — AI pages from your CharacterZ and your idea.
@@ -157,6 +158,7 @@ export default function MangaZ() {
             ))}
             <button className="re-link text-[12px]" onClick={() => goToSpot("characterz", "")}>+ character</button>
             <span className="text-[11px] text-white/60">{picked.length} of {s.max_characters} on a page{s.max_characters < 10 ? " · Premium 6, StatZ every one" : ""}</span>
+            {s.max_characters < 10 && <PlansLink />}
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens on this page?"
                     value={idea} onChange={(e) => setIdea(e.target.value)} aria-label="Idea" />

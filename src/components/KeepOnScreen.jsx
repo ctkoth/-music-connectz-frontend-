@@ -5,6 +5,7 @@
 // counts once however many times it is switched off and on. The number, the wording of a refusal and the
 // next plan's allowance are the server's; this decides nothing. A tier buys how OFTEN, never whether the
 // session runs — past the number the session is untouched and BodieZ still shows everything.
+import PlansLink from "./PlansLink.jsx";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { floatPrice } from "../sessionHold.js";
@@ -55,7 +56,7 @@ export default function KeepOnScreen({ session, on, onChange, onKept }) {
         {price?.text && <span className="text-xs text-emerald-300">{price.text}</span>}
       </div>
       {price && !blocked && <p className="text-[11px] text-white/60">{price.free} Open any app and a bar shows your rest and the next lift; the session keeps running.</p>}
-      {blocked && <p className="text-[11px] text-amber-300/90">{blocked}</p>}
+      {blocked && <p className="text-[11px] text-amber-300/90">{blocked}<PlansLink /></p>}
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
     </div>
   );

@@ -2,6 +2,7 @@
 // Free 3, Premium 6, StatZ unlimited). It decides nothing: the count and the next plan's number come
 // from /limits/. Colours beyond the count are SHOWN, locked, with the plan that has them, because a
 // choice the member cannot see is one they cannot want.
+import PlansLink from "./PlansLink.jsx";
 import { useEffect, useState } from "react";
 import { PALETTE, apply, effective, load, room, save } from "../glow.js";
 import { loadLimits } from "../limits.js";
@@ -34,6 +35,7 @@ export default function GlowColor() {
         Your plan has {cap == null ? "every color" : `${cap} of ${PALETTE.length}`}
         {cap != null && (next ? ` — Premium has ${next}, StatZ has every one.` : " — StatZ has every one.")}
         {" "}Free to change; it only changes the neon on your screen, on this device.
+        {cap != null && <PlansLink />}
       </p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Glow color">
         {PALETTE.map((c, i) => {
