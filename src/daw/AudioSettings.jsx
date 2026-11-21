@@ -137,6 +137,19 @@ export default function AudioSettings({ daw, onUseInput }) {
             </p>
           </div>
         )}
+        <details className="rounded border border-white/10 bg-black/20 px-2 py-1" data-tour="audio-troubleshoot">
+          <summary className="cursor-pointer text-white/80">Hear nothing, or the mic bar stays flat? Check these, in order</summary>
+          <ol className="mt-1 list-decimal space-y-1 pl-4 text-white/70">
+            <li><b>Restart Chrome.</b> Close every Chrome window and open it again. Chrome's audio can get stuck after a device is plugged in or unplugged or after another app takes the mic, and nothing short of a restart clears it.</li>
+            <li><b>Close apps that listen to the mic:</b> Windows Voice Access (Win + Ctrl + S turns it off), Zoom, Teams, OBS, Discord, other browser tabs.</li>
+            <li><b>Windows sound settings</b> (Settings, System, Sound): pick the right <b>Input</b> and watch "Test your microphone" move when you talk. Pick the right <b>Output</b>.</li>
+            <li><b>Volume mixer:</b> right-click the speaker icon, Open volume mixer, and make sure Chrome isn't muted or at zero.</li>
+            <li><b>Microphone privacy:</b> Settings, Privacy &amp; security, Microphone: allow apps and Chrome to use it.</li>
+            <li><b>Exclusive mode:</b> in Sound, open your mic and speaker's Properties, Advanced, and untick "Allow applications to take exclusive control" so Chrome can share the device.</li>
+            <li><b>Chrome's site settings:</b> click the icon at the left of the address bar, Site settings: Sound and Microphone should be Allow, and the mic should be the one you mean.</li>
+            <li>Then press <b>🔊 Test sound</b> above. If you hear it, the speakers are fine. Arm a track and talk: the bar should move.</li>
+          </ol>
+        </details>
         {err && <p className="text-mcz-ember">{err}</p>}
       </div>
     </details>
