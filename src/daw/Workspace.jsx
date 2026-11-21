@@ -41,6 +41,7 @@ import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
 import { goToSpot } from "../goto.js";
+import { isLimitMessage } from "../limitHint.js";
 const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft" };
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
@@ -1131,8 +1132,8 @@ export default function Workspace({ workflow }) {
       {(busy || msg || err) && (
         <div className="text-xs" role="status">
           {busy && <p className="text-white/60"><Loader2 size={12} className="mr-1 inline animate-spin" />{busy}</p>}
-          {msg && <p className="text-emerald-300">{msg}</p>}
-          {err && <p className="text-mcz-ember">{err}</p>}
+          {msg && <p className="text-emerald-300">{msg}{isLimitMessage(msg) && <button type="button" className="re-btn ml-2 !w-auto px-2 py-0.5" onClick={() => goToSpot("membershipz", "membershipz-plans")}>🔒 See plans</button>}</p>}
+          {err && <p className="text-mcz-ember">{err}{isLimitMessage(err) && <button type="button" className="re-btn ml-2 !w-auto px-2 py-0.5" onClick={() => goToSpot("membershipz", "membershipz-plans")}>🔒 See plans</button>}</p>}
         </div>
       )}
 
