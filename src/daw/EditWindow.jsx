@@ -12,7 +12,7 @@ import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
 import { KeyChip } from "../components/KeyBadge.jsx";
-import { useStatzTrial } from "../components/StatzSample.jsx";
+import { StatzSample as StatzOffer, useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
@@ -78,7 +78,7 @@ export default function EditWindow({
   session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -152,7 +152,11 @@ export default function EditWindow({
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
         <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55">
           <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
-          <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title="Add a track" aria-label="Add a track"><Plus size={14} /></button>
+          {atTrackCap && onUpgrade ? (
+            <button type="button" className="rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}
+                    title="You are at your plan's track limit. See what the next plan holds." aria-label="Track limit reached: see plans">🔒 Upgrade</button>
+          ) : null}
+          <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title={atTrackCap ? "At your plan's track limit" : "Add a track"} aria-label="Add a track"><Plus size={14} /></button>
         </div>
         {session.tracks.map((t) => (
           <div key={t.id} className="relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
@@ -273,7 +277,7 @@ export default function EditWindow({
                       <select className="mt-0.5 w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value="" aria-label="Add an effect"
                               onChange={(e) => {
                                 const type = e.target.value; if (!type) return;
-                                if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(`${PLUGINS[type].label} is a StatZ effect. Try StatZ free, or pick one without 🔒.`); return; }
+                                if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(PLUGINS[type].label); return; }
                                 setFxMsg(""); onInserts(t.id, [...(t.inserts || []), newInsert(type)]);
                               }}>
                         <option value="">Choose an effect…</option>
@@ -281,7 +285,12 @@ export default function EditWindow({
                         <optgroup label="StatZ">{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
                       </select>
                     </label>
-                    {fxMsg && <p className="text-mcz-gold">{fxMsg}</p>}
+                    {fxMsg && (
+                      <div className="space-y-1">
+                        <p className="text-mcz-gold">🔒 {fxMsg} is a StatZ effect. Free effects: EQ, compressor, delay, reverb, filter, gain.</p>
+                        <StatzOffer what={`${fxMsg} (a StatZ effect)`} />
+                      </div>
+                    )}
                     <p className="text-white/60">FX chains — a whole set of effects in one pick (voice, guitar, bass, keys, drums, mix, plus your own). It replaces this track's effects; Undo brings them back.</p>
                     <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
                                 placeholder="🎛️ Pick an FX chain…" ariaLabel={`Put an FX chain on ${t.name}`} />

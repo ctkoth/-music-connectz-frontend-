@@ -40,6 +40,7 @@ import {
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
+import { goToSpot } from "../goto.js";
 const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft" };
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
@@ -1068,6 +1069,7 @@ export default function Workspace({ workflow }) {
           monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor} levels={levels}
           onAudioSettings={() => window.dispatchEvent(new Event("mcz-audio-settings"))}
           trackLabel={tierCap == null ? "" : `${session.tracks.length} of ${tierCap}`}
+          atTrackCap={tierCap != null && session.tracks.length >= tierCap} onUpgrade={() => goToSpot("membershipz", "membershipz-plans")}
           onRemoveTrack={(id) => { if (window.confirm("Remove this track and every take on it?")) { commit((s) => removeTrack(s, id)); restartIfPlaying(); } }}
           onPlaylist={(id, op) => {
             if (op.type === "switch") commit((s) => switchPlaylist(s, id, op.index));

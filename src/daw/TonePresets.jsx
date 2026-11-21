@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Save, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
+import { StatzSample } from "../components/StatzSample.jsx";
 import { KIND_LABEL, STARTERS, chainNeedsStatz, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
 
 export function useTonePresets() {
@@ -31,6 +32,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
   const [kind, setKind] = useState("tone");      // save as a track TONE or a track FX chain — each has its own ceiling
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [lock, setLock] = useState("");        // a StatZ chain chosen without StatZ: shown with the offer to try it or upgrade
   // In the narrow track header the confirmation is one trimmed line that clears itself: a paragraph there grows the block
   // and pushes the FX button out of the track's visible height (found when a picked tone made FX vanish).
   useEffect(() => {
@@ -44,15 +46,16 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
   const same = mine.find((p) => p.name.toLowerCase() === name.trim().toLowerCase());
 
   const pick = (value) => {
-    setErr(""); setMsg("");
+    setErr(""); setMsg(""); setLock("");
     const [kind, key] = value.split(":");
+    const locked = (name) => { if (compact) setErr(`🔒 ${name} is a StatZ chain. Open FX to try it free.`); else setLock(name); };
     if (kind === "s") {
       const s = STARTERS.find((x) => x.key === key);
-      if (s && s.statz && !statzOk) { setErr(`${s.name} uses StatZ's plugin-grade effects. Try StatZ free, or pick a starter without 🔒.`); return; }
+      if (s && s.statz && !statzOk) { locked(s.name); return; }
       if (s) { onApply(chainToInserts(s.chain())); setMsg(`${s.name}: ${s.what} It replaced this track's effects (Undo brings them back).`); }
     } else if (kind === "m") {
       const p = all.find((x) => String(x.id) === key);
-      if (p && chainNeedsStatz(p.chain) && !statzOk) { setErr(`"${p.name}" holds StatZ's plugin-grade effects, so it plays again with StatZ or the daily sample.`); return; }
+      if (p && chainNeedsStatz(p.chain) && !statzOk) { locked(p.name); return; }
       if (p) { onApply(chainToInserts(p.chain)); setMsg(`${p.name} is on ${trackName}, in place of its effects (Undo brings them back).`); }
     }
   };
@@ -113,6 +116,12 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
           Your plan keeps {state.limit} {KIND_LABEL[kind].toLowerCase()} presets — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
           <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button>
         </p>
+      )}
+      {lock && (
+        <div className="space-y-1">
+          <p className="text-mcz-gold">🔒 {lock} uses StatZ's plugin-grade effects (de-esser, saturation, glue, limiter, pro reverb and delay). It's free to try, and the free chains have no lock.</p>
+          <StatzSample what={`${lock} (a StatZ chain)`} />
+        </div>
       )}
       {msg && <p className={`text-emerald-300 ${compact ? "truncate" : ""}`} title={compact ? msg : undefined} role="status">{msg}</p>}
       {err && <p className={`text-mcz-ember ${compact ? "truncate" : ""}`} title={compact ? err : undefined} role="alert">{err}</p>}
