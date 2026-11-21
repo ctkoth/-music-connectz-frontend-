@@ -1,3 +1,4 @@
+import DeviceCopy from "../components/DeviceCopy.jsx";
 import Doors from "../components/Doors.jsx";
 import KeyBadge from "../components/KeyBadge.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -460,13 +461,14 @@ export default function MixConnectZ() {
         seconds: a.seconds, sampleRate: a.sampleRate, channels: a.channels, clippedSamples: a.clippedSamples,
         bands: a.bands,
       });
-      await api("/api/economy/mixz/", { method: "POST", body: {
+      const made = await api("/api/economy/mixz/", { method: "POST", body: {
         title, upload_id: uploadId,
         settings: { ...result.settings, bitDepth: depth, dither: depth === 16 && dither, reference: !!ref,
           format: outFmt, kbps: outFmt === "mp3" ? kbps : undefined, exportRate: outRate },
         before: pick(result.before), after: pick(result.after),
       } });
-      setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage.`);
+      if (made?.id) import("../deviceVault.js").then((v) => v.aliasCopy("mixz", made.id, "upload", uploadId)).catch(() => {});
+      setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage. A copy is also kept on this device in case the server loses it.`);
       load();
     } catch (e) {
       // The server's own sentence: over the per-file cap, out of storage, or
@@ -887,7 +889,7 @@ export default function MixConnectZ() {
               </span>
             </div>
             {m.missing
-              ? <p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p>
+              ? <><p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p><DeviceCopy kind="mixz" id={m.id} name={m.title} /></>
               : m.url && <><audio controls preload="none" src={m.url} className="w-full" /><KeyBadge url={m.url} /></>}
             <div className="flex flex-wrap gap-3 text-xs">
               {m.url && !m.missing && <a className="re-link" href={m.url} download>Download</a>}
