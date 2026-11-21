@@ -889,7 +889,7 @@ export default function MixConnectZ() {
               </span>
             </div>
             {m.missing
-              ? <><p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p><DeviceCopy kind="mixz" id={m.id} name={m.title} /></>
+              ? <><p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p><DeviceCopy kind="mixz" id={m.id} name={m.title} onRestored={load} /></>
               : m.url && <><audio controls preload="none" src={m.url} className="w-full" /><KeyBadge url={m.url} /></>}
             <div className="flex flex-wrap gap-3 text-xs">
               {m.url && !m.missing && <a className="re-link" href={m.url} download>Download</a>}

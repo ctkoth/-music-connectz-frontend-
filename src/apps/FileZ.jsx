@@ -220,7 +220,7 @@ export default function FileZ() {
                   <button className="re-link" onClick={() => goToSpot("postz", "post-compose")}>Upload it again</button>
                 </p>
               )}
-              {isGone(u) && <DeviceCopy kind="upload" id={u.id} name={u.name} />}
+              {isGone(u) && <DeviceCopy kind="upload" id={u.id} name={u.name} onRestored={load} />}
               {!isGone(u) && failed.has(u.id) && (
                 <p className="rounded-lg bg-white/5 p-3 text-sm text-white/75" role="status">
                   This didn't load on your device. That can be a slow connection or a file that is gone from the
