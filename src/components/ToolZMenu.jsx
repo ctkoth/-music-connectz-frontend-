@@ -434,15 +434,9 @@ export default function ToolZMenu() {
   // Focus mode: the coach leads and the thirteen categories wait behind one
   // tap. They are all still here — see focus.js for why they are not offered.
   const [showMore, setShowMore] = useState(!FOCUS_MODE);
-  // Two ways into the same apps: by the instrument you play, or by what you need.
-  // The choice is a per-device convenience, so storage failing changes nothing.
-  const [lens, setLens] = useState(() => {
-    try { return localStorage.getItem('mcz-home-lens') === 'need' ? 'need' : 'instrument'; } catch { return 'instrument'; }
-  });
-  const pickLens = (v) => {
-    setLens(v);
-    try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
-  };
+  // "What I need" is an alternative way in, not a second layout: one icon home
+  // for everybody, and a collapsed search beside it. Per-device, so storage failing changes nothing.
+  const [showNeeds, setShowNeeds] = useState(false);
   const openFocus = (key) => goToSpot(key, `${key}:main`);
   // Read once per visit to the home screen: what this member uses leads, the rest folds away.
   const [mine] = useState(yourAppsNow);
@@ -580,23 +574,12 @@ export default function ToolZMenu() {
       </div>
 
       {FOCUS_MODE && (
-        <div role="tablist" aria-label="How to find an app" className="toolz-lens"
-             style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
-          {/* Corey's art carries the words, so the alt text says them too. */}
-          {[['instrument', 'By what I do', '/icons/what.i.do.jpg'],
-            ['need', 'By what I need', '/icons/what.i.need.jpg']].map(([k, text, art]) => (
-            <button key={k} role="tab" aria-selected={lens === k} aria-label={text} title={text}
-              className={`category-card ${lens === k ? 'cyan' : ''}`}
-              style={{ padding: 4, opacity: lens === k ? 1 : 0.55, width: 'min(42vw, 190px)' }}
-              onClick={() => pickLens(k)}>
-              <img src={art} alt={text} style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 10, display: 'block' }} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {FOCUS_MODE && lens === 'need' && (
-        <NeedsView onOpen={openFocus} />
+        <>
+          <button className="toolz-more-button" aria-expanded={showNeeds} onClick={() => setShowNeeds((v) => !v)}>
+            {showNeeds ? 'Hide: find an app by what I need' : '🔎 Find an app by what I need'}
+          </button>
+          {showNeeds && <NeedsView onOpen={openFocus} />}
+        </>
       )}
 
       {/* SkillZ, featured: the coaches' home, with Corey's art large. Not one tile among fifteen. */}
@@ -623,7 +606,7 @@ export default function ToolZMenu() {
         </>
       )}
 
-      {FOCUS_MODE && lens === 'instrument' && (!mine.own || showAll) && (
+      {FOCUS_MODE && (!mine.own || showAll) && (
         <>
           <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
           <div className="category-grid">
