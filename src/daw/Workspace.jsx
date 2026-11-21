@@ -53,6 +53,7 @@ import { newInsert } from "./plugins.js";
 import { shiftTrack } from "./align.js";
 import SkillsUsed from "../SkillsUsed.jsx";
 import AudioSettings from "./AudioSettings.jsx";
+import OutputPick from "./OutputPick.jsx";
 import { holdPeak, latencyMs, levelFromSamples, meterPos } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
@@ -925,6 +926,7 @@ export default function Workspace({ workflow }) {
         </span>
         <span className="rounded bg-black/60 px-2 py-1 font-mono text-sm tabular-nums text-emerald-300">{barsBeats(session, playhead)}</span>
         <span className="font-mono tabular-nums text-white/60">{minSec(playhead)} / {minSec(len)}</span>
+        <OutputPick daw={daw} />
         {playing && outDb != null && (
           <span className="flex items-center gap-1 text-[11px]" role="status" title="The level of the mix the app is sending to your output">
             <span className="text-white/60">🔊</span>
@@ -932,7 +934,7 @@ export default function Workspace({ workflow }) {
               <span className={`absolute inset-y-0 left-0 ${outDb < -60 ? "bg-white/20" : outDb > -1 ? "bg-red-500" : "bg-emerald-400"}`} style={{ width: `${meterPos(outDb) * 100}%` }} />
             </span>
             <span className={silentFor > 1.5 ? "text-mcz-ember" : "text-white/60"}>
-              {silentFor > 1.5 ? "Mix is silent — check track mute, faders and effects" : `${outDb < -60 ? "—" : `${Math.round(outDb)} dB`} · if you hear nothing, check your output below`}
+              {silentFor > 1.5 ? "Mix is silent — check track mute, faders and effects" : `${outDb < -60 ? "—" : `${Math.round(outDb)} dB`} · if you hear nothing, check the 🎧 output menu`}
             </span>
           </span>
         )}

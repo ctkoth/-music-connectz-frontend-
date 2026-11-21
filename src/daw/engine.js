@@ -17,6 +17,7 @@ import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
 import { limiterWorkletSource } from "./limiterDsp.js";
+import { cleanLatencyMode } from "./audioIO.js";
 
 const CAPTURE_WORKLET = `
 class Capture extends AudioWorkletProcessor {
@@ -175,8 +176,9 @@ export function createDaw() {
   let masterMeter = null;
   const scratch = new Float32Array(1024);
 
+  const readMode = () => { try { return cleanLatencyMode(localStorage.getItem("mcz_daw_latency")); } catch { return "interactive"; } };
   const audio = () => {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" });
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: readMode() });
     return ctx;
   };
 
@@ -463,9 +465,23 @@ export function createDaw() {
   async function setOutput(id) {
     const c = audio();
     if (typeof c.setSinkId !== "function") return { ok: false };
-    await c.setSinkId(id || "");
+    // Pause the engine around the switch: changing the device under a running stream is where the click or burst of static comes from.
+    // Suspended, nothing is being written to either device while the route changes, and it resumes on the new one at once.
+    const was = c.state === "running";
+    if (was) await c.suspend();
+    try { await c.setSinkId(id || ""); } finally { if (was) await c.resume(); }
     return { ok: true };
   }
+  /** Choose the engine's buffer size ("interactive" | "balanced" | "playback"). It only takes effect when the engine starts, so the engine is
+   *  closed and made again on next use; the caller makes sure nothing is playing or recording. */
+  async function setLatencyMode(mode) {
+    const m = cleanLatencyMode(mode);
+    try { localStorage.setItem("mcz_daw_latency", m); } catch { /* storage blocked */ }
+    monitorOff();
+    if (ctx) { const old = ctx; ctx = null; masterMeter = null; graph = null; try { await old.close(); } catch { /* already closed */ } }
+    return m;
+  }
+  const latencyMode = readMode;
   /** What the audio engine is doing, for the screen: running or blocked, its rate, and the browser's own output delay. */
   function audioInfo() {
     const c = ctx;
@@ -483,7 +499,7 @@ export function createDaw() {
   }
   const outputCanChange = () => typeof (typeof AudioContext !== "undefined" ? AudioContext.prototype.setSinkId : undefined) === "function";
   return {
-    inputMeter, monitorOn, monitorOff, setOutput, outputCanChange, audioInfo, testTone, context: () => audio(),
+    inputMeter, monitorOn, monitorOff, setOutput, setLatencyMode, latencyMode, outputCanChange, audioInfo, testTone, context: () => audio(),
     decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,

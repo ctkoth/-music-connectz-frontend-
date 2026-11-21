@@ -5,42 +5,41 @@
 // Hearing yourself is OFF by default and says why: a mic beside speakers feeds back, and the browser adds a delay you will
 // hear. Outputs can only be chosen where the browser allows it (Chrome and Edge); the screen says when it does not.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Headphones, Mic, Volume2 } from "lucide-react";
-import { FLOOR_DB, holdPeak, latencyMs, levelAdvice, levelFromSamples, meterPos } from "./audioIO.js";
+import { Mic, Volume2 } from "lucide-react";
+import { FLOOR_DB, LATENCY_MODES, holdPeak, latencyMs, levelAdvice, levelFromSamples, meterPos } from "./audioIO.js";
 
 const TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
 export default function AudioSettings({ daw, onUseInput }) {
   const box = useRef(null);
   const [inputs, setInputs] = useState([]);
-  const [outputs, setOutputs] = useState([]);
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
   const [on, setOn] = useState(false);
   const [mon, setMon] = useState(false);
   const [lat, setLat] = useState(null);
   const [lvl, setLvl] = useState({ peakDb: FLOOR_DB, held: FLOOR_DB, clipped: false });
   const [err, setErr] = useState("");
   const [info, setInfo] = useState(null);
-  const stream = useRef(null);
+  const [mode, setMode] = useState(() => daw.latencyMode());
+  const changeMode = async (e) => {
+    setErr("");
+    if (daw.isPlaying() || daw.isRecording()) { setErr("Stop playing or recording first: the audio quality changes when the audio engine restarts."); return; }
+    stop();
+    setMode(await daw.setLatencyMode(e.target.value));
+    setInfo(null);
+  };  const stream = useRef(null);
   const meter = useRef(null);
   const raf = useRef(0);
-  const canOut = daw.outputCanChange();
   // Open (and bring into view) when a track's level bar is tapped, and remember the chosen output on this device.
   useEffect(() => {
     const f = () => { if (box.current) { box.current.open = true; box.current.scrollIntoView({ block: "center", behavior: "smooth" }); } };
     window.addEventListener("mcz-audio-settings", f);
     return () => window.removeEventListener("mcz-audio-settings", f);
   }, []);
-  useEffect(() => {
-    let saved = ""; try { saved = localStorage.getItem("mcz_daw_output") || ""; } catch { /* storage blocked */ }
-    if (saved && canOut) { setOutput(saved); daw.setOutput(saved).catch(() => {}); }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const list = useCallback(() => navigator.mediaDevices?.enumerateDevices?.().then((ds) => {
     // Every device the browser names, "Default" ones included: the Windows default is often the one that is not the mic you mean.
     setInputs(ds.filter((d) => d.kind === "audioinput"));
-    setOutputs(ds.filter((d) => d.kind === "audiooutput"));
   }).catch(() => {}), []);
   useEffect(() => { list(); navigator.mediaDevices?.addEventListener?.("devicechange", list); return () => navigator.mediaDevices?.removeEventListener?.("devicechange", list); }, [list]);
 
@@ -84,10 +83,6 @@ export default function AudioSettings({ daw, onUseInput }) {
     if (!window.confirm("Hear yourself through the output? Use headphones: a mic next to speakers will squeal. You may also hear a small delay.")) return;
     try { await daw.monitorOn(stream.current); setMon(true); setLat(latencyMs(daw.context())); } catch (e) { setErr(e?.message || "Couldn't start monitoring."); }
   };
-  const chooseOutput = async (id) => {
-    setOutput(id); setErr("");
-    try { const r = await daw.setOutput(id); if (!r.ok) setErr("This browser can't switch the output; it uses the system's current one."); } catch (e) { setErr(e?.message || "Couldn't switch the output."); }
-  };
 
   const a = levelAdvice(lvl.held, lvl.clipped);
   return (
@@ -101,13 +96,15 @@ export default function AudioSettings({ daw, onUseInput }) {
               {inputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
             </select>
           </label>
-          <label className="flex items-center gap-1 text-white/60"><Headphones size={11} /> Output
-            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={output} aria-label="Output device" disabled={!canOut} onChange={(e) => { try { localStorage.setItem("mcz_daw_output", e.target.value); } catch { /* storage blocked */ } chooseOutput(e.target.value); }}>
-              <option value="">System default</option>
-              {outputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Output ${i + 1}`}</option>)}
+          <span className="text-white/60">Output is the 🎧 menu beside the transport.</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-1 text-white/60">Audio quality
+            <select className="neon-input !w-auto !py-1 [color-scheme:dark]" data-nomemo="true" aria-label="Audio quality" value={mode} onChange={changeMode} title={LATENCY_MODES[mode].what}>
+              {Object.entries(LATENCY_MODES).map(([k, m]) => <option key={k} value={k}>{m.label}</option>)}
             </select>
           </label>
-          {!canOut && <span className="text-white/50">This browser plays through the system output; Chrome or Edge can switch it here.</span>}
+          <span className="text-white/50">{LATENCY_MODES[mode].what} Bluetooth headphones add their own delay (often 150 to 250 ms) that no app can remove; use wired headphones to record.</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" className="re-btn !w-auto px-3" onClick={test}><Volume2 size={12} /> 🔊 Test sound</button>

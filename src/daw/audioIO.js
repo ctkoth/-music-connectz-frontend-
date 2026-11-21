@@ -28,6 +28,19 @@ export function levelAdvice(peakDb, clipped) {
 /** Position 0..1 along a meter that runs from the floor to 0 dBFS. */
 export const meterPos = (db) => Math.min(1, Math.max(0, (db - FLOOR_DB) / -FLOOR_DB));
 
+/** How the browser sizes its audio buffer. A smaller one answers sooner and is more likely to crackle on a slower computer or over Bluetooth;
+ *  a bigger one never crackles and answers later. It can only be chosen when the audio engine starts, so changing it restarts the engine
+ *  (while nothing is playing or recording). */
+export const LATENCY_MODES = {
+  interactive: { label: "Low delay", what: "Quickest response. Best for recording on a fast computer with wired headphones; may crackle on a slow one or over Bluetooth." },
+  balanced: { label: "Balanced", what: "A middle buffer: a little more delay, much less chance of crackle." },
+  playback: { label: "No crackle", what: "The biggest buffer: it won't crackle, but you'll hear sound a little later. Best for listening and mixing, not for recording." },
+};
+export const cleanLatencyMode = (m) => (m in LATENCY_MODES ? m : "interactive");
+
+/** What to say when the chosen output is gone (unplugged), and where audio goes instead. */
+export function outputGoneNote(label) { return `${label || "Your chosen output"} isn't connected any more, so sound is going to the system default.`; }
+
 /** A round-trip estimate the screen can show beside the monitor switch (output + base latency), in ms, or null if the browser does not say. */
 export function latencyMs(ctx) {
   const t = (ctx?.baseLatency || 0) + (ctx?.outputLatency || 0);

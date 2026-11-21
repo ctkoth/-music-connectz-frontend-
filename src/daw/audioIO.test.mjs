@@ -39,3 +39,18 @@ test("latency is the browser's own figure, or null when it does not give one", (
   assert.equal(latencyMs({}), null);
   assert.equal(latencyMs(null), null);
 });
+
+import { LATENCY_MODES, cleanLatencyMode, outputGoneNote } from "./audioIO.js";
+
+test("audio quality has three named modes, each says what it costs, and junk falls back to low delay", () => {
+  assert.deepEqual(Object.keys(LATENCY_MODES), ["interactive", "balanced", "playback"]);
+  for (const m of Object.values(LATENCY_MODES)) assert.ok(m.label && m.what.length > 30);
+  assert.equal(cleanLatencyMode("playback"), "playback");
+  assert.equal(cleanLatencyMode("turbo"), "interactive");
+  assert.equal(cleanLatencyMode(undefined), "interactive");
+});
+
+test("an unplugged output is said, and says where the sound goes instead", () => {
+  assert.match(outputGoneNote(""), /system default/);
+  assert.match(outputGoneNote("USB headset"), /USB headset/);
+});
