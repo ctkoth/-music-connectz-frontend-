@@ -9,6 +9,9 @@ const API_BASE = (
     : RAW_BASE
 ).replace(/\/$/, "");
 
+/** The API's address, for the few public reads (like the storage health) that are not under /api. */
+export const API_ORIGIN = API_BASE;
+
 export const tokenStore = {
   get: () => localStorage.getItem("mcz_access") || "",
   getRefresh: () => localStorage.getItem("mcz_refresh") || "",
