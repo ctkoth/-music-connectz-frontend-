@@ -169,7 +169,17 @@ export default function VoiceZ() {
                   {[...String(f.personality)].filter((x) => d.letter_styles[x]).map((x) => <li key={x}>• {d.letter_styles[x]}</li>)}
                 </ul>
               )}
-              {d.dials.map((dl) => <Chips key={dl.key} dial={dl} value={f.spec[dl.key] ?? dl.default} onChange={(v) => setSpec(dl.key, v)} disabled={readOnly} />)}
+              {d.dials.map((dl, i) => (
+                <div key={dl.key} className="space-y-3">
+                  {dl.group_label && dl.group !== d.dials[i - 1]?.group && (
+                    <h4 className="pt-2 text-sm font-semibold text-mcz-cyan">
+                      {dl.group_label}
+                      {dl.group !== "tone" && <span className="block text-[11px] font-normal text-white/55">Voice paradigm. Each rule is on or off, and off changes nothing.</span>}
+                    </h4>
+                  )}
+                  <Chips dial={dl} value={f.spec[dl.key] ?? dl.default} onChange={(v) => setSpec(dl.key, v)} disabled={readOnly} />
+                </div>
+              ))}
               <label className="block text-sm">Signature phrases (one per line, up to {d.caps.phrases})
                 <span className="block text-[11px] text-white/60">Used at most once per reply, never forced.</span>
                 <textarea className="neon-input mt-1 w-full" value={f.phrases} onChange={(e) => set("phrases", e.target.value)} /></label>
