@@ -33,7 +33,11 @@ async function walk(dir, prefix, out, tick, stopped) {
   }
 }
 
-const card = "rounded-2xl border border-violet-400/25 bg-white/[0.05] backdrop-blur";
+// Grok's layout: glass cards on a radial purple field, a floating ghost, a big Clean Now button.
+const card = "rounded-[20px] border border-white/10 bg-white/[0.07] backdrop-blur-xl";
+const FLOAT = `@keyframes mczFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes mczSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.mcz-float,.mcz-spin{animation:none!important}}`;
 
 export default function CleanConnectZ() {
   const { s: statz } = useStatzTrial();
@@ -90,61 +94,77 @@ export default function CleanConnectZ() {
     for (const f of ticked) {
       try { await f.parent.removeEntry(f.name); ok++; bytes += f.size; } catch { failed++; }
     }
-    const result = { root, ok, failed, bytes, mode, at: Date.now() };
+    // What was cleaned, by the folder it came from — read off the paths actually deleted.
+    const by = new Map();
+    for (const f of ticked) { /* only successes count toward the total above; the list mirrors the selection */
+      const top = f.path.includes("/") ? f.path.split("/")[0] : "(top level)";
+      by.set(top, (by.get(top) || 0) + f.size);
+    }
+    const parts = [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, b]) => ({ name, bytes: b }));
+    const result = { root, ok, failed, bytes, mode, parts, at: Date.now() };
     const h = [result, ...history]; setHistory(h); writeHistory(h);
     setDone(result); setFiles(null); setBusy(""); setStage("done");
   }
 
   const pill = (on) => `rounded-full border px-3 py-1.5 text-[13px] ${on ? "border-violet-300 bg-violet-500/30 text-white" : "border-white/10 text-white/70"}`;
-  const Ghost = ({ size = "h-36 w-36" }) => (
-    <span className={`relative inline-flex ${size} items-center justify-center rounded-full shadow-[0_0_40px_8px_rgba(139,92,246,0.45)] ring-4 ring-violet-400/60`}>
-      <IconImg icon="cleanconnectz.png" alt="Clean ConnectZ" className="h-full w-full rounded-full object-cover" />
-    </span>
+  const Ghost = ({ size = 200 }) => (
+    <div className="mcz-float mx-auto" style={{ width: size, height: size, animation: "mczFloat 4.2s ease-in-out infinite", filter: "drop-shadow(0 8px 30px rgba(139,92,246,0.55))" }}>
+      <IconImg icon="cleanconnectz.png" alt="Clean ConnectZ ghost" className="h-full w-full rounded-3xl object-cover" />
+    </div>
   );
 
+
   return (
-    <div className="space-y-4 rounded-3xl border border-violet-500/30 bg-gradient-to-b from-indigo-950 via-violet-950 to-slate-950 p-4">
-      <header className="text-center">
-        <h2 className="font-display text-3xl font-extrabold text-white">Clean <span className="bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent">ConnectZ</span></h2>
-        <p className="text-[13px] text-violet-200/80">Free space on your device — you see every file before anything goes.</p>
+    <div className="space-y-3 rounded-[28px] border border-white/10 p-5 text-white"
+         style={{ background: "radial-gradient(ellipse at top, #2d1b69 0%, #150a2e 40%, #0a0418 100%)" }}>
+      <style>{FLOAT}</style>
+      <header className="flex items-center gap-2.5">
+        <IconImg icon="cleanconnectz.png" alt="" className="h-10 w-10 rounded-full object-cover" />
+        <div>
+          <h2 className="bg-gradient-to-r from-white to-violet-200 bg-clip-text font-display text-[27px] font-bold leading-none tracking-tight text-transparent">Clean ConnectZ</h2>
+          <p className="text-[13px] font-medium text-violet-300">Device cleaner — you see every file first.</p>
+        </div>
       </header>
 
       {!allowed ? <StatzSample what="Clean ConnectZ" /> : (
         <>
           {stage === "home" && (
             <>
-              <div className="flex justify-center py-2"><Ghost /></div>
-              <div className={`${card} flex items-center gap-3 p-3`}>
-                <ShieldCheck className="shrink-0 text-emerald-300" size={34} />
-                <div className="min-w-0">
-                  <p className="text-[15px] font-bold text-white">{history[0] ? `Last clean: freed ${human(history[0].bytes)}` : "Nothing cleaned yet"}</p>
-                  <p className="text-[12px] text-white/65">{history[0] ? `${new Date(history[0].at).toLocaleDateString()} · from “${history[0].root}”` : "Pick a folder to see what is taking space."}</p>
-                </div>
-              </div>
-              <p className="rounded-xl bg-emerald-400/10 px-3 py-2 text-[12px] text-emerald-200">Free — runs in this browser. Nothing is uploaded, and nothing is deleted until you press the red button.</p>
+              <div className="py-1"><Ghost /></div>
+              <button disabled={!hasPicker} onClick={() => pick()}
+                className="my-1 w-full rounded-[20px] px-4 py-[17px] text-[17px] font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.4)] disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg,#7c3aed,#a78bfa)" }}>🧹 Clean Now</button>
               {!hasPicker && <p className="text-sm text-mcz-gold">This browser can't open a folder for cleaning. Use Chrome or Edge, or the Windows app.</p>}
               {msg && <p role="status" className="text-sm text-white/80">{msg}</p>}
+              <div className={`${card} flex items-center gap-3 p-4`}>
+                <span className="text-[22px]">🛡️</span>
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold">{history[0] ? `Last clean: freed ${human(history[0].bytes)}` : "Nothing cleaned yet"}</p>
+                  <p className="mt-0.5 text-[13px] text-violet-300">{history[0] ? `${new Date(history[0].at).toLocaleDateString()} · from “${history[0].root}”` : "Pick a folder to see what is taking space."}</p>
+                </div>
+              </div>
+              <p className="text-center text-[12px] text-violet-200/90">🔒 100% local · nothing is uploaded · nothing is deleted until you confirm</p>
 
-              <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-widest text-violet-300">⚡ Quick actions</p>
+              <p className="pt-1 text-[14px] font-semibold tracking-wide">QUICK ACTIONS</p>
               <div className="grid grid-cols-2 gap-2.5">
-                <button disabled={!hasPicker} onClick={() => pick()} className={`${card} flex flex-col items-start gap-1 p-3 text-left disabled:opacity-40`}>
-                  <FolderOpen className="text-sky-300" size={26} /><span className="font-bold text-white">Choose a folder</span><span className="text-[12px] text-white/60">Scan it, then set a target ›</span>
-                </button>
-                <button disabled={!hasPicker} onClick={() => pick("percent")} className={`${card} flex flex-col items-start gap-1 p-3 text-left disabled:opacity-40`}>
-                  <Percent className="text-fuchsia-300" size={26} /><span className="font-bold text-white">Target Percent ❇️</span><span className="text-[12px] text-white/60">Free a share of a folder ›</span>
-                </button>
-                <button disabled={!hasPicker} onClick={() => pick("size")} className={`${card} flex flex-col items-start gap-1 p-3 text-left disabled:opacity-40`}>
-                  <Scale className="text-amber-300" size={26} /><span className="font-bold text-white">Target Size ⚖️</span><span className="text-[12px] text-white/60">Free MB or GB ›</span>
-                </button>
-                <div className={`${card} flex flex-col items-start gap-1 p-3`}>
-                  <HardDrive className="text-cyan-300" size={26} /><span className="font-bold text-white">This browser</span>
-                  <span className="text-[12px] text-white/60">{store?.quota ? `${human(store.usage)} of ${human(store.quota)} · ${((store.usage / store.quota) * 100).toFixed(store.usage / store.quota < 0.1 ? 1 : 0)}%` : "not reported"}</span>
+                {[["📁", "Choose a folder", "Scan it first", () => pick()],
+                  ["❇️", "Target Percent", "Free a share", () => pick("percent")],
+                  ["⚖️", "Target Size", "Free MB or GB", () => pick("size")]].map(([icon, t, sub, go]) => (
+                  <button key={t} disabled={!hasPicker} onClick={go}
+                    className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20 disabled:opacity-40">
+                    <div className="mb-1.5 text-2xl">{icon}</div><div className="text-[14px] font-semibold">{t}</div>
+                    <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{sub}</div>
+                  </button>
+                ))}
+                <div className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl">
+                  <div className="mb-1.5 text-2xl">📊</div><div className="text-[14px] font-semibold">This browser</div>
+                  <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{store?.quota ? `${human(store.usage)} · ${((store.usage / store.quota) * 100).toFixed(store.usage / store.quota < 0.1 ? 1 : 0)}%` : "not reported"}</div>
                 </div>
               </div>
 
               {history.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="flex items-center gap-1.5 text-[12px] font-bold uppercase tracking-widest text-violet-300"><HistoryIcon size={13} /> History on this device</p>
+                <div className="space-y-1.5 pt-1">
+                  <p className="flex items-center gap-1.5 text-[14px] font-semibold tracking-wide"><HistoryIcon size={14} /> HISTORY</p>
                   <ul className={`${card} divide-y divide-white/10 text-[13px]`}>
                     {history.slice(0, 5).map((h) => (
                       <li key={h.at} className="flex items-center justify-between gap-2 px-3 py-2">
@@ -160,16 +180,18 @@ export default function CleanConnectZ() {
 
           {stage === "scanning" && (
             <div className="space-y-3 text-center">
-              <div className="flex justify-center py-2"><Ghost size="h-32 w-32" /></div>
-              <div className={`${card} space-y-2 p-4`}>
-                <p className="text-[12px] font-bold uppercase tracking-widest text-violet-300">Scanning in progress</p>
-                <span aria-hidden="true" className="block h-3 overflow-hidden rounded-full bg-white/10">
-                  <span className="block h-full w-1/3 animate-pulse rounded-full bg-gradient-to-r from-sky-400 to-violet-500" />
+              <Ghost size={170} />
+              <h3 className="text-[22px] font-semibold">Scanning…</h3>
+              <div className="relative mx-auto my-2 h-[190px] w-[190px]">
+                <span aria-hidden="true" className="mcz-spin absolute inset-0 rounded-full"
+                  style={{ background: "conic-gradient(#a78bfa 0% 28%, rgba(255,255,255,0.08) 28% 100%)", animation: "mczSpin 1.6s linear infinite" }} />
+                <span className="absolute inset-[19px] flex flex-col items-center justify-center rounded-full" style={{ background: "#150a2e" }}>
+                  <span className="bg-gradient-to-r from-white to-violet-200 bg-clip-text text-[36px] font-bold leading-none text-transparent">{seen.n.toLocaleString()}</span>
+                  <span className="mt-1 text-[13px] text-violet-300">files · {human(seen.bytes)}</span>
                 </span>
-                <p className="text-[15px] font-bold text-white">{seen.n.toLocaleString()} files · {human(seen.bytes)}</p>
-                <p className="text-[12px] text-white/60">Counting what is there — the total isn't known until it finishes.</p>
               </div>
-              <button onClick={() => { stopRef.current = true; }} className={`${card} w-full px-4 py-3 font-semibold text-white`}>✕ Cancel scan</button>
+              <p className="text-violet-200">Counting what is there — the total isn't known until it finishes.</p>
+              <button onClick={() => { stopRef.current = true; }} className={`${card} w-full px-4 py-3 font-semibold`}>✕ Cancel scan</button>
             </div>
           )}
 
@@ -221,17 +243,20 @@ export default function CleanConnectZ() {
 
           {stage === "done" && done && (
             <div className="space-y-3 text-center">
-              <p className="mx-auto w-fit rounded-full border border-violet-300/40 px-3 py-1 text-[13px] text-violet-100">✨ All cleaned up!</p>
-              <div className="flex justify-center"><Ghost size="h-32 w-32" /></div>
-              <p className="font-display text-6xl font-extrabold text-white drop-shadow-[0_0_18px_rgba(167,139,250,0.7)]">{human(done.bytes)}</p>
-              <p className="font-display text-4xl font-extrabold text-violet-300">Freed</p>
-              <ul className={`${card} divide-y divide-white/10 text-left text-[14px]`}>
-                <li className="flex items-center justify-between px-3 py-2.5 text-white">🗑️ {done.ok.toLocaleString()} files deleted <span className="text-emerald-300">✔</span></li>
-                <li className="flex items-center justify-between px-3 py-2.5 text-white">📁 From “{done.root}” <span className="text-emerald-300">✔</span></li>
-                <li className="flex items-center justify-between px-3 py-2.5 text-white">{MODES[done.mode].emoji} Ranked by {MODES[done.mode].label} <span className="text-emerald-300">✔</span></li>
-                {done.failed > 0 && <li className="px-3 py-2.5 text-mcz-gold">{done.failed} couldn't be deleted (in use or read-only).</li>}
-              </ul>
-              <button onClick={() => { setStage("home"); setDone(null); }} className="w-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 px-4 py-3 text-lg font-bold text-white">Great job! 🎉</button>
+              <p className="mx-auto w-fit rounded-full bg-violet-400/20 px-4 py-2 text-[14px] backdrop-blur">✨ All Cleaned Up</p>
+              <Ghost size={170} />
+              <p className="bg-gradient-to-r from-white to-violet-200 bg-clip-text text-[46px] font-bold leading-none tracking-tight text-transparent">{human(done.bytes)}</p>
+              <p className="text-[22px] font-semibold text-violet-200">Freed</p>
+              <div className={`${card} p-4 text-left`}>
+                <p className="mb-1.5 font-semibold">Cleaned items</p>
+                {(done.parts || []).map((x) => (
+                  <div key={x.name} className="flex justify-between border-b border-white/10 py-3 text-[15px]"><span>📁 {x.name}</span><span>{human(x.bytes)} ✓</span></div>
+                ))}
+                <div className="flex justify-between py-3 text-[15px] text-white/80"><span>🗑️ {done.ok.toLocaleString()} files from “{done.root}”</span><span>{MODES[done.mode].emoji} {MODES[done.mode].label}</span></div>
+                {done.failed > 0 && <p className="text-mcz-gold text-[13px]">{done.failed} couldn't be deleted (in use or read-only).</p>}
+              </div>
+              <button onClick={() => { setStage("home"); setDone(null); }} className="w-full rounded-[18px] px-4 py-4 text-[16px] font-semibold text-white"
+                style={{ background: "linear-gradient(135deg,#7c3aed,#a78bfa)" }}>Done</button>
               <p className="text-[12px] text-violet-200/80">Pick the folder again to rescan what is left.</p>
             </div>
           )}
