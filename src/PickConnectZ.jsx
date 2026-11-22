@@ -17,7 +17,7 @@
 // (not pins, so they never eat into the Free tier's 2-pin limit) until the
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
-import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
+import { AudioLines, Columns2, Compass, Home, LayoutGrid, User, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
 import { IconImg, pathFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
@@ -140,6 +140,15 @@ function DockButton({ app, active, badge, onClick }) {
     </a>
   );
 }
+
+// Phones get four labelled tabs instead of the pinned-app strip (the strip stays from 640px up).
+// Home again, while already on Home, opens the all-apps drawer, so the search is still one tap away.
+const PHONE_TABS = [
+  { key: "toolz", label: "Home", Icon: Home },
+  { key: "postz", label: "Explore", Icon: Compass },
+  { key: "social", label: "Connect", Icon: AudioLines },
+  { key: "profilez", label: "Profile", Icon: User },
+];
 
 export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit, onMini, minis = [] }) {
   const [drawer, setDrawer] = useState(false);
@@ -391,7 +400,22 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
         </div>
       )}
 
-      <div className="neon-frame flex items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur">
+      <nav aria-label="Main" className="neon-frame flex items-stretch justify-around bg-mcz-bg/95 backdrop-blur sm:hidden"
+           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {PHONE_TABS.map(({ key, label, Icon }) => {
+          const on = current === key;
+          return (
+            <button key={key} aria-current={on ? "page" : undefined}
+              onClick={() => (key === "toolz" && on ? setDrawer((v) => !v) : onOpen(key))}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${on ? "text-mcz-cyan" : "text-white/55"}`}>
+              <Icon size={22} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="neon-frame hidden items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur sm:flex">
         <a
           {...openable(pathFor(apps[0]?.key || "postz"), () => onOpen(apps[0]?.key))}
           title="PickConnectZ — home · ctrl/cmd-click for a new tab"
