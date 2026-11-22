@@ -118,30 +118,32 @@ export default function SocialConnectZ() {
           dead end. */}
       <div className="grid gap-3 sm:grid-cols-2">
         {filtered.map((m) => (
-          <div
+          <article
             key={m.username}
             onClick={() => openMember(m.username)}
-            className="re-card cursor-pointer transition hover:!border-white/20"
+            className="cursor-pointer rounded-2xl border border-white/10 bg-white/[0.03] p-3 transition hover:border-white/20"
           >
-            <div className="mb-2 flex items-center gap-3">
-              {m.avatar
-                ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
-                : <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/5">
-                    <UserRound size={18} className="text-white/55" />
-                  </div>}
-              <div className="flex-1">
-                <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
-                {m.personas?.[0]?.name && (
-                  <div className="text-[11px] text-white/50">{personaLabel(m.personas[0])}</div>
-                )}
+            <div className="flex items-center gap-3">
+              <span className="shrink-0 rounded-full bg-gradient-to-br from-cyan-400 via-violet-500 to-fuchsia-500 p-[2px]">
+                {m.avatar
+                  ? <img src={m.avatar} alt="" className="h-16 w-16 rounded-full bg-black object-cover" />
+                  : <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black text-2xl font-extrabold text-white/80">
+                      {(m.display_name || m.username)[0].toUpperCase()}
+                    </span>}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[18px] font-bold text-white">{m.display_name || m.username}</div>
+                <div className="truncate text-[13px] text-white/60">@{m.username}</div>
+                {m.headline && <div className="truncate text-[13px] text-white/80">{m.headline}</div>}
+                {m.personas?.[0]?.name && <div className="truncate text-[12px] text-violet-300">{personaLabel(m.personas[0])}</div>}
               </div>
             </div>
             {(m.regions || []).length > 0 && (
-              <div className="mb-2 flex items-center gap-1 text-[11px] text-white/60">
-                <MapPin size={11} /> {m.regions.join(", ")}
+              <div className="mt-2 flex items-center gap-1 text-[12px] text-white/60">
+                <MapPin size={12} /> {m.regions.join(", ")}
               </div>
             )}
-            <div className="flex flex-wrap gap-1">
+            <div className="mt-1.5 flex flex-wrap gap-1">
               {(m.nationalities || []).map((n) => (
                 <button
                   key={n}
@@ -159,7 +161,7 @@ export default function SocialConnectZ() {
               <MemberName username={m.username} />
               <ClassMarks classes={m.classes} />
             </div>
-          </div>
+          </article>
         ))}
         {!loading && !error && filtered.length === 0 && (
           <p className="text-sm text-white/60">

@@ -145,7 +145,7 @@ function DockButton({ app, active, badge, onClick }) {
 // Home again, while already on Home, opens the all-apps drawer, so the search is still one tap away.
 const PHONE_TABS = [
   { key: "toolz", label: "Home", Icon: Home },
-  { key: "postz", label: "Explore", Icon: Compass },
+  { key: "discover", label: "Explore", Icon: Compass },
   { key: "social", label: "Connect", Icon: AudioLines },
   { key: "profilez", label: "Profile", Icon: User },
 ];

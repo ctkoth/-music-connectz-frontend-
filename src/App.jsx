@@ -146,6 +146,7 @@ const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
 const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
 const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
 const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
+const ExploreFeed = lazy(lazyRoute(() => import("./apps/Discover.jsx")));
 const DesignZ = lazy(lazyRoute(() => import("./apps/DesignZ.jsx")));
 const AnimeZ = lazy(lazyRoute(() => import("./apps/AnimeZ.jsx")));
 const AnimeConnectZ = lazy(lazyRoute(() => import("./apps/AnimeConnectZ.jsx")));
@@ -655,6 +656,7 @@ const TABS = [
   { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
   { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
   { key: "designz", label: "DesignZ", icon: "designz.png", el: <DesignZ /> },
+  { key: "discover", label: "Explore", icon: "postz.png", el: <ExploreFeed /> },
   { key: "animez", label: "AnimeZ", icon: "animez.png", el: <AnimeZ /> },
   { key: "animeconnectz", label: "Anime ConnectZ", icon: "animeconnectz.png", el: <AnimeConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
@@ -1035,6 +1037,7 @@ const TAB_ABOUT = {
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
+  discover: "🧭 Explore — what members just posted, hot, new or top rated. Play a track, rate it and comment right here; posting is PostZ.",
   designz: "🎨 DesignZ — designers put their work here to be rated, reacted to and commented on. Karma, Rate, Comment and Share sit under every design, and the rating is the median of what other members gave.",
   mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
   animez: "🌸 AnimeZ — put an episode together from your manga pages and anime pieces, with subtitles and camera moves, and cut it in VideoZ. Free, on your device.",
