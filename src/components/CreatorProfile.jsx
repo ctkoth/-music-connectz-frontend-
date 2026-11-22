@@ -72,7 +72,12 @@ const ago = (sec) => {
   return d < 1 ? "today" : d === 1 ? "1 day ago" : d < 7 ? `${d} days ago` : d < 14 ? "1 week ago" : `${Math.floor(d / 7)} weeks ago`;
 };
 
-export default function CreatorProfile({ username, worn }) {
+export default function CreatorProfile({ username, worn, visibility, audiences }) {
+  // The member's own audience for this block, in the server's words (VisibilitieZ's list), never retyped.
+  const row = Array.isArray(visibility) ? visibility.find((v) => v.field === "coach_best") : null;
+  const tokens = row ? (Array.isArray(row.level) ? row.level : [row.level]) : [];
+  const nameOfToken = (t) => (Array.isArray(audiences) ? audiences.find((a) => a.token === t)?.label : "") || t;
+  const audience = tokens.map(nameOfToken).join(", ");
   const [card, setCard] = useState(null);
   const [posts, setPosts] = useState(null);
   const [level, setLevel] = useState(null);
@@ -129,7 +134,7 @@ export default function CreatorProfile({ username, worn }) {
           </div>
         </div>
       )}
-      <CoachBest rows={card.coach_best} className="mx-4 my-3" />
+      <CoachBest rows={card.coach_best} audience={audience} className="mx-4 my-3" />
 
       <div role="tablist" className="flex justify-around border-b border-white/10 text-[13px] font-bold uppercase tracking-widest">
         {TABS.map(([k, t]) => (

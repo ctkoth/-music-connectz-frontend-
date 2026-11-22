@@ -724,7 +724,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
   return (
     <div className="space-y-6">
-      <CreatorProfile username={me?.username} worn={worn} />
+      <CreatorProfile username={me?.username} worn={worn} visibility={me?.visibility} audiences={audiences} />
 
       <header className="flex items-center gap-4">
         <IconImg icon="personaz.png" alt="ProfileZ" className="h-16 w-16 rounded-2xl shadow-neon" />
