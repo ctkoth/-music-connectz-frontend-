@@ -29,6 +29,8 @@ import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
+import TabInfoModal from "../components/TabInfoModal.jsx";
+import { LILITH_TAB_INFO } from "../lilithTabs.js";
 import { BuildCTA, MoveMenu, RoutineList, Starters, Suggested, TrashedRoutines } from "../components/LilithCTA.jsx";
 import LilithAuto from "../components/LilithAuto.jsx";
 
@@ -37,7 +39,7 @@ import LilithAuto from "../components/LilithAuto.jsx";
 const BUCKET_ICON = {
   inbox: "lilith_inbox.png", today: "lilith_today.png",
   upcoming: "lilith_upcoming.png", anytime: "lilith_anytime.png",
-  someday: "lilith_someday.png", logbook: "lilith_logbook.png",
+  someday: "lilith_someday.png", logbook: "lilith_logbook.png", trash: "lilith_trash.png",
 };
 
 /** "+1 🍥 +10 ⭐" — the gain, in the resource emoji, never a bare number.
@@ -56,6 +58,7 @@ function Gain({ spinaz = 0, energy = 0, xp = 0, className = "" }) {
 export default function Lilith() {
   const [board, setBoard] = useState(null);
   const [bucket, setBucket] = useState("today");
+  const [info, setInfo] = useState(null);   // the tab whose icon was pressed: its description opens in a modal
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [showRewards, setShowRewards] = useState(false);
@@ -293,18 +296,23 @@ export default function Lilith() {
 
       <div className="flex flex-wrap gap-1.5">
         {labels.map((b) => (
-          <button key={b.key} onClick={() => setBucket(b.key)}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all ${
+          <span key={b.key}
+            className={`flex items-center overflow-hidden rounded-lg text-[12px] transition-all ${
               bucket === b.key ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/40"
                                : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
-            {BUCKET_ICON[b.key] && (
-              <IconImg icon={BUCKET_ICON[b.key]} alt="" className="h-4 w-4 rounded" />
-            )}
-            {b.label}
-            <span className="text-white/50">{asList(buckets[b.key]).length}</span>
-          </button>
+            {/* The icon opens what this tab is; the name selects it. Two controls, so neither is a nested button. */}
+            <button type="button" aria-label={`What is ${b.label}?`} onClick={() => setInfo(b)} className="py-1.5 pl-2.5 pr-1">
+              {BUCKET_ICON[b.key] ? <IconImg icon={BUCKET_ICON[b.key]} alt="" className="h-5 w-5 rounded" /> : <span aria-hidden="true">ℹ️</span>}
+            </button>
+            <button type="button" onClick={() => setBucket(b.key)} className="flex items-center gap-1.5 py-1.5 pl-1 pr-2.5">
+              {b.label}
+              <span className="text-white/50">{asList(buckets[b.key]).length}</span>
+            </button>
+          </span>
         ))}
       </div>
+      <TabInfoModal open={!!info} onClose={() => setInfo(null)} icon={info && BUCKET_ICON[info.key]}
+                    title={info?.label || ""} about={info ? (LILITH_TAB_INFO[info.key] || "") : ""} />
 
       <form onSubmit={addTask} className="flex flex-wrap gap-2" data-tour="lilith-add">
         <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })}
