@@ -8,7 +8,7 @@ import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
 import { goToSpot, openMember } from "../goto.js";
 import AdvanceZ from "../components/AdvanceZ.jsx";
-import { TeamMine, TeamOwner } from "../components/TeamZ.jsx";
+import { TermFields, TermLines } from "../components/TermZ.jsx";
 
 export default function LabelZ() {
   const talk = useSay();
@@ -17,6 +17,7 @@ export default function LabelZ() {
   const [msg, setMsg] = useState("");
   const [newLabel, setNewLabel] = useState({ name: "", bio: "" });
   const [offer, setOffer] = useState({ label_id: "", artist: "", title: "Artist Agreement", terms_text: "", advance_display: "", signed_name: "" });
+  const [terms, setTerms] = useState({});
   const [signName, setSignName] = useState({});
   const [editingLabel, setEditingLabel] = useState(null);
   const [editDraft, setEditDraft] = useState({ name: "", bio: "" });
@@ -38,7 +39,7 @@ export default function LabelZ() {
   }
   async function sendOffer() {
     setMsg("");
-    try { await api("/api/economy/labelz/contracts/", { method: "POST", body: offer }); setMsg(talk(P.label_offered)); load(); }
+    try { await api("/api/economy/labelz/contracts/", { method: "POST", body: { ...offer, terms } }); setTerms({}); setMsg(talk(P.label_offered)); load(); }
     catch (e) { setMsg(e.message); }
   }
   function startEdit(l) {
@@ -73,7 +74,7 @@ export default function LabelZ() {
         <IconImg icon="labelz.png" alt="LabelZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
           <h2 className="font-display text-3xl font-extrabold" style={{ color: "#a78bfa" }}>LabelZ</h2>
-          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements · teams. Advances are a shared record; the money settles off-platform.</p>
+          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements · terms. Advances are a shared record; the money settles off-platform.</p>
           <span className="pill mt-1 inline-block">Contracts: adults only · signatures audit-logged</span>
         </div>
       </header>
@@ -115,11 +116,6 @@ export default function LabelZ() {
                 by <button className="hover:underline" onClick={() => openMember(l.owner)}>{l.owner}</button>
                 {" · "}{l.member_count} member{l.member_count === 1 ? "" : "s"}
               </p>
-              {Array.isArray(l.team) && l.team.length > 0 && (
-                <p className="mt-1 flex flex-wrap gap-1 text-[11px] text-white/65">
-                  {l.team.map((m) => <button key={m.username} className="pill hover:underline" onClick={() => openMember(m.username)}>{m.username} · {m.role_label}</button>)}
-                </p>
-              )}
               {editingLabel === l.id ? (
                 <div className="mt-2 space-y-2">
                   <input className="neon-input !py-1.5 text-sm" placeholder="Label name"
@@ -134,14 +130,11 @@ export default function LabelZ() {
               ) : (
                 l.bio && <p className="mt-1 text-sm text-white/60"><MentionText text={l.bio} /></p>
               )}
-              {l.i_own && <TeamOwner labelId={l.id} roles={data.team_roles} onChange={load} />}
             </div>
           ))}
           {labels.length === 0 && <p className="text-sm text-white/60">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
         </div>
       </div>
-
-      <TeamMine onChange={load} />
 
       {myLabels.length > 0 && (
         <div className="neon-frame space-y-3 p-4">
@@ -154,6 +147,7 @@ export default function LabelZ() {
             <input className="neon-input" placeholder="Artist username" value={offer.artist} onChange={(e) => setOffer({ ...offer, artist: e.target.value })} />
             <input className="neon-input" placeholder="Title" value={offer.title} onChange={(e) => setOffer({ ...offer, title: e.target.value })} />
             <input className="neon-input" placeholder="Advance (recorded only, e.g. $200)" value={offer.advance_display} onChange={(e) => setOffer({ ...offer, advance_display: e.target.value })} />
+            <TermFields fields={data.term_fields} value={terms} onChange={setTerms} />
             <textarea className="neon-input sm:col-span-2" rows={4} placeholder="Full agreement terms — splits, term length, termination…" value={offer.terms_text} onChange={(e) => setOffer({ ...offer, terms_text: e.target.value })} />
             <input className="neon-input sm:col-span-2" placeholder="Type YOUR full legal name to sign the offer" value={offer.signed_name} onChange={(e) => setOffer({ ...offer, signed_name: e.target.value })} />
           </div>
@@ -174,6 +168,7 @@ export default function LabelZ() {
                 </p>
                 <span className="pill uppercase">{c.status}</span>
               </div>
+              <TermLines lines={c.terms_lines} />
               <pre className="whitespace-pre-wrap rounded-lg bg-black/30 p-3 text-xs text-white/70">{c.terms_text}</pre>
               <p className="text-[11px] text-white/55">
                 {c.advance_display && <>Advance: {c.advance_display} (off-platform) · </>}

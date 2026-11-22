@@ -26,6 +26,7 @@ export default function AdvanceZ({ contractId }) {
       {open && d && (
         <div className="mt-2 space-y-2 text-xs">
           <p className="text-white/60">{d.note}</p>
+          {d.promised_cents != null && <p className="text-white/70">The terms promise an advance of <b>{usd(d.promised_cents)}</b>.</p>}
           <p className="text-white/85">
             Advanced <b>{usd(d.advanced_cents)}</b> · recouped <b>{usd(d.recouped_cents)}</b> · outstanding <b className="text-emerald-300">{usd(d.outstanding_cents)}</b>
             {d.waiting_cents > 0 && <span className="text-mcz-gold"> · {usd(d.waiting_cents)} waiting for the artist to confirm</span>}
