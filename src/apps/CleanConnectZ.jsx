@@ -37,7 +37,12 @@ async function walk(dir, prefix, out, tick, stopped) {
 const card = "rounded-[20px] border border-white/10 bg-white/[0.07] backdrop-blur-xl";
 const FLOAT = `@keyframes mczFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes mczSpin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion: reduce){.mcz-float,.mcz-spin{animation:none!important}}`;
+@keyframes mczSweep{0%,100%{transform:translateX(-10px) rotate(-7deg)}50%{transform:translateX(10px) rotate(7deg)}}
+@keyframes mczDust{0%{opacity:0;transform:translate(-30px,0) scale(.5)}20%{opacity:.9}100%{opacity:0;transform:translate(70px,-14px) scale(1.3)}}
+@keyframes mczPop{0%{opacity:0;transform:translate(0,0) scale(.2)}30%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(1) rotate(160deg)}}
+@media (prefers-reduced-motion: reduce){.mcz-float,.mcz-spin,.mcz-fx,.mcz-fx *{animation:none!important}.mcz-fx{display:none}}`;
+const DUST = [[8, 78, 0], [18, 84, .35], [4, 70, .7], [14, 90, 1.05], [10, 74, 1.4]];
+const SPARK = [["-90px", "-70px", "✨"], ["90px", "-80px", "⭐"], ["-100px", "10px", "✦"], ["100px", "20px", "✨"], ["-40px", "-110px", "✦"], ["50px", "-110px", "⭐"]];
 
 export default function CleanConnectZ() {
   const { s: statz } = useStatzTrial();
@@ -107,11 +112,30 @@ export default function CleanConnectZ() {
   }
 
   const pill = (on) => `rounded-full border px-3 py-1.5 text-[13px] ${on ? "border-violet-300 bg-violet-500/30 text-white" : "border-white/10 text-white/70"}`;
-  const Ghost = ({ size = 200 }) => (
-    <div className="mcz-float mx-auto" style={{ width: size, height: size, animation: "mczFloat 4.2s ease-in-out infinite", filter: "drop-shadow(0 8px 30px rgba(139,92,246,0.55))" }}>
-      <IconImg icon="cleanconnectz.png" alt="Clean ConnectZ ghost" className="h-full w-full rounded-3xl object-cover" />
+  // fx: "idle" floats; "sweep" sways like a broom and kicks dust sideways (scanning); "burst" pops sparkles (done).
+  const Ghost = ({ size = 200, fx = "idle" }) => (
+    <div className="relative mx-auto" style={{ width: size, height: size }}>
+      <div className="mcz-float h-full w-full" style={{ animation: fx === "sweep" ? "mczSweep 1.1s ease-in-out infinite" : "mczFloat 4.2s ease-in-out infinite", filter: "drop-shadow(0 8px 30px rgba(139,92,246,0.55))" }}>
+        <IconImg icon="cleanconnectz.png" alt="Clean ConnectZ ghost" className="h-full w-full rounded-3xl object-cover" />
+      </div>
+      {fx === "sweep" && (
+        <div aria-hidden="true" className="mcz-fx pointer-events-none absolute inset-0">
+          {DUST.map(([l, t, d], i) => (
+            <span key={i} className="absolute h-2.5 w-2.5 rounded-full bg-violet-200/80 blur-[1px]"
+              style={{ left: `${l}%`, top: `${t}%`, animation: `mczDust 1.4s ease-out ${d}s infinite` }} />
+          ))}
+        </div>
+      )}
+      {fx === "burst" && (
+        <div aria-hidden="true" className="mcz-fx pointer-events-none absolute inset-0 flex items-center justify-center">
+          {SPARK.map(([dx, dy, ch], i) => (
+            <span key={i} className="absolute text-xl text-violet-100" style={{ "--dx": dx, "--dy": dy, animation: `mczPop 1.6s ease-out ${i * 0.12}s 2 both` }}>{ch}</span>
+          ))}
+        </div>
+      )}
     </div>
   );
+
 
 
   return (
@@ -180,7 +204,7 @@ export default function CleanConnectZ() {
 
           {stage === "scanning" && (
             <div className="space-y-3 text-center">
-              <Ghost size={170} />
+              <Ghost size={170} fx="sweep" />
               <h3 className="text-[22px] font-semibold">Scanning…</h3>
               <div className="relative mx-auto my-2 h-[190px] w-[190px]">
                 <span aria-hidden="true" className="mcz-spin absolute inset-0 rounded-full"
@@ -244,7 +268,7 @@ export default function CleanConnectZ() {
           {stage === "done" && done && (
             <div className="space-y-3 text-center">
               <p className="mx-auto w-fit rounded-full bg-violet-400/20 px-4 py-2 text-[14px] backdrop-blur">✨ All Cleaned Up</p>
-              <Ghost size={170} />
+              <Ghost size={170} fx="burst" />
               <p className="bg-gradient-to-r from-white to-violet-200 bg-clip-text text-[46px] font-bold leading-none tracking-tight text-transparent">{human(done.bytes)}</p>
               <p className="text-[22px] font-semibold text-violet-200">Freed</p>
               <div className={`${card} p-4 text-left`}>
