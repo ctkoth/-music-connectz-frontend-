@@ -146,7 +146,7 @@ function DockButton({ app, active, badge, onClick }) {
 const PHONE_TABS = [
   { key: "toolz", label: "Home", Icon: Home },
   { key: "discover", label: "Explore", Icon: Compass },
-  { key: "social", label: "Connect", Icon: AudioLines },
+  { key: "connect", label: "Connect", Icon: AudioLines },
   { key: "profilez", label: "Profile", Icon: User },
 ];
 
@@ -403,7 +403,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
       <nav aria-label="Main" className="neon-frame flex items-stretch justify-around bg-mcz-bg/95 backdrop-blur sm:hidden"
            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         {PHONE_TABS.map(({ key, label, Icon }) => {
-          const on = current === key;
+          const on = current === key || (key === "connect" && ["social", "collabz", "battlez", "venuez"].includes(current));
           return (
             <button key={key} aria-current={on ? "page" : undefined}
               onClick={() => (key === "toolz" && on ? setDrawer((v) => !v) : onOpen(key))}

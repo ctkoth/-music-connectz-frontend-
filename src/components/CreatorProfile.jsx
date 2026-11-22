@@ -4,6 +4,7 @@ import { api } from "../api.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
 import { BadgeWear } from "../BadgeWear.jsx";
+import { IconImg } from "../App.jsx";
 import { RatingNumber } from "./Rating.jsx";
 import CoachBest from "./CoachBest.jsx";
 import { ratingText } from "../rating.js";
@@ -13,7 +14,7 @@ import { PostPlayer, COLORS, ago } from "./PostPlayer.jsx";
 // tabs — Portfolio, Stats, Badges, About. Every figure is the server's (member card, own posts, SkillZ hub);
 // nothing is worked out or invented here, and a part that did not load is simply not drawn. A failed fetch
 // leaves the editing screen below it exactly as it was.
-const TABS = [["portfolio", "Portfolio"], ["stats", "Stats"], ["badges", "Badges"], ["about", "About"]];
+const TABS = [["portfolio", "Portfolio"], ["skillz", "SkillZ"], ["stats", "Stats"], ["badges", "Badges"], ["about", "About"]];
 
 export default function CreatorProfile({ username, worn, visibility, audiences }) {
   // The member's own audience for this block, in the server's words (VisibilitieZ's list), never retyped.
@@ -24,6 +25,7 @@ export default function CreatorProfile({ username, worn, visibility, audiences }
   const [card, setCard] = useState(null);
   const [posts, setPosts] = useState(null);
   const [level, setLevel] = useState(null);
+  const [coaches, setCoaches] = useState([]);
   const [tab, setTab] = useState("portfolio");
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export default function CreatorProfile({ username, worn, visibility, audiences }
     api("/api/economy/postz/?mine=1&sort=new").then((d) => setPosts(asList(d?.posts))).catch(() => {});
     api("/api/economy/skillz/").then((d) => {
       const apps = asList(d?.apps);
+      setCoaches(apps);
       const top = apps.filter((a) => a.xp > 0).sort((a, b) => b.xp - a.xp)[0];
       if (top) setLevel({ top });
     }).catch(() => {});
@@ -115,6 +118,27 @@ export default function CreatorProfile({ username, worn, visibility, audiences }
                 <button onClick={() => goToSpot("postz", "postz:main")} className="text-[13px] font-semibold text-violet-300">View all ›</button>
               </div>
             )
+        )}
+        {tab === "skillz" && (
+          coaches.length === 0 ? <p className="text-sm text-white/60">SkillZ is loading…</p> : (
+            <ul className="space-y-2">
+              {[...coaches].sort((a, b) => (b.xp - a.xp) || (b.count - a.count)).map((a) => (
+                <li key={a.key}>
+                  <button onClick={() => goToSpot(a.tab || a.key, `${a.tab || a.key}:main`)}
+                    className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-2.5 text-left">
+                    <IconImg icon={a.icon} alt={a.label} className="h-12 w-12 shrink-0 rounded-lg" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[16px] font-bold text-white">{a.label}</span>
+                      <span className="block truncate text-[12px] text-white/60">
+                        {a.count > 0 ? `Level ${a.level} · ${a.count} take${a.count === 1 ? "" : "s"} scored` : "Not tried yet — send a take"}
+                      </span>
+                    </span>
+                    {a.best_score != null && <RatingNumber value={a.best_score} size="sm" outOf />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )
         )}
         {tab === "stats" && (
           <div className="grid grid-cols-2 gap-2 text-center">
