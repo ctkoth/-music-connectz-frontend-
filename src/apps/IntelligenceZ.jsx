@@ -51,7 +51,10 @@ const day = (iso) => {
 
 // The price, in the house format and before the control that spends it: red for
 // what leaves, green for what is free, always the resource emoji.
-function Price({ price, daily }) {
+// What one fixed-price run is, per app — never "a video" for a picture.
+const FIXED_UNIT = { videoconnectz: "a video", imageconnectz: "a picture" };
+
+function Price({ price, daily, appKey }) {
   if (!price) return null;
   if (price.kind === "device") {
     return <span className="text-emerald-300">Free — runs on your device</span>;
@@ -63,7 +66,7 @@ function Price({ price, daily }) {
     return (
       <span className="text-mcz-ember">
         −${(Number(price.cost_cents || 0) / 100).toFixed(2)} {MONEY}{" "}
-        <span className="text-white/60">a video — there is no free tier</span>
+        <span className="text-white/60">{FIXED_UNIT[appKey] || "a run"} — there is no free tier</span>
       </span>
     );
   }
@@ -124,7 +127,7 @@ function AppCard({ app, daily, priced }) {
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* The price sits BEFORE the button that opens the app, and is absent
             rather than guessed when the server could not say. */}
-        {priced && app.price && <p className="text-[12px]"><Price price={app.price} daily={daily} /></p>}
+        {priced && app.price && <p className="text-[12px]"><Price price={app.price} daily={daily} appKey={app.key} /></p>}
         {can && (
           <button className="neon-btn-primary !w-auto px-5" onClick={() => goToTab(app.tab || app.key)}>
             Open <ArrowRight size={14} />
