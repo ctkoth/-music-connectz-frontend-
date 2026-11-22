@@ -86,8 +86,11 @@ function Editor({ d, start, onSaved, onCancel }) {
         <p className="re-label">Voice</p>
         <textarea className="neon-input text-sm" rows={2} placeholder="Who they are, how they talk" maxLength={1200}
                   value={f.bio} onChange={(e) => set("bio", e.target.value)} aria-label="Who they are" />
-        {d.dials.filter((x) => x.type === "choice").map((dl) => (
+        {d.dials.filter((x) => x.type === "choice" || x.group).map((dl, i, all) => (
           <div key={dl.key} className="flex flex-wrap items-center gap-1.5">
+            {dl.group_label && dl.group !== all[i - 1]?.group && dl.group !== "tone" && (
+              <p className="w-full pt-1 text-[11px] font-semibold text-mcz-cyan">{dl.group_label}</p>
+            )}
             <span className="w-28 text-[11px] text-white/50">{dl.label}</span>
             {dl.options.map((o) => (
               <button key={o.key} type="button" title={o.result}
