@@ -1980,7 +1980,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
           })()}
           {/* XP and the coach's badge, side by side. Every figure is the server's (`progress`); an older
               server sends none, and then only the XP this take earned is shown, never a made-up total. */}
-          {(result.xp_awarded > 0 || result.progress?.badge) && (
+          {(result.xp_awarded > 0 || result.progress?.badge || result.progress?.badges) && (
             <div className="grid gap-2 sm:grid-cols-2">
               {result.xp_awarded > 0 && (
                 <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] px-3 py-2.5">
@@ -2000,18 +2000,30 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
                   ) : <p className="text-[11px] text-white/60">for this take</p>}
                 </div>
               )}
-              {result.progress?.badge && (() => {
-                const bd = result.progress.badge;
+              {(result.progress?.badge || result.progress?.badges) && (() => {
+                const bd = result.progress.badge, all = result.progress.badges;
                 return (
                   <div className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-400/[0.06] px-3 py-2.5">
                     <p className="text-[11px] font-bold uppercase tracking-widest text-fuchsia-300">Badge progress</p>
-                    <p className="text-lg font-extrabold text-white">{bd.emoji} {bd.name}</p>
-                    <span aria-hidden="true" className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
-                      <span className="block h-full rounded-full bg-fuchsia-400" style={{ width: `${(bd.have / bd.need) * 100}%` }} />
-                    </span>
-                    <p className="mt-1 text-[11px] text-white/60">
-                      {bd.held ? "You hold it" : `${bd.need - bd.have} more`} · {bd.have} / {bd.need} takes scored {bd.min_score}+ in {bd.window_days} days
-                    </p>
+                    {bd && (
+                      <>
+                        <p className="text-lg font-extrabold text-white">{bd.emoji} {bd.name}</p>
+                        <span aria-hidden="true" className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <span className="block h-full rounded-full bg-fuchsia-400" style={{ width: `${(bd.have / bd.need) * 100}%` }} />
+                        </span>
+                        <p className="mt-1 text-[11px] text-white/60">
+                          {bd.held ? "You hold it" : `${bd.need - bd.have} more`} · {bd.have} / {bd.need} takes scored {bd.min_score}+ in {bd.window_days} days
+                        </p>
+                      </>
+                    )}
+                    {all?.total > 0 && (
+                      <div className={bd ? "mt-2 border-t border-white/10 pt-2" : ""}>
+                        <p className="text-[12px] font-semibold text-white/85">All badges · {all.held} / {all.total}</p>
+                        <span aria-hidden="true" className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <span className="block h-full rounded-full bg-fuchsia-400/70" style={{ width: `${Math.min(100, (all.held / all.total) * 100)}%` }} />
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
