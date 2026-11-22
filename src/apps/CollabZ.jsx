@@ -16,6 +16,7 @@
 import Term from "../components/Term.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import PartnerzMark from "../components/PartnerzMark.jsx";
+import DealCard, { dealGroup } from "../components/DealCard.jsx";
 import { celebratePartnerz } from "../milestones.js";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -331,6 +332,9 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
 export default function CollabZ() {
   const talk = useSay();
   const [deals, setDeals] = useState(null);
+  const [dealTab, setDealTab] = useState("all");
+  const [newest, setNewest] = useState(true);
+  const [openDeal, setOpenDeal] = useState(null);
   const [me, setMe] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -492,16 +496,45 @@ export default function CollabZ() {
           No deals yet. Start one below — or open a track in PostZ and take it straight here.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {deals.map((d) => (
-            <Deal key={d.id} deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor}
-                  onDistribute={distribute} onFlash={setMsg} onPatch={patchDeal} busy={busy} />
-          ))}
-        </div>
+        <>
+          <div role="tablist" aria-label="Deals" className="flex flex-wrap items-center gap-1.5">
+            {[["all", "All"], ["active", "Active"], ["completed", "Completed"], ["draft", "Draft"]].map(([k, t]) => (
+              <button key={k} role="tab" aria-selected={dealTab === k} onClick={() => setDealTab(k)}
+                className={`rounded-full border px-4 py-1.5 text-[14px] ${dealTab === k ? "border-violet-400 bg-violet-500/20 text-violet-200" : "border-transparent text-white/65"}`}>{t}</button>
+            ))}
+            <button onClick={() => setNewest((v) => !v)} className="ml-auto text-[13px] text-white/65">Sort by: {newest ? "Newest" : "Oldest"}</button>
+          </div>
+          {(() => {
+            const shown = deals.filter((d) => dealTab === "all" || dealGroup(d.status) === dealTab)
+              .sort((a, b) => (newest ? -1 : 1) * String(a.created_at).localeCompare(String(b.created_at)));
+            return shown.length === 0
+              ? <p className="text-sm text-white/60">No {dealTab} deals.</p>
+              : (
+                <div className="space-y-3">
+                  {shown.map((d) => (
+                    <div key={d.id} className="space-y-3">
+                      <DealCard deal={d} me={me} open={openDeal === d.id} onToggle={() => setOpenDeal(openDeal === d.id ? null : d.id)} />
+                      {openDeal === d.id && (
+                        <Deal deal={{ ...d, __me: me }} onAction={action} onRate={rateContributor}
+                              onDistribute={distribute} onFlash={setMsg} onPatch={patchDeal} busy={busy} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+          })()}
+          <button onClick={() => goToSpot("collabz", "collabz-start")}
+            className="flex w-full items-center gap-3 rounded-2xl bg-violet-600 px-4 py-3 text-left text-white">
+            <span className="text-2xl leading-none">＋</span>
+            <span className="min-w-0 flex-1"><span className="block text-[17px] font-bold">Start a New Deal</span>
+              <span className="block text-[13px] text-white/80">Create a new collaboration and secure your split.</span></span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </>
       )}
       </div>
 
-      <div className="neon-frame space-y-3 p-5">
+      <div className="neon-frame space-y-3 p-5" data-tour="collabz-start">
         <h3 className="font-semibold">Start a deal</h3>
         <p className="text-[11px] text-white/60">
           Each side names what their contribution is worth. Everyone pays an equal share of everyone

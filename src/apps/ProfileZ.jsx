@@ -23,6 +23,7 @@ import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import CreatorProfile from "../components/CreatorProfile.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
@@ -723,6 +724,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
   return (
     <div className="space-y-6">
+      <CreatorProfile username={me?.username} worn={worn} />
+
       <header className="flex items-center gap-4">
         <IconImg icon="personaz.png" alt="ProfileZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
