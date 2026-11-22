@@ -608,6 +608,8 @@ export default function ToolZMenu() {
             <ParentTile categoryKey="ToolZ" onOpen={setSelectedCategory} big />
             <FocusTile appKey="dawz" onOpen={openFocus} big />
             <ParentTile categoryKey="IntelligenceZ" onOpen={setSelectedCategory} big />
+          </div>
+          <div className="category-grid" style={{ margin: '14px 0' }}>
             {FOCUS_PARENTS.filter((k) => k !== "ToolZ" && k !== "IntelligenceZ").map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
             {/* Lilith and BodieZ are in ToolZ ("Plan & train"), so they are not tiles here. */}
             {FOCUS_SUPPORT.filter((k) => !["dawz", "bodiez", "lilith"].includes(k)).map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
