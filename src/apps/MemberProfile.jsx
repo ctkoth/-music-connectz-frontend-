@@ -5,6 +5,7 @@
 // shows up here.
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
+import CoachBest from "../components/CoachBest.jsx";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
@@ -267,6 +268,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}
+            <CoachBest rows={data.coach_best} />
             <BadgeWearList badges={data.badges} />
             <ViewCount target={`profile:${username}`} />
 
