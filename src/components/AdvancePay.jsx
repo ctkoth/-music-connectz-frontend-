@@ -10,24 +10,29 @@ const usd = (c) => `$${((c || 0) / 100).toLocaleString(undefined, { minimumFract
 export default function AdvancePay({ deal, onAction, busy }) {
   const adv = deal.advance;
   const [to, setTo] = useState("");
-  const [amount, setAmount] = useState("50");
+  const [typed, setTyped] = useState(null);                  // null = nothing typed yet, so the suggestion shows
+  const [inLabel, setInLabel] = useState(true);
   if (!adv || !Array.isArray(adv.to) || !adv.to.length) return null;
   const pick = adv.to.find((p) => p.username === (to || adv.to[0].username));
+  // The amount opens on the price of the skills this person brings that the deal is looking for — their own rates,
+  // from the server. No matching skill means no suggestion: blank, never an invented figure.
+  const suggested = pick?.skill_price_cents ? String(pick.skill_price_cents / 100) : "";
+  const amount = typed ?? suggested;
   const cents = Math.round(Number(amount) * 100);
   const ok = pick && cents > 0 && cents <= pick.max_cents;
   const go = () => {
     if (!ok) return;
     if (!window.confirm(`Pay @${pick.username} ${usd(cents)} now? It leaves your held share and can't be taken back.`)) return;
-    onAction(deal.id, "advance", { to: pick.username, amount });
+    onAction(deal.id, "advance", { to: pick.username, amount, record_in_labelz: !!(pick.label && inLabel) });
   };
   return (
     <div className="space-y-1.5 rounded-lg border border-white/10 bg-black/20 p-3 text-xs">
       <p className="font-semibold text-violet-200">💵 Pay an advance</p>
       <div className="flex flex-wrap items-center gap-2">
-        <select data-nomemo="true" aria-label="Pay who" className="neon-input !w-36 !py-1.5" value={pick?.username || ""} onChange={(e) => setTo(e.target.value)}>
+        <select data-nomemo="true" aria-label="Pay who" className="neon-input !w-36 !py-1.5" value={pick?.username || ""} onChange={(e) => { setTo(e.target.value); setTyped(null); }}>
           {adv.to.map((p) => <option key={p.username} value={p.username}>@{p.username}</option>)}
         </select>
-        <input aria-label="Advance in dollars" type="number" min="0" step="any" className="neon-input !w-28 !py-1.5" value={amount} onChange={(e) => setAmount(e.target.value)} />
+        <input aria-label="Advance in dollars" type="number" min="0" step="any" className="neon-input !w-28 !py-1.5" value={amount} placeholder="$ amount" onChange={(e) => setTyped(e.target.value)} />
         <button className="neon-btn-primary !w-auto px-3 py-1.5" disabled={busy || !ok} onClick={go}>Pay advance</button>
       </div>
       <p>
@@ -35,6 +40,17 @@ export default function AdvancePay({ deal, onAction, busy }) {
         <span className="text-emerald-300">+{ok ? usd(cents) : "$0.00"} {MONEY} to @{pick?.username} now</span>
         {pick && <span className="text-white/50"> · most you can advance: {usd(pick.max_cents)}</span>}
       </p>
+      {pick?.skill_lines?.length > 0 && (
+        <p className="text-white/60">
+          Starts at the price of the skills @{pick.username} brings here: {pick.skill_lines.map((l) => `${l.skill} ${usd(l.cents)}/${l.unit}`).join(" + ")}.
+        </p>
+      )}
+      {pick?.label && (
+        <label className="flex items-start gap-2 text-white/70">
+          <input type="checkbox" className="mt-0.5" checked={inLabel} onChange={(e) => setInLabel(e.target.checked)} />
+          <span>Also put it on @{pick.username}'s {pick.label.label} AdvanceZ record — they confirm it there. Free.</span>
+        </label>
+      )}
       <p className="text-white/50">{adv.note}</p>
     </div>
   );
