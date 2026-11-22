@@ -8,7 +8,7 @@ import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
 import { goToSpot, openMember } from "../goto.js";
 import AdvanceZ from "../components/AdvanceZ.jsx";
-import { TeamMine, TeamOwner } from "../components/TeemZ.jsx";
+import { TeamMine, TeamOwner } from "../components/TeamZ.jsx";
 
 export default function LabelZ() {
   const talk = useSay();

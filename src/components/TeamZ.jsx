@@ -1,4 +1,4 @@
-// TeemZ — who works for a label. A roster and a title: it grants no access to contracts, terms or advances. The
+// TeamZ — who works for a label. A roster and a title: it grants no access to contracts, terms or advances. The
 // roles, who may be invited (adults) and every refusal are the server's.
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.js";
@@ -19,7 +19,7 @@ export function TeamOwner({ labelId, roles, onChange }) {
   const remove = async (id) => { try { await api(`/api/economy/labelz/team/${id}/`, { method: "DELETE" }); load(); onChange?.(); } catch (e) { setMsg(e.message); } };
   return (
     <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2 text-xs">
-      <p className="font-semibold text-violet-200">🤝 TeemZ</p>
+      <p className="font-semibold text-violet-200">🤝 TeamZ</p>
       {rows.map((m) => (
         <p key={m.id} className="flex flex-wrap items-center gap-2 text-white/75">
           <button className="hover:underline" onClick={() => openMember(m.username)}>{m.username}</button> · {m.role_label}
