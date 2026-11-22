@@ -27,7 +27,8 @@ import RangeGates from "../RangeGates.jsx";
 import { ClassMarks } from "../components/ClassZ.jsx";
 import { gatesQuery } from "../gatesQuery.js";
 import { NATIONALITIES, FLAG_FOR, personaLabel } from "./socialData.js";
-import { openMember } from "../goto.js";
+import { goToSpot, openMember } from "../goto.js";
+import { purposeOf } from "../appPurpose.js";
 
 export default function SocialConnectZ() {
   const [rows, setRows] = useState([]);
@@ -78,6 +79,24 @@ export default function SocialConnectZ() {
           <p className="text-xs text-white/60">Who's here — filter by NationalitieZ heritage.</p>
         </div>
       </header>
+
+      {/* The other ways to reach people from here. InfernoZ is not built yet: it is shown as coming, never as a
+          button to a screen that cannot do the thing. */}
+      <div className="grid gap-2 sm:grid-cols-3">
+        {[["messagez", "MessageZ", "messagez.png"], ["vybez", "VybeZ", "vybez.png"]].map(([k, label, icon]) => (
+          <button key={k} onClick={() => goToSpot(k, `${k}:main`)}
+            className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left hover:border-white/25">
+            <IconImg icon={icon} alt={label} className="h-12 w-12 shrink-0 rounded-lg" />
+            <span className="min-w-0"><span className="block text-[16px] font-bold text-white">{label}</span>
+              <span className="block text-[12px] text-white/60">{purposeOf(k)}</span></span>
+          </button>
+        ))}
+        <div aria-disabled="true" className="flex items-center gap-3 rounded-2xl border border-dashed border-white/15 p-3 opacity-70">
+          <IconImg icon="infernoz.png" alt="InfernoZ" className="h-12 w-12 shrink-0 rounded-lg" />
+          <span className="min-w-0"><span className="block text-[16px] font-bold text-white">InfernoZ</span>
+            <span className="block text-[12px] text-white/60">Short-term projects, and dating for 18+ — coming soon</span></span>
+        </div>
+      </div>
 
       {/* Filters.
           `social-feed` is another anchor EarnZ has linked to since it shipped
