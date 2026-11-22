@@ -5,7 +5,7 @@ import { useScreenShape, splitLayout } from "./useScreenShape.js";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X, Settings as GearIcon } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
@@ -93,6 +93,7 @@ const FruityMobius = lazy(lazyRoute(() => import("./apps/FruityMobius.jsx")));
 const Witchcraft = lazy(lazyRoute(() => import("./apps/Witchcraft.jsx")));
 const Azrael = lazy(lazyRoute(() => import("./apps/Azrael.jsx")));
 const TrumpToupee = lazy(lazyRoute(() => import("./apps/TrumpToupee.jsx")));
+const CleanConnectZ = lazy(lazyRoute(() => import("./apps/CleanConnectZ.jsx")));
 const SettingsHub = lazy(lazyRoute(() => import("./apps/SettingsHub.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
@@ -710,6 +711,7 @@ const TABS = [
   { key: "azrael", label: "Azrael", icon: "azrael.png", el: <Azrael /> },
   { key: "trumptoupee", label: "Trump Toupee", icon: "trump_toupee.png", el: <TrumpToupee /> },
   { key: "settingz", label: "Settings", icon: "profilez.png", el: <SettingsHub /> },
+  { key: "cleanconnectz", label: "Clean ConnectZ", icon: "cleanconnectz.png", el: <CleanConnectZ /> },
   { key: "formulawon", label: "FormulaWon", icon: "dawz_formulawon.png", el: <FormulaWon /> },
   { key: "intuition", label: "Intuition", icon: "intuition.png", el: <Intuition /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
@@ -1076,6 +1078,7 @@ const TAB_ABOUT = {
   formulawon: "🚦 FormulaWon — the beginner's DAW on your own device, GarageBand-style: a Smart Drummer plays in six styles (you set how busy and how hard), you send it to a track, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   witchcraft: "🔮 Witchcraft — a loop-first DAW on your own device, Mixcraft-style: pick drums, chords, keys, bass and arps in your key and tempo, stack them on tracks, open MIDI, record over it, mix and bounce a WAV. Free — nothing is uploaded until you save.",
   trumptoupee: "🤵🏼‍♂️ Trump Toupee — a modern DAW on your own device, Bitwig-style: record, edit, MIDI, mix and bounce, with automation drawn on any track.",
+  cleanconnectz: "🧹 Clean ConnectZ — free space on your device by a target percent or size from a folder you pick; you see and untick every file before anything is deleted. StatZ.",
   settingz: "⚙️ Settings — one door to every control that sets how the app behaves: who sees what, sound, 18+ verification, your plan and your profile.",
   azrael: "☠️ Azrael — a lean DAW on your own device, Reaper-style: set every shortcut yourself, pick a skin, record, edit, open MIDI, mix and bounce a WAV. Free — nothing is uploaded until you save.",
   fruitymobius: "🍑 Fruity Möbius — a pattern-first DAW on your own device, FL Studio-style: tap beats into a 16-step Channel Rack with built-in drums, 808 and pluck, clone patterns, send them to the Playlist, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
@@ -1396,6 +1399,8 @@ function Home() {
           <SoundzButton onClick={() => setSoundzOpen(true)} />
           <SoundToggle />
           <LangPicker />
+          <a {...openable("/setting", () => openTab("settingz"))} aria-label="Settings" title="Settings — ctrl/cmd-click for a new tab"
+             className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"><GearIcon size={16} /></a>
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>
