@@ -56,3 +56,24 @@ on first run — **More info → Run anyway**. Signing needs a paid certificate;
 until there is one, say this in the download copy rather than letting members
 discover it at the warning, which is the same rule the rest of this app follows
 about prices.
+
+## Clean ConnectZ's file bridge (`window.mczFiles`)
+
+`files.cjs` + `files-core.cjs`, exposed by `preload.cjs` to musicconnectz.net only. A web page can read a picked folder
+but not a file's real last-accessed time, can't find duplicates without pulling every file into the tab, and can only
+delete for good. The bridge adds all three:
+
+- **The page never names a path.** `files:pick` opens the OS folder dialog and returns a token; every later call names
+  files relative to that folder, and `resolveInside` refuses `..`, absolute paths and anything outside it. Tokens live in
+  memory for the run.
+- **Scan** skips symlinks/junctions, caps at 50,000 files and reports `used = max(atime, mtime)`. Windows often doesn't
+  record last-access (a volume setting), so `fsutil behavior query disablelastaccess` is read and the screen says which
+  date "used" really is.
+- **Duplicates** are byte-identical only: same size, then same first 64 KB, then a full SHA-256. Empty files never count,
+  and one copy (the oldest) is always kept, so a group can't be emptied.
+- **Remove** goes to the Recycle Bin (`shell.trashItem`) by default; "skip the Bin" is an explicit tick. The screen says
+  space comes back when the Bin is emptied.
+
+Tested on Linux (`src/desktopFiles.test.mjs`). **Not yet run inside Electron on Windows**: `trashItem`, the folder dialog
+and the `fsutil` read are the parts that need a real PC. Note `build.files` in `package.json` must list every `.cjs`
+`main.cjs` requires, or the packaged app fails at launch (a test checks it).

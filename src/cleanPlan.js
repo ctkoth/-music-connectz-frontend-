@@ -56,3 +56,20 @@ export function human(bytes) {
   while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
   return `${v >= 100 ? v.toFixed(0) : v.toFixed(1)} ${u[i]}`;
 }
+
+/** Duplicate groups → the copies to remove. In each group of byte-identical files ONE is kept: the oldest by modified
+ *  date (the original, usually), ties to the shortest then alphabetical path. Everything else is returned with `dupeOf`
+ *  naming the keeper, so the screen can say what each is a copy of. A group can never be emptied: nothing here selects
+ *  every member. */
+export function dupeCopies(files, groups) {
+  const by = new Map(files.map((f) => [f.path, f]));
+  const out = [];
+  for (const g of groups || []) {
+    const members = (g.files || []).map((p) => by.get(p)).filter(Boolean);
+    if (members.length < 2) continue;
+    members.sort((a, b) => (a.modified ?? a.used) - (b.modified ?? b.used) || a.path.length - b.path.length || a.path.localeCompare(b.path));
+    const [keep, ...rest] = members;
+    for (const f of rest) out.push({ ...f, dupeOf: keep.path });
+  }
+  return out;
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FolderOpen, HardDrive, Percent, Scale, ShieldCheck, Trash2, History as HistoryIcon } from "lucide-react";
 import { IconImg } from "../App.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
-import { MODES, human, plan, sumBytes, targetBytes } from "../cleanPlan.js";
+import { MODES, dupeCopies, human, plan, sumBytes, targetBytes } from "../cleanPlan.js";
 
 // Clean ConnectZ — free space on your own device. Pick a folder, say how much to free (a percent of it or a size),
 // choose how files are ranked, and review exactly which files would go: untick any you want to keep. It runs in this
@@ -12,9 +12,14 @@ import { MODES, human, plan, sumBytes, targetBytes } from "../cleanPlan.js";
 // Every number on this screen is read or counted: files and bytes scanned, what the browser says it stores for this
 // site, what you freed. Nothing is a made-up "junk" figure, and the scan shows files counted — never a percentage
 // it cannot know. A page can only read a file's LAST-MODIFIED date, so "least used" means "oldest modified"; only a
-// Chromium browser can delete from a picked folder.
+// Chromium browser can delete from a picked folder. In the Windows app, window.mczFiles (desktop/files.cjs) reads real
+// last-accessed times, finds byte-identical duplicates and moves files to the Recycle Bin instead of deleting for good.
 const CAP = 50000;
 const hasPicker = typeof window !== "undefined" && "showDirectoryPicker" in window;
+// The Windows app hands our site a file bridge (desktop/files.cjs): real last-accessed times, duplicate finding and the
+// Recycle Bin. Without it the page falls back to the browser's folder picker, which can do none of those.
+const bridge = typeof window !== "undefined" && window.mczFiles && window.mczFiles.version >= 1 ? window.mczFiles : null;
+const canPick = hasPicker || !!bridge;
 const HKEY = "mcz_clean_history";
 const UNITS = { MB: 1024 ** 2, GB: 1024 ** 3 };
 
@@ -63,14 +68,19 @@ export default function CleanConnectZ() {
   const [history, setHistory] = useState(readHistory);
   const [store, setStore] = useState(null);                  // what the browser says it holds for THIS site
   const stopRef = useRef(false);
+  const tokenRef = useRef(null);                              // the bridge's handle for the folder chosen (never a path)
+  const [dupeMode, setDupeMode] = useState(false);
+  const [lastAccess, setLastAccess] = useState(null);         // bridge: does Windows record last-access here? true | false | null
+  const [permanent, setPermanent] = useState(false);          // bridge: skip the Recycle Bin
 
   useEffect(() => {
     navigator.storage?.estimate?.().then((e) => setStore(e)).catch(() => {});
   }, []);
 
-  async function pick(nextKind) {
+  async function pick(nextKind, { dupes = false } = {}) {
     if (nextKind) setKind(nextKind);
-    setMsg("");
+    setMsg(""); setDupeMode(false);
+    if (bridge) return pickBridge(dupes);
     let dir;
     try { dir = await window.showDirectoryPicker({ mode: "readwrite" }); }
     catch (e) { if (e?.name !== "AbortError") setMsg("Couldn't open that folder: " + (e?.message || "refused")); return; }
@@ -85,6 +95,34 @@ export default function CleanConnectZ() {
     setStage("plan");
   }
 
+  async function pickBridge(dupes) {
+    let r;
+    try { r = await bridge.pick(); } catch { setMsg("The Windows app couldn't open the folder dialog."); return; }
+    if (!r) return;
+    tokenRef.current = r.token; setLastAccess(r.lastAccess);
+    stopRef.current = false;
+    setSeen({ n: 0, bytes: 0 }); setStage("scanning");
+    const off = bridge.onProgress((p) => setSeen((x) => ({ ...x, n: p.n })));
+    try {
+      const sc = await bridge.scan(r.token);
+      if (sc.error || sc.cancelled) { if (sc.error) setMsg(sc.error); setStage("home"); return; }
+      let list = sc.files;
+      setSeen({ n: list.length, bytes: sumBytes(list) });
+      if (dupes) {
+        setSeen((x) => ({ ...x, n: 0 }));
+        const d = await bridge.dupes(r.token, list);
+        if (d.error || d.cancelled) { if (d.error) setMsg(d.error); setStage("home"); return; }
+        list = dupeCopies(list, d.groups);
+        setDupeMode(true); setKind("percent"); setPercent(100); setMode("size");
+        setMsg(list.length ? "" : "No duplicates found — no two files in this folder are byte-for-byte the same.");
+        if (!list.length) { setStage("home"); return; }
+      } else if (sc.capped) setMsg(`Only the first ${CAP.toLocaleString()} files were read — pick a smaller folder for a full picture.`);
+      setFiles(list); setRoot(r.name); setKept(new Set()); setSeen({ n: list.length, bytes: sumBytes(list) });
+      setStage("plan");
+    } catch { setMsg("The scan couldn't finish."); setStage("home"); }
+    finally { off(); }
+  }
+
   const total = useMemo(() => sumBytes(files || []), [files]);
   const target = useMemo(() => targetBytes(files || [], kind === "percent" ? { percent } : { bytes: Number(amount) * UNITS[unit] }), [files, kind, percent, amount, unit]);
   const result = useMemo(() => plan(files || [], mode, target), [files, mode, target]);
@@ -93,11 +131,23 @@ export default function CleanConnectZ() {
 
   async function remove() {
     if (!ticked.length) return;
-    if (!window.confirm(`Delete ${ticked.length.toLocaleString()} files from "${root}", freeing ${human(freed)}? They are removed from your device and this can't be undone.`)) return;
+    const gone = bridge && !permanent
+      ? `Move ${ticked.length.toLocaleString()} files from "${root}" to the Recycle Bin? You can restore them from there; the ${human(freed)} is freed when the Bin is emptied.`
+      : `Delete ${ticked.length.toLocaleString()} files from "${root}", freeing ${human(freed)}? They are removed from your device and this can't be undone.`;
+    if (!window.confirm(gone)) return;
     setBusy("Deleting…"); setMsg("");
     let ok = 0, failed = 0, bytes = 0;
-    for (const f of ticked) {
-      try { await f.parent.removeEntry(f.name); ok++; bytes += f.size; } catch { failed++; }
+    let recycled = false;
+    if (bridge) {
+      const r = await bridge.remove(tokenRef.current, ticked.map((f) => f.path), permanent).catch(() => ({ error: "The Windows app didn't answer." }));
+      if (r.error) { setBusy(""); setMsg(r.error); return; }
+      const bad = new Set(r.failed.map((x) => x.path));
+      for (const f of ticked) { if (bad.has(f.path)) failed++; else { ok++; bytes += f.size; } }
+      recycled = r.recycled;
+    } else {
+      for (const f of ticked) {
+        try { await f.parent.removeEntry(f.name); ok++; bytes += f.size; } catch { failed++; }
+      }
     }
     // What was cleaned, by the folder it came from — read off the paths actually deleted.
     const by = new Map();
@@ -106,11 +156,17 @@ export default function CleanConnectZ() {
       by.set(top, (by.get(top) || 0) + f.size);
     }
     const parts = [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, b]) => ({ name, bytes: b }));
-    const result = { root, ok, failed, bytes, mode, parts, at: Date.now() };
+    const result = { root, ok, failed, bytes, mode: dupeMode ? "dupes" : mode, recycled, parts, at: Date.now() };
     const h = [result, ...history]; setHistory(h); writeHistory(h);
     setDone(result); setFiles(null); setBusy(""); setStage("done");
   }
 
+  // What "used" means depends on where the folder was read: a browser sees only the modified date; the Windows app can
+  // read the last-accessed time — but Windows often doesn't record it (a volume setting), so it says which it is.
+  const usedNote = !bridge ? "“Used” here is each file's last-modified date — the only one a browser can read."
+    : lastAccess === true ? "“Used” is each file's last-opened time, read by the Windows app."
+    : lastAccess === false ? "“Used” is the last-modified date: this PC doesn't record when files are opened (a Windows setting), so a file you open but never save looks unused."
+    : "“Used” is the newer of last-opened and last-modified; Windows couldn't say whether it records opens on this PC.";
   const pill = (on) => `rounded-full border px-3 py-1.5 text-[13px] ${on ? "border-violet-300 bg-violet-500/30 text-white" : "border-white/10 text-white/70"}`;
   // fx: "idle" floats; "sweep" sways like a broom and kicks dust sideways (scanning); "burst" pops sparkles (done).
   const Ghost = ({ size = 200, fx = "idle" }) => (
@@ -155,10 +211,11 @@ export default function CleanConnectZ() {
           {stage === "home" && (
             <>
               <div className="py-1"><Ghost /></div>
-              <button disabled={!hasPicker} onClick={() => pick()}
+              <button disabled={!canPick} onClick={() => pick()}
                 className="my-1 w-full rounded-[20px] px-4 py-[17px] text-[17px] font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.4)] disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#7c3aed,#a78bfa)" }}>🧹 Clean Now</button>
-              {!hasPicker && <p className="text-sm text-mcz-gold">This browser can't open a folder for cleaning. Use Chrome or Edge, or the Windows app.</p>}
+              {!canPick && <p className="text-sm text-mcz-gold">This browser can't open a folder for cleaning. Use Chrome or Edge, or the Windows app.</p>}
+              {bridge && <p className="text-center text-[12px] text-emerald-300">Windows app: real last-opened dates, duplicate finder and Recycle Bin.</p>}
               {msg && <p role="status" className="text-sm text-white/80">{msg}</p>}
               <div className={`${card} flex items-center gap-3 p-4`}>
                 <span className="text-[22px]">🛡️</span>
@@ -174,12 +231,19 @@ export default function CleanConnectZ() {
                 {[["📁", "Choose a folder", "Scan it first", () => pick()],
                   ["❇️", "Target Percent", "Free a share", () => pick("percent")],
                   ["⚖️", "Target Size", "Free MB or GB", () => pick("size")]].map(([icon, t, sub, go]) => (
-                  <button key={t} disabled={!hasPicker} onClick={go}
+                  <button key={t} disabled={!canPick} onClick={go}
                     className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20 disabled:opacity-40">
                     <div className="mb-1.5 text-2xl">{icon}</div><div className="text-[14px] font-semibold">{t}</div>
                     <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{sub}</div>
                   </button>
                 ))}
+                {bridge && (
+                  <button onClick={() => pick("percent", { dupes: true })}
+                    className="col-span-2 rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20">
+                    <div className="mb-1.5 text-2xl">♊</div><div className="text-[14px] font-semibold">Find duplicates</div>
+                    <div className="mt-0.5 text-[13px] font-semibold text-violet-200">Byte-identical copies · you keep one of each</div>
+                  </button>
+                )}
                 <div className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl">
                   <div className="mb-1.5 text-2xl">📊</div><div className="text-[14px] font-semibold">This browser</div>
                   <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{store?.quota ? `${human(store.usage)} · ${((store.usage / store.quota) * 100).toFixed(store.usage / store.quota < 0.1 ? 1 : 0)}%` : "not reported"}</div>
@@ -215,7 +279,7 @@ export default function CleanConnectZ() {
                 </span>
               </div>
               <p className="text-violet-200">Counting what is there — the total isn't known until it finishes.</p>
-              <button onClick={() => { stopRef.current = true; }} className={`${card} w-full px-4 py-3 font-semibold`}>✕ Cancel scan</button>
+              <button onClick={() => { stopRef.current = true; bridge?.cancel(); }} className={`${card} w-full px-4 py-3 font-semibold`}>✕ Cancel scan</button>
             </div>
           )}
 
@@ -226,6 +290,10 @@ export default function CleanConnectZ() {
                 <p className="text-[15px] font-bold text-white">“{root}”</p>
                 <p className="text-[13px] text-white/70">{files.length.toLocaleString()} files · {human(total)}</p>
               </div>
+              {dupeMode ? (
+                <p className="text-[13px] text-violet-200">Every file below is an exact copy (same bytes, checked) of one the app is keeping — the oldest in each group. Untick any you want to hold on to.</p>
+              ) : (
+                <>
               <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Target">
                 <button role="tab" aria-selected={kind === "percent"} className={pill(kind === "percent")} onClick={() => setKind("percent")}>❇️ Target Percent</button>
                 <button role="tab" aria-selected={kind === "size"} className={pill(kind === "size")} onClick={() => setKind("size")}>⚖️ Target Size</button>
@@ -241,9 +309,11 @@ export default function CleanConnectZ() {
                   <button key={k} role="tab" aria-selected={mode === k} className={pill(mode === k)} onClick={() => { setMode(k); setKept(new Set()); }}>{m.emoji} {m.label}</button>
                 ))}
               </div>
-              <p className="text-[12px] text-white/60">{MODES[mode].what} “Used” here is each file's last-modified date — the only one a browser can read.</p>
+              <p className="text-[12px] text-white/60">{MODES[mode].what} {usedNote}</p>
+                </>
+              )}
               <p className="text-[14px] text-white">
-                Target {human(target)} · selected <b>{ticked.length.toLocaleString()}</b> files, frees <b className="text-emerald-300">{human(freed)}</b>
+                {dupeMode ? "Copies found" : `Target ${human(target)}`} · selected <b>{ticked.length.toLocaleString()}</b> files, frees <b className="text-emerald-300">{human(freed)}</b>
                 {!result.reached && <span className="text-mcz-gold"> — this folder doesn't hold enough to reach the target.</span>}
               </p>
               <ul className={`${card} max-h-80 divide-y divide-white/10 overflow-y-auto text-[12px]`}>
@@ -252,15 +322,21 @@ export default function CleanConnectZ() {
                     <input type="checkbox" checked={!kept.has(f.path)} aria-label={`Delete ${f.path}`}
                       onChange={() => setKept((k) => { const n = new Set(k); n.has(f.path) ? n.delete(f.path) : n.add(f.path); return n; })} />
                     <span className="min-w-0 flex-1 truncate text-white/85" title={f.path}>{f.path}</span>
-                    <span className="shrink-0 text-white/55">{human(f.size)} · {new Date(f.used).toLocaleDateString()}</span>
+                    <span className="shrink-0 text-white/55">{human(f.size)} · {dupeMode ? `copy of ${f.dupeOf.split("/").pop()}` : new Date(f.used).toLocaleDateString()}</span>
                   </li>
                 ))}
               </ul>
               {result.selected.length > 500 && <p className="text-[11px] text-white/50">Showing the first 500 of {result.selected.length.toLocaleString()}.</p>}
               <button onClick={remove} disabled={!ticked.length || !!busy}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-mcz-ember px-4 py-3 font-bold text-black disabled:opacity-40">
-                <Trash2 size={18} /> Delete {ticked.length.toLocaleString()} files · frees {human(freed)}
+                <Trash2 size={18} /> {bridge && !permanent ? "Move" : "Delete"} {ticked.length.toLocaleString()} files {bridge && !permanent ? "to the Recycle Bin" : "for good"} · {human(freed)}
               </button>
+              {bridge && (
+                <label className="flex items-start gap-2 text-[12px] text-white/70">
+                  <input type="checkbox" checked={permanent} onChange={(e) => setPermanent(e.target.checked)} className="mt-0.5" />
+                  <span>Skip the Recycle Bin — frees the space now, can't be undone.</span>
+                </label>
+              )}
               {busy && <p className="text-sm text-white/60">{busy}</p>}
             </section>
           )}
@@ -270,13 +346,14 @@ export default function CleanConnectZ() {
               <p className="mx-auto w-fit rounded-full bg-violet-400/20 px-4 py-2 text-[14px] backdrop-blur">✨ All Cleaned Up</p>
               <Ghost size={170} fx="burst" />
               <p className="bg-gradient-to-r from-white to-violet-200 bg-clip-text text-[46px] font-bold leading-none tracking-tight text-transparent">{human(done.bytes)}</p>
-              <p className="text-[22px] font-semibold text-violet-200">Freed</p>
+              <p className="text-[22px] font-semibold text-violet-200">{done.recycled ? "Moved to the Recycle Bin" : "Freed"}</p>
+              {done.recycled && <p className="text-[12px] text-violet-200/80">The space comes back when you empty the Bin. Until then you can restore any of it.</p>}
               <div className={`${card} p-4 text-left`}>
                 <p className="mb-1.5 font-semibold">Cleaned items</p>
                 {(done.parts || []).map((x) => (
                   <div key={x.name} className="flex justify-between border-b border-white/10 py-3 text-[15px]"><span>📁 {x.name}</span><span>{human(x.bytes)} ✓</span></div>
                 ))}
-                <div className="flex justify-between py-3 text-[15px] text-white/80"><span>🗑️ {done.ok.toLocaleString()} files from “{done.root}”</span><span>{MODES[done.mode].emoji} {MODES[done.mode].label}</span></div>
+                <div className="flex justify-between py-3 text-[15px] text-white/80"><span>🗑️ {done.ok.toLocaleString()} files from “{done.root}”</span><span>{done.mode === "dupes" ? "♊ Duplicates" : `${MODES[done.mode].emoji} ${MODES[done.mode].label}`}</span></div>
                 {done.failed > 0 && <p className="text-mcz-gold text-[13px]">{done.failed} couldn't be deleted (in use or read-only).</p>}
               </div>
               <button onClick={() => { setStage("home"); setDone(null); }} className="w-full rounded-[18px] px-4 py-4 text-[16px] font-semibold text-white"

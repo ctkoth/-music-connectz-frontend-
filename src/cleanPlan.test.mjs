@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { order, plan, sumBytes, targetBytes, human } from "./cleanPlan.js";
+import { dupeCopies, order, plan, sumBytes, targetBytes, human } from "./cleanPlan.js";
 
 const F = (path, size, used) => ({ path, size, used });
 const files = [F("a", 100, 5), F("b", 900, 9), F("c", 500, 1), F("d", 50, 0), F("e", 400, 7)];
@@ -44,4 +44,13 @@ test("human sizes", () => {
   assert.equal(human(512), "512 B");
   assert.equal(human(1536), "1.5 KB");
   assert.equal(human(5 * 1024 ** 3), "5.0 GB");
+});
+
+test("dupeCopies keeps the oldest of each group and names it, and never empties a group", () => {
+  const f = (path, modified, size = 10) => ({ path, size, used: modified, modified });
+  const files = [f("a/new.wav", 300), f("a/orig.wav", 100), f("b/mid.wav", 200), f("solo.wav", 50)];
+  const out = dupeCopies(files, [{ size: 10, files: ["a/new.wav", "a/orig.wav", "b/mid.wav"] }, { size: 1, files: ["solo.wav"] }, { size: 1, files: ["gone.wav", "solo.wav"] }]);
+  assert.deepEqual(out.map((x) => x.path).sort(), ["a/new.wav", "b/mid.wav"]);
+  assert.ok(out.every((x) => x.dupeOf === "a/orig.wav"));
+  assert.ok(!out.some((x) => x.path === "a/orig.wav"));
 });
