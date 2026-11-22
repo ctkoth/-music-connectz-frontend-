@@ -59,12 +59,13 @@ test("the home screen's parents are each a real category with art, offered up fr
   assert.ok(inFocus("intelligencez"));
 });
 
-test("one home grid: ToolZ and DawZ lead, the coaches are not tiles (they live in SkillZ), then the parents and support apps", () => {
+test("one home grid: ToolZ, DawZ and IntelligenceZ lead, the coaches are not tiles (they live in SkillZ), then the parents and support apps", () => {
   const toolz = menu.indexOf('categoryKey="ToolZ"');
   const daw = menu.indexOf('appKey="dawz"');
+  const intel = menu.indexOf('categoryKey="IntelligenceZ"');
   const parents = menu.indexOf('FOCUS_PARENTS.filter');
   const support = menu.indexOf("FOCUS_SUPPORT.filter");
-  assert.ok(toolz > 0 && toolz < daw && daw < parents && parents < support);
+  assert.ok(toolz > 0 && toolz < daw && daw < intel && intel < parents && parents < support);
   assert.ok(!menu.includes("FOCUS_COACHES.map"), "the home grid must not list the coaches");
 });
 

@@ -607,8 +607,10 @@ export default function ToolZMenu() {
             {/* ToolZ and DawZ lead. The coaches live in SkillZ now (a tab on the profile), so they are not tiles here. */}
             <ParentTile categoryKey="ToolZ" onOpen={setSelectedCategory} big />
             <FocusTile appKey="dawz" onOpen={openFocus} big />
-            {FOCUS_PARENTS.filter((k) => k !== "ToolZ").map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
-            {FOCUS_SUPPORT.filter((k) => k !== "dawz").map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+            <ParentTile categoryKey="IntelligenceZ" onOpen={setSelectedCategory} big />
+            {FOCUS_PARENTS.filter((k) => k !== "ToolZ" && k !== "IntelligenceZ").map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+            {/* Lilith and BodieZ are in ToolZ ("Plan & train"), so they are not tiles here. */}
+            {FOCUS_SUPPORT.filter((k) => !["dawz", "bodiez", "lilith"].includes(k)).map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
           <button className="toolz-more-button" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
             {showMore ? 'Hide the other apps' : `More apps (${CATEGORIES.length} categories)`}
