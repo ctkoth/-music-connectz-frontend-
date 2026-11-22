@@ -1,3 +1,4 @@
+import { purposeOf } from '../appPurpose.js';
 import VersionBadge from "./VersionBadge.jsx";
 import React, { useState } from 'react';
 import NeedsView from './NeedsView.jsx';
@@ -360,14 +361,17 @@ const FOCUS_LABEL = {
 
 function FocusTile({ appKey, onOpen, big }) {
   return (
-    <button className={`category-card ${big ? 'cyan' : 'magenta'}`} onClick={() => onOpen(appKey)}>
+    <button className={`category-card ${big ? 'cyan coach-card' : 'magenta'}`} onClick={() => onOpen(appKey)}>
       {ICON_KEY[appKey] ? (
         <IconImg icon={ICON_KEY[appKey]} alt={FOCUS_LABEL[appKey]} className="category-icon-img"
                  fallback={<span>{EMOJI[appKey] || '🎵'}</span>} />
       ) : (
         <span style={{ fontSize: 28 }}>{EMOJI[appKey] || '🎵'}</span>
       )}
-      <div className="category-label">{FOCUS_LABEL[appKey] || appKey}</div>
+      <div className="category-text">
+        <div className="category-label">{FOCUS_LABEL[appKey] || appKey}</div>
+        {big && purposeOf(appKey) && <div className="category-tag">{purposeOf(appKey)}</div>}
+      </div>
     </button>
   );
 }
@@ -594,7 +598,7 @@ export default function ToolZMenu() {
 
       {FOCUS_MODE && (
         <>
-          <div className="category-grid" data-tour="home-pinned" style={{ margin: '14px 0' }}>
+          <div className="category-grid coach-grid" data-tour="home-pinned" style={{ margin: '14px 0' }}>
             {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
             {[...FOCUS_COACH_PARENTS, ...FOCUS_PARENTS].map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
             {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}

@@ -572,3 +572,25 @@
   box-shadow: none;
   border-color: currentColor;
 }
+
+/* Phones: the coaches are wide neon cards — art left, name and what it does right — one per row,
+   thumb-sized, like the mobile mockup. Tiles that are not coaches keep the compact grid. */
+.category-tag { display: none; }
+@media (max-width: 640px) {
+  .coach-grid { grid-template-columns: 1fr !important; gap: 14px; }
+  .coach-grid .category-card.coach-card {
+    flex-direction: row; align-items: center; justify-content: flex-start; text-align: left;
+    gap: 16px; padding: 14px 18px; min-height: 108px; border-radius: 22px;
+    background: rgba(10, 8, 30, 0.85);
+  }
+  .coach-grid .category-card.coach-card:nth-of-type(3n+2) { border-color: #ff3fbf; box-shadow: 0 0 18px rgba(255, 63, 191, 0.4); }
+  .coach-grid .category-card.coach-card:nth-of-type(3n+1),
+  .coach-grid .category-card.coach-card:nth-of-type(3n) { border-color: #a35cff; box-shadow: 0 0 18px rgba(163, 92, 255, 0.4); }
+  .coach-grid .category-card.coach-card .category-icon-img { width: 76px; height: 76px; flex: none; }
+  .coach-grid .category-card.coach-card .category-text { min-width: 0; }
+  .coach-grid .category-card.coach-card .category-label {
+    font-size: 2rem; font-weight: 800; font-style: italic; line-height: 1.05; text-shadow: none;
+    background: linear-gradient(90deg, #a35cff, #ff3fbf); -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .coach-grid .category-card.coach-card .category-tag { display: block; margin-top: 6px; color: #fff; font-size: 0.95rem; text-shadow: none; }
+}
