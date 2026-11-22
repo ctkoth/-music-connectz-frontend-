@@ -397,13 +397,18 @@ function YourAppTile({ appKey, onOpen }) {
   );
 }
 
-function ParentTile({ categoryKey, onOpen }) {
+function ParentTile({ categoryKey, onOpen, big }) {
   const c = CATEGORIES.find((x) => x.key === categoryKey);
   if (!c) return null;
   return (
-    <button className={`category-card ${c.color}`} onClick={() => onOpen(categoryKey)}>
+    <button className={`category-card ${c.color}${big ? ' coach-card' : ''}`} onClick={() => onOpen(categoryKey)}>
       <IconImg icon={CATEGORY_ICON_KEY[categoryKey]} alt={c.label} className="category-icon-img" />
-      <div className="category-label">{c.label}</div>
+      {big ? (
+        <div className="category-text">
+          <div className="category-label">{c.label}</div>
+          {c.desc && <div className="category-tag">{c.desc}</div>}
+        </div>
+      ) : <div className="category-label">{c.label}</div>}
     </button>
   );
 }
@@ -599,9 +604,11 @@ export default function ToolZMenu() {
       {FOCUS_MODE && (
         <>
           <div className="category-grid coach-grid" data-tour="home-pinned" style={{ margin: '14px 0' }}>
-            {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
-            {[...FOCUS_COACH_PARENTS, ...FOCUS_PARENTS].map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
-            {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+            {/* ToolZ and DawZ lead. The coaches live in SkillZ now (a tab on the profile), so they are not tiles here. */}
+            <ParentTile categoryKey="ToolZ" onOpen={setSelectedCategory} big />
+            <FocusTile appKey="dawz" onOpen={openFocus} big />
+            {FOCUS_PARENTS.filter((k) => k !== "ToolZ").map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+            {FOCUS_SUPPORT.filter((k) => k !== "dawz").map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
           <button className="toolz-more-button" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
             {showMore ? 'Hide the other apps' : `More apps (${CATEGORIES.length} categories)`}

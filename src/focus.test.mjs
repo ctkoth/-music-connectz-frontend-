@@ -59,11 +59,13 @@ test("the home screen's parents are each a real category with art, offered up fr
   assert.ok(inFocus("intelligencez"));
 });
 
-test("one home grid: coaches, then SkillZ and the parents, then the support apps", () => {
-  const coach = menu.indexOf("FOCUS_COACHES.map");
-  const hubs = menu.indexOf("...FOCUS_COACH_PARENTS, ...FOCUS_PARENTS");
-  const support = menu.indexOf("FOCUS_SUPPORT.map");
-  assert.ok(coach > 0 && coach < hubs && hubs < support);
+test("one home grid: ToolZ and DawZ lead, the coaches are not tiles (they live in SkillZ), then the parents and support apps", () => {
+  const toolz = menu.indexOf('categoryKey="ToolZ"');
+  const daw = menu.indexOf('appKey="dawz"');
+  const parents = menu.indexOf('FOCUS_PARENTS.filter');
+  const support = menu.indexOf("FOCUS_SUPPORT.filter");
+  assert.ok(toolz > 0 && toolz < daw && daw < parents && parents < support);
+  assert.ok(!menu.includes("FOCUS_COACHES.map"), "the home grid must not list the coaches");
 });
 
 test("Corey's home screen set is always shown: real categories and real tabs", async () => {
