@@ -87,7 +87,7 @@ personaz.coach.jpg
 personaz.developer.png
 personaz.jpg
 personaz.manager.png
-personaz.mix engineer.png
+personaz.mixengineer.png
 personaz.videographer.png
 pivkconnectz.png
 profilez.png

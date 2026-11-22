@@ -29,8 +29,10 @@ export const ICON_DEFAULTS = {
   "collabz.remixez.png": "/icons/collabz.remixez.png",
   "arsenal.png": "/icons/dawz.arsenal.jpg",
   "azrael.png": "/icons/dawz.azrael.png",
+  "dawz_formulawon.png": "/icons/dawz.formulawon.jpg",
   "fruity_mobius.png": "/icons/dawz.fruity.png",
   "intuition.png": "/icons/dawz.intuitionz.jpg",
+  "dawz.png": "/icons/dawz.jpg",
   "trump_toupee.png": "/icons/dawz.trump.png",
   "witchcraft.png": "/icons/dawz.witch.png",
   "distributez.png": "/icons/distributez.png",
@@ -44,6 +46,7 @@ export const ICON_DEFAULTS = {
   "partnerz.jpg": "/icons/groupz.partnerz.jpg",
   "groupz.png": "/icons/groupz.png",
   "homez.png": "/icons/home.jpg",
+  "lilith_upcoming.png": "/icons/lilith.upcoming.png",
   "tellz.png": "/icons/tellz.png",
   "imageconnectz.png": "/icons/intelligence.imageconz.png",
   "instrumentalconnectz.png": "/icons/intelligence.instconz.jpg",
@@ -65,6 +68,7 @@ export const ICON_DEFAULTS = {
   "personaz_developer.png": "/icons/personaz.developer.png",
   "personaz.png": "/icons/personaz.jpg",
   "personaz_manager.png": "/icons/personaz.manager.png",
+  "personaz_mixengineer.png": "/icons/personaz.mixengineer.png",
   "personaz_videographer.png": "/icons/personaz.videographer.png",
   "profilez.png": "/icons/profilez.png",
   "lookmaxz.png": "/icons/profilez.lookzmaxz.jpg",
@@ -112,7 +116,7 @@ export const ICON_DEFAULTS = {
   "keyz.png": "/icons/keyz.png",
   "keyconnectz.png": "/icons/keyconnectz.png",
   "lessonz.png": "/icons/lessonz.png",
-  "logo.png": "/icons/logo.jpg",
+  "logo.png": "/icons/logo.png",
   "mimez.png": "/icons/mimez.png",
   "offerz.png": "/icons/offerz.png",
   "adz.png": "/icons/adz.png",
@@ -168,10 +172,60 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "clean.slate",
+        "label": "Clean.slate",
+        "file": "badgez.clean.slate.png",
+        "art": "/icons/badgez.clean.slate.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "founding",
         "label": "Founding",
         "file": "badgez.founding.png",
         "art": "/icons/badgez.founding.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "owner",
+        "label": "Owner",
+        "file": "badgez.owner.png",
+        "art": "/icons/badgez.owner.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "patron",
+        "label": "Patron",
+        "file": "badgez.patron.png",
+        "art": "/icons/badgez.patron.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "polyglot",
+        "label": "Polyglot",
+        "file": "badgez.polyglot.png",
+        "art": "/icons/badgez.polyglot.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "sexy",
+        "label": "Sexy",
+        "file": "badgez.sexy.png",
+        "art": "/icons/badgez.sexy.png",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -624,9 +678,9 @@ export const ICON_TREE = [
     "label": "DawZ",
     "root": {
       "file": "dawz.jpg",
-      "art": null,
+      "art": "/icons/dawz.jpg",
       "key": "dawz.png",
-      "status": "owed",
+      "status": "live",
       "note": "on disk as \"Dawz.jpg\"; commit it as dawz.jpg"
     },
     "extra": [],
@@ -655,9 +709,9 @@ export const ICON_TREE = [
         "child": "formulawon",
         "label": "FormulaWon",
         "file": "dawz.formulawon.jpg",
-        "art": null,
+        "art": "/icons/dawz.formulawon.jpg",
         "key": "dawz_formulawon.png",
-        "status": "owed",
+        "status": "live",
         "note": "on disk as \"Dawz.FormulaWon.jpg\"; commit it as dawz.formulawon.jpg",
         "also": []
       },
@@ -895,7 +949,13 @@ export const ICON_TREE = [
         "key": "groupz_friendz.png",
         "status": "live",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "groupz.friendz.png",
+            "status": "unplaced",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "partnerz",
@@ -1007,6 +1067,16 @@ export const ICON_TREE = [
         "art": "/icons/intelligence.sentenceconz.png",
         "key": "sentencez.png",
         "status": "live",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "strumentalconz",
+        "label": "StrumentalconZ",
+        "file": "intelligencez.strumentalconz.png",
+        "art": "/icons/intelligencez.strumentalconz.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
         "also": []
       },
@@ -1146,9 +1216,9 @@ export const ICON_TREE = [
         "child": "upcoming",
         "label": "Upcoming",
         "file": "lilith.upcoming.png",
-        "art": null,
+        "art": "/icons/lilith.upcoming.png",
         "key": "lilith_upcoming.png",
-        "status": "owed",
+        "status": "live",
         "note": "on disk as \"ImgResizer_lilith.upcoming (1).png\"; commit it as lilith.upcoming.png",
         "also": []
       }
@@ -1208,12 +1278,18 @@ export const ICON_TREE = [
       {
         "child": "inbox",
         "label": "Inbox",
-        "file": "messagez.inbox.png",
-        "art": null,
-        "key": "inbox.png",
-        "status": "owed",
+        "file": "messagez.inbox.jpg",
+        "art": "/icons/messagez.inbox.jpg",
+        "key": null,
+        "status": "unplaced",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "messagez.inbox.png",
+            "status": "owed",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "outbox",
@@ -1352,6 +1428,22 @@ export const ICON_TREE = [
         "key": "personaz_developer.png",
         "status": "live",
         "note": "",
+        "also": [
+          {
+            "file": "personaz.developer.jpg",
+            "status": "unplaced",
+            "note": ""
+          }
+        ]
+      },
+      {
+        "child": "ghostwriter",
+        "label": "Ghostwriter",
+        "file": "personaz.ghostwriter.jpg",
+        "art": "/icons/personaz.ghostwriter.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
         "also": []
       },
       {
@@ -1368,10 +1460,10 @@ export const ICON_TREE = [
         "child": "mixengineer",
         "label": "Mix Engineer",
         "file": "personaz.mixengineer.png",
-        "art": null,
+        "art": "/icons/personaz.mixengineer.png",
         "key": "personaz_mixengineer.png",
-        "status": "owed",
-        "note": "on disk as \"personaz.mix engineer.png\"; commit it as personaz.mixengineer.png",
+        "status": "live",
+        "note": "",
         "also": []
       },
       {
@@ -1431,6 +1523,16 @@ export const ICON_TREE = [
     },
     "extra": [],
     "children": [
+      {
+        "child": "characterz",
+        "label": "CharacterZ",
+        "file": "profilez.characterz.png",
+        "art": "/icons/profilez.characterz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
       {
         "child": "filez",
         "label": "FileZ",
@@ -1581,6 +1683,16 @@ export const ICON_TREE = [
     "extra": [],
     "children": [
       {
+        "child": "boardz",
+        "label": "BoardZ",
+        "file": "socializez.boardz.jpg",
+        "art": "/icons/socializez.boardz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "infernoz",
         "label": "InfernoZ",
         "file": "socializez.infernoz.jpg",
@@ -1595,6 +1707,16 @@ export const ICON_TREE = [
         "label": "PersonalitieZ",
         "file": "socializez.personalitiez.png",
         "art": "/icons/socializez.personalitiez.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "sonday",
+        "label": "Sonday",
+        "file": "socializez.sonday.jpg",
+        "art": "/icons/socializez.sonday.jpg",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -1701,6 +1823,16 @@ export const ICON_TREE = [
     ],
     "children": [
       {
+        "child": "builder",
+        "label": "Builder",
+        "file": "toolz.builder.jpg",
+        "art": "/icons/toolz.builder.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "chordz",
         "label": "ChordZ",
         "file": "toolz.chordz.jpg",
@@ -1753,12 +1885,18 @@ export const ICON_TREE = [
       {
         "child": "sentencez",
         "label": "SentenceZ",
-        "file": "toolz.sentencez.jpg",
-        "art": "/icons/toolz.sentencez.jpg",
+        "file": "toolz.sentencez.png",
+        "art": "/icons/toolz.sentencez.png",
         "key": null,
-        "status": "fallback",
-        "note": "current art for registry key sentencez_editor.png, kept as the fallback",
-        "also": []
+        "status": "unplaced",
+        "note": "",
+        "also": [
+          {
+            "file": "toolz.sentencez.jpg",
+            "status": "fallback",
+            "note": "current art for registry key sentencez_editor.png, kept as the fallback"
+          }
+        ]
       },
       {
         "child": "tunerz",
@@ -1832,6 +1970,16 @@ export const ICON_TREE = [
         "label": "PartnerZ",
         "file": "visibility.partnerz.png",
         "art": "/icons/visibility.partnerz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "public",
+        "label": "Public",
+        "file": "visibility.public.png",
+        "art": "/icons/visibility.public.png",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -1926,10 +2074,90 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "coachz",
+        "label": "CoachZ",
+        "file": "skillz.coachz.jpg",
+        "art": "/icons/skillz.coachz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "developz",
+        "label": "DevelopZ",
+        "file": "skillz.developz.png",
+        "art": "/icons/skillz.developz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "drumz",
+        "label": "DrumZ",
+        "file": "skillz.drumz.png",
+        "art": "/icons/skillz.drumz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "flutez",
         "label": "FluteZ",
         "file": "skillz.flutez.jpg",
         "art": "/icons/skillz.flutez.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "guitarrz",
+        "label": "GuitarrZ",
+        "file": "skillz.guitarrz.png",
+        "art": "/icons/skillz.guitarrz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "keyz",
+        "label": "KeyZ",
+        "file": "skillz.keyz.png",
+        "art": "/icons/skillz.keyz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "managez",
+        "label": "ManageZ",
+        "file": "skillz.managez.png",
+        "art": "/icons/skillz.managez.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "producez",
+        "label": "ProduceZ",
+        "file": "skillz.producez.png",
+        "art": "/icons/skillz.producez.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "rapz",
+        "label": "RapZ",
+        "file": "skillz.rapz.png",
+        "art": "/icons/skillz.rapz.png",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -1946,10 +2174,60 @@ export const ICON_TREE = [
         "also": []
       },
       {
+        "child": "scoutz",
+        "label": "ScoutZ",
+        "file": "skillz.scoutz.png",
+        "art": "/icons/skillz.scoutz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "shotz",
+        "label": "ShotZ",
+        "file": "skillz.shotz.png",
+        "art": "/icons/skillz.shotz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "singz",
+        "label": "SingZ",
+        "file": "skillz.singz.png",
+        "art": "/icons/skillz.singz.png",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
         "child": "trumpetz",
         "label": "TrumpetZ",
         "file": "skillz.trumpetz.jpg",
         "art": "/icons/skillz.trumpetz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "violinz",
+        "label": "ViolinZ",
+        "file": "skillz.violinz.jpg",
+        "art": "/icons/skillz.violinz.jpg",
+        "key": null,
+        "status": "unplaced",
+        "note": "",
+        "also": []
+      },
+      {
+        "child": "writez",
+        "label": "WriteZ",
+        "file": "skillz.writez.png",
+        "art": "/icons/skillz.writez.png",
         "key": null,
         "status": "unplaced",
         "note": "",
@@ -2004,12 +2282,18 @@ export const ICON_TREE = [
       {
         "child": "reelz",
         "label": "ReelZ",
-        "file": "directz.reelz.jpg",
-        "art": "/icons/directz.reelz.jpg",
-        "key": "reelz.png",
-        "status": "live",
+        "file": "directz.reelz.png",
+        "art": "/icons/directz.reelz.png",
+        "key": null,
+        "status": "unplaced",
         "note": "",
-        "also": []
+        "also": [
+          {
+            "file": "directz.reelz.jpg",
+            "status": "live",
+            "note": ""
+          }
+        ]
       },
       {
         "child": "voicezstylez",
