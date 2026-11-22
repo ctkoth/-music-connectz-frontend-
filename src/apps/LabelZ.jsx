@@ -7,6 +7,8 @@ import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
 import { goToSpot, openMember } from "../goto.js";
+import AdvanceZ from "../components/AdvanceZ.jsx";
+import { TeamMine, TeamOwner } from "../components/TeemZ.jsx";
 
 export default function LabelZ() {
   const talk = useSay();
@@ -71,7 +73,7 @@ export default function LabelZ() {
         <IconImg icon="labelz.png" alt="LabelZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
           <h2 className="font-display text-3xl font-extrabold" style={{ color: "#a78bfa" }}>LabelZ</h2>
-          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements. Advances settle off-platform.</p>
+          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements · teams. Advances are a shared record; the money settles off-platform.</p>
           <span className="pill mt-1 inline-block">Contracts: adults only · signatures audit-logged</span>
         </div>
       </header>
@@ -113,6 +115,11 @@ export default function LabelZ() {
                 by <button className="hover:underline" onClick={() => openMember(l.owner)}>{l.owner}</button>
                 {" · "}{l.member_count} member{l.member_count === 1 ? "" : "s"}
               </p>
+              {Array.isArray(l.team) && l.team.length > 0 && (
+                <p className="mt-1 flex flex-wrap gap-1 text-[11px] text-white/65">
+                  {l.team.map((m) => <button key={m.username} className="pill hover:underline" onClick={() => openMember(m.username)}>{m.username} · {m.role_label}</button>)}
+                </p>
+              )}
               {editingLabel === l.id ? (
                 <div className="mt-2 space-y-2">
                   <input className="neon-input !py-1.5 text-sm" placeholder="Label name"
@@ -127,11 +134,14 @@ export default function LabelZ() {
               ) : (
                 l.bio && <p className="mt-1 text-sm text-white/60"><MentionText text={l.bio} /></p>
               )}
+              {l.i_own && <TeamOwner labelId={l.id} roles={data.team_roles} onChange={load} />}
             </div>
           ))}
           {labels.length === 0 && <p className="text-sm text-white/60">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
         </div>
       </div>
+
+      <TeamMine onChange={load} />
 
       {myLabels.length > 0 && (
         <div className="neon-frame space-y-3 p-4">
@@ -171,6 +181,7 @@ export default function LabelZ() {
                 {c.owner_signed_name && <> Label signed: {c.owner_signed_name}</>}
                 {c.artist_signed_name && <> · Artist signed: {c.artist_signed_name}</>}
               </p>
+              {c.status === "signed" && <AdvanceZ contractId={c.id} />}
               {c.status === "offered" && asArtist.find((a) => a.id === c.id) && (
                 <div className="flex flex-wrap gap-2">
                   <input className="neon-input !w-64 !py-2 text-xs" placeholder="Type your full legal name"
