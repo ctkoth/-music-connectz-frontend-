@@ -32,6 +32,7 @@ import { goToSpot, openMember } from "../goto.js";
 import { onHandoff } from "../handoff.js";
 import { hasBlobs, primaryMedia, storageNote, uploadWork } from "../uploadWork.js";
 import CollabFiles from "../CollabFiles.jsx";
+import AdvancePay from "../components/AdvancePay.jsx";
 import { IconImg } from "../App.jsx";
 import { ENERGY, MONEY, SPINAZ } from "../resources.js";
 import { labelForSkill, skillQuoteLine } from "../personaSkills.js";
@@ -280,6 +281,7 @@ function Deal({ deal, onAction, onRate, onDistribute, onFlash, onPatch, busy }) 
       </ul>
 
       {["draft", "funded", "delivered"].includes(deal.status) && <EscrowWindow deal={deal} />}
+      <AdvancePay deal={deal} onAction={onAction} busy={busy} />
 
       <div className="flex flex-wrap gap-2">
         {deal.status === "draft" && me.pays_cents > 0 && (
