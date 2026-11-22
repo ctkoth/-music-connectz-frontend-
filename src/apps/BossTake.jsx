@@ -22,7 +22,7 @@ import { shareLink, shareText } from "../shareText.js";
 import DeclareHuman, { declareHuman, PlayOnCard, playOnCard } from "../components/DeclareHuman.jsx";
 import WeeklyChallenge from "../components/WeeklyChallenge.jsx";
 import { heardFor, ratingTone, ratingTone as scoreColor } from "../rating.js";
-import { RatingGrid, RatingRing, RatingStars } from "./../components/Rating.jsx";
+import { RatingBreakdown, RatingGrid, RatingRing, RatingStars } from "./../components/Rating.jsx";
 import UsualHint from "../components/UsualHint.jsx";
 import { handOff, onHandoff } from "../handoff.js";
 import { goToSpot, openMember, spotlight } from "../goto.js";
@@ -1954,11 +1954,12 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               {result.radar ? `📡 Radar read — what @${result.post_author}'s track shows` : "🎧 Reference listen — what this track shows"}
             </p>
           )}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <span className="mx-auto flex flex-col items-center gap-1.5">
-              <RatingRing value={result.score} exact={result.score_exact} size={176} label="Overall score" />
+          <div className="rounded-2xl border border-fuchsia-400/40 bg-black/30 px-4 py-4 text-center shadow-[0_0_22px_rgba(217,70,239,0.25)]">
+            <p className="text-[12px] font-bold uppercase tracking-[0.3em] text-fuchsia-300">Overall AI score</p>
+            <span className="my-2 flex justify-center">
+              <RatingRing value={result.score} exact={result.score_exact} size={176} />
             </span>
-            <p className="min-w-[12rem] flex-1 text-[13px] leading-relaxed text-white/80">{result.verdict}</p>
+            <p className="text-[14px] leading-relaxed text-white/85">{result.verdict}</p>
           </div>
           {result.part?.label && (() => {
             const { mine, others } = splitParts(result.parts);
@@ -1977,7 +1978,13 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </div>
             );
           })()}
-          {result.xp_awarded > 0 && <p className="text-[12px] text-emerald-300">+{result.xp_awarded} ⭐ XP for this take</p>}
+          {result.xp_awarded > 0 && (
+            <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] px-3 py-2.5">
+              <p className="text-[11px] font-bold uppercase tracking-widest text-mcz-cyan">XP earned</p>
+              <p className="text-2xl font-extrabold text-emerald-300">+{result.xp_awarded} ⭐ <span className="text-base">XP</span></p>
+              <p className="text-[11px] text-white/60">for this take</p>
+            </div>
+          )}
           {trial && result.as_member && (
             <p className="text-[12px] text-white/60">
               As a member this take would have been free (1 of your {result.as_member.daily_prompts} daily prompts),{" "}
@@ -2022,7 +2029,8 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               the coach filed under that dimension (`heard`, by `dim`), or its own
               sentence for HookZ and FeelZ. A bare number is the score with no
               description this app does not ship. */}
-          <RatingGrid rows={Object.entries({
+          <p className="text-[13px] font-bold uppercase tracking-widest text-white/80">AI score breakdown</p>
+          <RatingBreakdown rows={Object.entries({
             ...(price?.scores || {}),
             ...(result.rated_lyrics ? (price?.lyric_scores || { writing: "Writing 📝" }) : {}),
             ...(result.rated_mix ? (price?.mix_scores || { mix: "Mix 🎚️" }) : {}),
@@ -2077,7 +2085,7 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               is only shown when no practice came back. */}
           {!result.reference && (result.practice?.length > 0 ? (
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-mcz-cyan/80">Practise this</p>
+              <p className="text-[12px] font-bold uppercase tracking-widest text-fuchsia-300">Next drill recommended</p>
               {result.practice.map((p, i) => (
                 <div key={i} className="space-y-1 rounded-lg border border-mcz-cyan/25 bg-mcz-cyan/5 px-3 py-2 text-[12px] leading-relaxed text-white/75">
                   <p><span className="font-semibold text-mcz-cyan">What · </span>{p.what}</p>

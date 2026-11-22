@@ -99,3 +99,32 @@ export function RatingGrid({ rows, size = "md" }) {
     </div>
   );
 }
+
+/** The mockup's breakdown: one row per dimension, name on the left, "9.4/10" on the right in the
+ *  rating's own colour, a bar under them, and the coach's reason under that. Same tone and one-decimal
+ *  rule as every other rating; a dimension with no number draws nothing (never a bar that reads as 0). */
+export function RatingBreakdown({ rows }) {
+  const shown = (rows || []).filter((r) => starPercent(r.exact ?? r.value) != null);
+  if (!shown.length) return null;
+  return (
+    <div className="space-y-2">
+      {shown.map((r) => {
+        const v = r.exact ?? r.value;
+        return (
+          <div key={r.key} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 text-[15px] font-semibold text-white">{r.label}</span>
+              <span className={`shrink-0 font-display text-[15px] font-extrabold tabular-nums ${ratingTone(v)}`}>
+                {ratingText(r.exact, r.value)}<span className="text-white/35">/10</span>
+              </span>
+            </div>
+            <span aria-hidden="true" className="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-white/10">
+              <span className={`block h-full rounded-full bg-current ${ratingTone(v)}`} style={{ width: `${starPercent(v)}%` }} />
+            </span>
+            {r.detail ? <span className="mt-1.5 block text-[12px] leading-snug text-white/65">{r.detail}</span> : null}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
