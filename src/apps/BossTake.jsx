@@ -1978,11 +1978,43 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
               </div>
             );
           })()}
-          {result.xp_awarded > 0 && (
-            <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] px-3 py-2.5">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-mcz-cyan">XP earned</p>
-              <p className="text-2xl font-extrabold text-emerald-300">+{result.xp_awarded} ⭐ <span className="text-base">XP</span></p>
-              <p className="text-[11px] text-white/60">for this take</p>
+          {/* XP and the coach's badge, side by side. Every figure is the server's (`progress`); an older
+              server sends none, and then only the XP this take earned is shown, never a made-up total. */}
+          {(result.xp_awarded > 0 || result.progress?.badge) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {result.xp_awarded > 0 && (
+                <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/[0.06] px-3 py-2.5">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-mcz-cyan">XP earned</p>
+                  <p className="text-2xl font-extrabold text-emerald-300">+{result.xp_awarded} ⭐ <span className="text-base">XP</span></p>
+                  {result.progress?.xp ? (
+                    <>
+                      <span aria-hidden="true" className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
+                        <span className="block h-full rounded-full bg-mcz-cyan"
+                              style={{ width: `${Math.min(100, (result.progress.xp.into_level / result.progress.xp.level_size) * 100)}%` }} />
+                      </span>
+                      <p className="mt-1 text-[11px] text-white/60">
+                        Level {result.progress.xp.level} · {result.progress.xp.into_level.toLocaleString()} / {result.progress.xp.level_size.toLocaleString()} XP
+                        · {result.progress.xp.total.toLocaleString()} total
+                      </p>
+                    </>
+                  ) : <p className="text-[11px] text-white/60">for this take</p>}
+                </div>
+              )}
+              {result.progress?.badge && (() => {
+                const bd = result.progress.badge;
+                return (
+                  <div className="rounded-xl border border-fuchsia-400/30 bg-fuchsia-400/[0.06] px-3 py-2.5">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-fuchsia-300">Badge progress</p>
+                    <p className="text-lg font-extrabold text-white">{bd.emoji} {bd.name}</p>
+                    <span aria-hidden="true" className="mt-1 block h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <span className="block h-full rounded-full bg-fuchsia-400" style={{ width: `${(bd.have / bd.need) * 100}%` }} />
+                    </span>
+                    <p className="mt-1 text-[11px] text-white/60">
+                      {bd.held ? "You hold it" : `${bd.need - bd.have} more`} · {bd.have} / {bd.need} takes scored {bd.min_score}+ in {bd.window_days} days
+                    </p>
+                  </div>
+                );
+              })()}
             </div>
           )}
           {trial && result.as_member && (
