@@ -233,14 +233,25 @@ export default function EditWindow({
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
-        <div className="flex items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
-          <span>Tracks<button type="button" className={`ml-1.5 rounded px-1 normal-case tracking-normal ${beatsRow ? "text-mcz-cyan" : "text-white/40"} hover:text-white`} aria-pressed={beatsRow}
-                  onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>{onToggleLoop && <button type="button" disabled={!session.loop} className={`ml-1 rounded px-1 normal-case tracking-normal ${session.loop?.on ? "text-emerald-300" : "text-white/40"} hover:text-white disabled:opacity-40`} aria-pressed={!!session.loop?.on} onClick={onToggleLoop} title={session.loop ? "Loop on/off" : "Drag in the loop lane above the ruler to set a region"}>🔁 Loop</button>}{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
-          {atTrackCap && onUpgrade ? (
-            <button type="button" className="rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}
-                    title="You are at your plan's track limit. See what the next plan holds." aria-label="Track limit reached: see plans">🔒 Upgrade</button>
-          ) : null}
-          <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title={atTrackCap ? "At your plan's track limit" : "Add a track"} aria-label="Add a track"><Plus size={14} /></button>
+        <div className="flex flex-col justify-center gap-1.5 border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
+          <div className="flex items-center justify-between">
+            <span className="whitespace-nowrap">Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
+            <span className="flex items-center gap-1">
+              {atTrackCap && onUpgrade ? (
+                <button type="button" className="whitespace-nowrap rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}
+                        title="You are at your plan's track limit. See what the next plan holds." aria-label="Track limit reached: see plans">🔒 Upgrade</button>
+              ) : null}
+              <button type="button" className="rounded px-1 text-white/70 hover:text-white" onClick={onAddTrack} title={atTrackCap ? "At your plan's track limit" : "Add a track"} aria-label="Add a track"><Plus size={14} /></button>
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 normal-case tracking-normal">
+            <button type="button" className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${beatsRow ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/50"} hover:text-white`} aria-pressed={beatsRow}
+                    onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>
+            {onToggleLoop && (
+              <button type="button" disabled={!session.loop} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${session.loop?.on ? "border-emerald-300/60 bg-emerald-400/15 text-emerald-300" : "border-white/15 text-white/50"} hover:text-white disabled:opacity-50`}
+                      aria-pressed={!!session.loop?.on} onClick={onToggleLoop} title={session.loop ? "Loop on/off" : "Drag in the loop lane above the ruler to set a loop region first"}>🔁 Loop</button>
+            )}
+          </div>
         </div>
         {session.tracks.map((t) => (
           <div key={t.id} className="relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
