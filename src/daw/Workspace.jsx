@@ -625,7 +625,7 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items, { own = false, stems = false, at: atGiven } = {}) => {
+  const bring = async (items, { own = false, stems = false, at: atGiven, mix = null } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
@@ -638,7 +638,7 @@ export default function Workspace({ workflow }) {
           let track = items.length === 1 && !own && !stems ? targetTrack(next) : null;
           if (!track) {
             const more = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40), tierCap);
-            if (more !== next) { next = more; track = next.tracks.at(-1).id; if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
+            if (more !== next) { next = more; track = next.tracks.at(-1).id; if (mix) next = setTrack(next, track, mix); if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
             else {
               // At the tier's track count: it goes on an empty track if there is one, else the last track.
               track = next.tracks.find((t) => !regionsOf(t).length)?.id || next.tracks.at(-1).id;
@@ -1119,7 +1119,7 @@ export default function Workspace({ workflow }) {
       ) : view === "midi" ? (
         <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}
                     onBpm={(v) => { if (!recording) commit((s) => setSession(s, { bpm: v })); }}
-                    onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />
+                    onSend={async (blob, name, mix) => { await bring([{ name, blob }], { own: true, mix }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead${mix && (mix.gain !== 0 || mix.pan !== 0) ? `, with its gain and pan set on the track's fader and pan` : ""}.`); }} />
       ) : view === "rack" ? (
         <ChannelRack app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on the Playlist at the playhead, on its own track.`); }} />

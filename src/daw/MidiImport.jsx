@@ -11,6 +11,7 @@ import { parseMidi, beatsOf } from "./midi.js";
 import PianoRoll from "./PianoRoll.jsx";
 import { INSTRUMENTS, instrumentFor, renderNotes } from "./instruments.js";
 import { api } from "../api.js";
+import { cleanGainPct, cleanPanPct, gainPctToDb, gainPctToLinear, panToUnit } from "./partMix.js";
 import { setUserPatches, userRows } from "./synth/userPatches.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
@@ -68,6 +69,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
     setOn((x) => ({ ...x, [i]: true }));
     setRollOf(i);
   };
+  const setMix = (i, patch) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, ...patch } : t)) }));
   const setNotes = (i, notes) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, notes } : t)) }));
 
   const stop = () => { try { live.current?.src?.stop(); } catch { /* ended */ } setPlaying(null); };
@@ -79,11 +81,21 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
       if (l.ctx.state !== "running") await l.ctx.resume();
       const t = file.tracks[i];
       const buf = await renderNotes(t.notes.filter((n) => n[1] < 32), allowed(pick[i], t), { bpm, rate: l.ctx.sampleRate });
-      const src = l.ctx.createBufferSource(); src.buffer = buf; src.connect(l.ctx.destination); src.start();
+      const src = l.ctx.createBufferSource(); src.buffer = buf;
+      const g = l.ctx.createGain(); g.gain.value = gainPctToLinear(t.gain ?? 100);
+      const pn = l.ctx.createStereoPanner(); pn.pan.value = panToUnit(t.pan ?? 0);
+      src.connect(g).connect(pn).connect(l.ctx.destination); src.start();
       src.onended = () => setPlaying((p) => (p === i ? null : p));
-      l.src = src; setPlaying(i);
+      l.src = src; l.gain = g; l.pan = pn; setPlaying(i);
     } catch (e) { setErr(e.message); }
   };
+  // The level and position of the part being heard follow the sliders while it plays.
+  useEffect(() => {
+    const l = live.current; const t = playing != null ? file?.tracks[playing] : null;
+    if (!l?.gain || !t) return;
+    l.gain.gain.setTargetAtTime(gainPctToLinear(t.gain ?? 100), l.ctx.currentTime, 0.02);
+    l.pan.pan.setTargetAtTime(panToUnit(t.pan ?? 0), l.ctx.currentTime, 0.02);
+  }, [file, playing]);
   const send = async () => {
     setSending(true); setErr("");
     try {
@@ -92,7 +104,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
         if (!on[i] || !t.notes.length) continue;
         const inst = allowed(pick[i], t);
         const buf = await renderNotes(t.notes, inst, { bpm, rate: daw.sampleRate() });
-        await onSend(daw.toWav(buf, 24), `${t.name} · ${(allRows.find(([k]) => k === inst) || [, "synth"])[1]}.wav`);
+        await onSend(daw.toWav(buf, 24), `${t.name} · ${(allRows.find(([k]) => k === inst) || [, "synth"])[1]}.wav`, { gain: gainPctToDb(t.gain ?? 100), pan: panToUnit(t.pan ?? 0) });
         n++;
       }
       if (!n) setErr("Tick at least one part.");
@@ -132,7 +144,8 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
           ))}
         </div>
         {rollOf != null && file.tracks[rollOf] && (
-          <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)} />
+          <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)}
+                     mix={{ gain: cleanGainPct(file.tracks[rollOf].gain ?? 100), pan: cleanPanPct(file.tracks[rollOf].pan ?? 0) }} onMix={(m) => setMix(rollOf, m)} />
         )}
         {cap != null && cap < INSTRUMENTS.length && (
           <p className="text-[11px] text-white/60">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}

@@ -2,11 +2,12 @@
 // cell to add a note, click a note to remove it, drag a note's right edge to lengthen it. Free and on
 // the device; the edits are pianoroll.js's and the part goes back to the MIDI window to be heard or sent.
 import { useMemo, useRef, useState } from "react";
+import { GAIN_PCT_MAX, gainLabel, panLabel } from "./partMix.js";
 import { GRIDS, barsFor, deleteSelected, isBlack, moveSelected, pitchName, quantize, rangeFor, resize, selectAll, setVelocity, setVelocitySelected, sortKeep, toggleAt, transpose } from "./pianoroll.js";
 
 const ROW = 14, CELL = 18;   // px per pitch row, px per 1/16
 
-export default function PianoRoll({ part, onChange, onClose }) {
+export default function PianoRoll({ part, onChange, onClose, mix = null, onMix = null }) {
   const notes = part.notes;
   const [grid, setGrid] = useState(0.25);
   const [len, setLen] = useState(0.5);
@@ -113,6 +114,18 @@ export default function PianoRoll({ part, onChange, onClose }) {
         <button className="re-btn !w-auto px-2" onClick={() => setRange(([a, b]) => [Math.max(0, a - 12), b])}>Lower</button>
         <button className="re-btn !w-auto px-2" onClick={() => setRange(([a, b]) => [a, Math.min(127, b + 12)])}>Higher</button>
         <button className="re-btn !w-auto px-2" onClick={() => { edit([]); setSel(new Set()); }}>Clear</button>
+        {mix && onMix && (
+          <span className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 px-2 py-0.5" data-tour="daw-roll-mix"
+                title="This part's level and position. You hear them here, and they become the new track's fader and pan when you send the part.">
+            <label className="flex items-center gap-1">Gain
+              <input type="range" min="0" max={GAIN_PCT_MAX} step="1" value={mix.gain} onChange={(e) => onMix({ gain: +e.target.value })} aria-label="Part gain" onDoubleClick={() => onMix({ gain: 100 })} />
+              <span className="w-28 tabular-nums text-white/60">{gainLabel(mix.gain)}</span></label>
+            <label className="flex items-center gap-1">Pan
+              <input type="range" min="-100" max="100" step="1" value={mix.pan} onChange={(e) => onMix({ pan: +e.target.value })} aria-label="Part pan" onDoubleClick={() => onMix({ pan: 0 })} />
+              <span className="w-14 tabular-nums text-white/60">{panLabel(mix.pan)}</span></label>
+            <button type="button" className="re-link" onClick={() => onMix({ gain: 100, pan: 0 })} disabled={mix.gain === 100 && mix.pan === 0}>Reset</button>
+          </span>
+        )}
         <button className="re-link ml-auto" onClick={onClose}>Done</button>
       </div>
       <p className="text-[11px] text-white/60">Click empty space to add a note. Click a note to select it (Shift adds more), drag to move it, drag its right edge to lengthen it, press Delete to remove it, arrows nudge it, Ctrl+A selects all. {notes.length} notes{sel.size ? `, ${sel.size} selected` : ""}.</p>
