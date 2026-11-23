@@ -37,6 +37,7 @@ import {
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
+import { sliceChannels, takeFileName, wavBytes } from "./takeFile.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
@@ -642,6 +643,43 @@ export default function Workspace({ workflow }) {
     if (op.type === "trim") commit((s) => trimRegion(s, op.id, op.edge, op.t));
     restartIfPlaying();
   };
+  // A take as a file: the clip as trimmed, written as a 24-bit WAV from the recording already on this device.
+  const takeWav = () => {
+    if (!sel) return null;
+    const buf = daw.buffer(sel.region.src);
+    if (!buf) return null;
+    const chans = sliceChannels(Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i)), buf.sampleRate, sel.region.in, sel.region.out);
+    if (!chans) return null;
+    const made = { numberOfChannels: chans.length, sampleRate: buf.sampleRate, getChannelData: (i) => chans[i] };
+    return { blob: daw.toWav(made, 24), name: takeFileName(sel.track?.name, sel.region.name) };
+  };
+  const takeBytes = () => {
+    const buf = sel && daw.buffer(sel.region.src);
+    return buf ? wavBytes(Math.max(0, Math.round((sel.region.out - sel.region.in) * buf.sampleRate)), buf.numberOfChannels, 24) : 0;
+  };
+  const saveTakeFile = () => {
+    setErr("");
+    const t = takeWav();
+    if (!t) { setErr("That take has no audio on this device to save — it may have been cleared. Re-record or re-import it."); return; }
+    const url = URL.createObjectURL(t.blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = t.name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    setMsg(`Saved “${t.name}” (${(t.blob.size / 1048576).toFixed(1)} MB) to your downloads.`);
+  };
+  const saveTakeToFileZ = async () => {
+    setErr("");
+    const t = takeWav();
+    if (!t) { setErr("That take has no audio on this device to save — it may have been cleared."); return; }
+    setBusy("Saving the take to FileZ…");
+    try {
+      const form = new FormData();
+      form.append("file", t.blob, t.name);
+      const res = await api("/api/economy/uploads/", { method: "POST", body: form });
+      setStorage(res);
+      setMsg(`“${t.name}” is in your FileZ.`);
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  };
   const split = () => sel && commit((s) => splitRegion(s, sel.region.id, headRef.current || playhead));
   const del = () => { if (sel) { commit((s) => removeRegion(s, sel.region.id)); setSelected(null); } };
 
@@ -1109,12 +1147,14 @@ export default function Workspace({ workflow }) {
           <label className="text-white/60">Fade out (s)
             <input type="number" step="0.05" min="0" className="neon-input !w-20 !py-1" value={sel.region.fadeOut} onChange={(e) => commit((s) => updateRegion(s, sel.region.id, { fadeOut: e.target.value }))} />
           </label>
+          <button type="button" className="re-btn !w-auto px-2" onClick={saveTakeFile} title="Download this clip as a 24-bit WAV — the clip as recorded and trimmed, without the track's fader, effects or this region's gain and fades"><Download size={13} /> Save as file · {(takeBytes() / 1048576).toFixed(1)} MB</button>
+          <button type="button" className="re-btn !w-auto px-2" onClick={saveTakeToFileZ} disabled={!!busy} title="Keep this clip in FileZ">Save to FileZ · {(takeBytes() / 1048576).toFixed(1)} MB of your storage</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={split} title="Split at the playhead (B)"><Scissors size={13} /> Split</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => duplicateRegion(s, sel.region.id))}><Copy size={13} /> Duplicate</button>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge earlier" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, -1))}><ChevronLeft size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge later" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, 1))}><ChevronRight size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2 text-mcz-ember" onClick={del}><Trash2 size={13} /> Delete</button>
-          <span className="text-white/55">Nudge moves by one grid step. Drag the edges to trim.</span>
+          <span className="text-white/55">Nudge moves by one grid step. Drag the edges to trim. “Save as file” is free and writes the clip as recorded and trimmed (not the mix); Bounce writes the whole mix.</span>
         </div>
       )}
 
