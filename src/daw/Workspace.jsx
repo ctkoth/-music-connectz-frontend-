@@ -23,6 +23,11 @@ import EditWindow from "./EditWindow.jsx";
 import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
 import SynthEditor from "./synth/SynthEditor.jsx";
 import PostBounce from "../components/PostBounce.jsx";
+import DragonBrowser from "./DragonBrowser.jsx";
+import { moveSection, duplicateSection, deleteSectionWithMusic, appendSection, addSection, updateSection, removeSection, sectionProblem } from "./arranger.js";
+import { loopById, renderLoop, loopFileName } from "./loopRender.js";
+import { STARTERS, chainNeedsStatz, chainToInserts } from "./tonePresets.js";
+import { PLUGINS } from "./plugins.js";
 import CoachMix from "../components/CoachMix.jsx";
 import { registerTemp } from "./synth/userPatches.js";
 import MixWindow from "./MixWindow.jsx";
@@ -48,7 +53,7 @@ import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
 import { goToSpot } from "../goto.js";
 import { isLimitMessage } from "../limitHint.js";
-const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft", trumptoupee: "🤵🏼‍♂️ Trump Toupee" };
+const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft", trumptoupee: "🤵🏼‍♂️ Trump Toupee", studiodragon: "🐉 Studio Dragon" };
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
@@ -640,7 +645,7 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items, { own = false, stems = false, at: atGiven, mix = null } = {}) => {
+  const bring = async (items, { own = false, stems = false, at: atGiven, mix = null, trackId = null } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
@@ -650,7 +655,7 @@ export default function Workspace({ workflow }) {
         const at = stems ? 0 : atGiven ?? playhead;   // stems line up from the top of the song; a take recorded alongside goes where it started
         commit((s) => {
           let next = addSource(s, meta);
-          let track = items.length === 1 && !own && !stems ? targetTrack(next) : null;
+          let track = trackId && next.tracks.some((t) => t.id === trackId) ? trackId : items.length === 1 && !own && !stems ? targetTrack(next) : null;
           if (!track) {
             const more = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40), tierCap);
             if (more !== next) { next = more; track = next.tracks.at(-1).id; if (mix) next = setTrack(next, track, mix); if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
@@ -669,6 +674,63 @@ export default function Workspace({ workflow }) {
     }
     setBusy("");
   };
+  // ---- Studio Dragon: drag and drop, and the arranger ----
+  const [dragonTones, setDragonTones] = useState(null);
+  const savedToneIds = (dragonTones?.presets || []).filter((p) => p.kind === "tone").map((p) => p.id);
+  const dragonEffect = (trackId, type) => {
+    const spec = PLUGINS[type]; const tr = sRef.current.tracks.find((t) => t.id === trackId);
+    if (!spec || !tr) return;
+    if (spec.statz && !autoAllowed) { setErr(`${spec.label} is a StatZ effect. Try StatZ free from MembershipZ — it was not added.`); return; }
+    const before = tr.inserts || [];
+    const list = cleanInserts([...before, newInsert(type)]);
+    if (list.length === before.length) { setMsg(`${tr.name} already holds the most effects a track can.`); return; }
+    commit((s) => setTrack(s, trackId, { inserts: list })); restartIfPlaying();
+    setErr(""); setMsg(`${spec.label} is on ${tr.name}. Undo takes it off.`);
+  };
+  const dragonTone = (trackId, ref) => {
+    const tr = sRef.current.tracks.find((t) => t.id === trackId); if (!tr) return;
+    let chain = null, name = "";
+    if (ref.source === "starter") { const st = STARTERS.find((x) => x.key === ref.key); if (st) { chain = st.chain(); name = st.name; } }
+    else { const p = (dragonTones?.presets || []).find((x) => x.kind === "tone" && String(x.id) === String(ref.id)); if (p) { chain = p.chain; name = p.name; } }
+    const inserts = chainToInserts(chain);
+    if (!inserts.length) { setErr("That tone has nothing in it, so nothing changed."); return; }
+    if (chainNeedsStatz(inserts) && !autoAllowed) { setErr(`${name} uses StatZ effects. Try StatZ free from MembershipZ — nothing changed.`); return; }
+    commit((s) => setTrack(s, trackId, { inserts })); restartIfPlaying();
+    setErr(""); setMsg(`${name} is on ${tr.name}, in place of its effects. Undo brings them back.`);
+  };
+  const dragonLoop = async (loopId, trackId, at) => {
+    const loop = loopById(loopId); if (!loop) return;
+    setErr(""); setBusy(`Making ${loop.label}…`);
+    try {
+      const bars = 8;
+      const buf = await renderLoop(loop, { bpm: sRef.current.bpm, sessionKey: sRef.current.key, bars, rate: daw.sampleRate() });
+      const whereAt = at == null ? playhead : snapIf(sRef.current, at);
+      await bring([{ name: loopFileName(loop, sRef.current.key, bars), blob: daw.toWav(buf, 24) }], { own: true, at: whereAt, trackId });
+      setMsg(`${loop.label} is on ${trackId ? "that track" : "a new track"} at ${minSec(whereAt)}, ${bars} bars at ${sRef.current.bpm} BPM. Undo takes it off.`);
+    } catch (e) { setErr(e.message || "Couldn't make that loop."); } finally { setBusy(""); }
+  };
+  const dragonDrop = (trackId, item, at) => {
+    if (item.kind === "effect") dragonEffect(trackId, item.type);
+    else if (item.kind === "tone") dragonTone(trackId, item);
+    else if (item.kind === "loop") dragonLoop(item.id, trackId, at);
+  };
+  const dragonFiles = async (files, trackId, at, skipped) => {
+    if (!files.length) { setErr(skipped ? "Only audio and video files can be dropped on a track." : ""); return; }
+    justImported.current = Date.now();
+    await bring(files.map((f) => ({ name: f.name, blob: f })), { own: true, at: at == null ? playhead : snapIf(sRef.current, at), trackId });
+    if (skipped) setMsg(`${skipped} file${skipped === 1 ? " was" : "s were"} not audio or video and was left out.`);
+    setTimeout(() => { justImported.current = 0; }, 1500);
+  };
+  const arranger = workflow.arranger ? {
+    add: () => { const before = sRef.current; const name = ["Intro", "Verse", "Chorus", "Bridge", "Outro"][(before.sections || []).length % 5]; const next = appendSection(before, name, 8); if (next === before) setErr("The song map is full."); else commit(() => next); },
+    fromLoop: () => { const lp = sRef.current.loop; if (!lp) return; const why = sectionProblem(sRef.current, lp.start, lp.end); if (why) { setErr(why); return; } commit((s) => addSection(s, { name: `Section ${(s.sections || []).length + 1}`, start: lp.start, end: lp.end })); },
+    move: (id, to) => { commit((s) => moveSection(s, id, to)); restartIfPlaying(); setMsg("Section moved, with the music inside it. Undo puts it back."); },
+    duplicate: (id) => { commit((s) => duplicateSection(s, id)); restartIfPlaying(); setMsg("Copied straight after the original; everything after it moved along. Undo removes the copy."); },
+    cut: (id) => { commit((s) => deleteSectionWithMusic(s, id)); restartIfPlaying(); setMsg("Cut, and the gap closed. Undo brings it back."); },
+    unlabel: (id) => commit((s) => removeSection(s, id)),
+    update: (id, patch) => commit((s) => updateSection(s, id, patch)),
+  } : null;
+
   const fromDevice = async (files) => {
     justImported.current = Date.now();
     await bring([...files].map((f) => ({ name: f.name, blob: f })));
@@ -874,6 +936,17 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
   const mb = bounced ? bounced.blob.size / 1048576 : 0;
+
+  const mixEl = (
+    <MixWindow
+          session={session} daw={daw} playing={playing}
+          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
+          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
+          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
+          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onMaster={(g) => commit((s) => setSession(s, { master: g }))}
+        />
+  );
 
   const newOne = () => {
     if (playing) stopPlay();
@@ -1201,7 +1274,12 @@ export default function Workspace({ workflow }) {
             try { await putSource(meta.id, wav); } catch { setStoreErr("The tuned take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
             setMsg(`${name} is a new take — moved about ${cents} cents on average${kept ? "; the original is the previous take in the playlist menu" : ""}.`);
           }} />
+        <div className={workflow.browser ? "grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]" : ""}>
+          {workflow.browser && <DragonBrowser tracks={session.tracks} statzOk={autoAllowed} onTones={setDragonTones}
+                                              onEffect={dragonEffect} onTone={dragonTone} onLoop={(id) => dragonLoop(id, null, null)} />}
+          <div className="min-w-0 space-y-3">
         <EditWindow
+          arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
@@ -1228,16 +1306,12 @@ export default function Workspace({ workflow }) {
             if (op.type === "copy") commit((s) => newPlaylist(s, id, { copy: true }));
             restartIfPlaying();
           }}
-        /></>
-      ) : (
-        <MixWindow
-          session={session} daw={daw} playing={playing}
-          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
-          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
-          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
-          onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />
+            {workflow.oneWindow && mixEl}
+          </div>
+        </div></>
+      ) : (
+        mixEl
       )}
 
       {/* Region (spot) editor */}

@@ -84,7 +84,7 @@ export function cleanInput(i) {
 
 export function newSession(name = "Untitled session") {
   const t = newTrack(1);
-  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], key: "", snap: true, genre: "", skills: [] };
+  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], sections: [], key: "", snap: true, genre: "", skills: [] };
 }
 
 // ---- count-in ----------------------------------------------------------------------------------
@@ -166,6 +166,22 @@ export function cleanMarkers(raw) {
     id: String(m.id || uid("m")), t: Math.max(0, num(m.t, 0)), name: String(m.name || `Marker ${i + 1}`).slice(0, 40),
     emoji: cleanEmoji(m.emoji), color: cleanColor(m.color, MARKER_COLORS[i % MARKER_COLORS.length]),
   }));
+}
+
+// ---- song sections (the arranger) ---------------------------------------------------------------
+// Named stretches of the song: { id, name, start, end, color }, sorted, never overlapping. Moving them is arranger.js's job; the
+// stored shape and its repair are here so every DAW opens a session that has them.
+export const MAX_SECTIONS = 64;
+export function cleanSections(raw) {
+  const rows = (Array.isArray(raw) ? raw : []).slice(0, MAX_SECTIONS)
+    .filter((x) => x && Number.isFinite(Number(x.start)) && Number.isFinite(Number(x.end)))
+    .map((x, i) => ({ id: String(x.id || uid("sec")), name: String(x.name || `Section ${i + 1}`).slice(0, 40),
+      start: Math.max(0, num(x.start, 0)), end: Math.max(0, num(x.end, 0)), color: cleanColor(x.color, COLORS[i % COLORS.length]) }))
+    .filter((x) => x.end - x.start >= 0.1)
+    .sort((a, b) => a.start - b.start);
+  const out = [];
+  for (const x of rows) { if (out.length && x.start < out.at(-1).end - 1e-6) continue; out.push(x); }           // an overlapping one is dropped, not guessed at
+  return out;
 }
 
 // ---- reading ----------------------------------------------------------------------------------
@@ -570,5 +586,5 @@ export function cleanSession(raw) {
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });
-  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers), loop: cleanLoop(raw.loop) };
+  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers), sections: cleanSections(raw.sections), loop: cleanLoop(raw.loop) };
 }

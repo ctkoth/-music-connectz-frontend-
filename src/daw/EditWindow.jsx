@@ -16,6 +16,8 @@ import { StatzSample as StatzOffer, useStatzTrial } from "../components/StatzSam
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
+import { ArrangerHeader, ArrangerStrip } from "./ArrangerStrip.jsx";
+import { DRAG_MIME, decode, hasFiles, isOurs, mediaFiles } from "./dragPayload.js";
 import { trackSize } from "./view.js";
 import Popover from "./Popover.jsx";
 import { PLUGINS, newInsert } from "./plugins.js";
@@ -135,7 +137,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -152,6 +154,21 @@ export default function EditWindow({
   const size = trackSize(trackSizeKey);
   const dense = !size.full;
   const LANE_H = size.h;
+  // Drag and drop (Studio Dragon): the browser's effects, tones and loops, and audio files from the desktop. A drop is only
+  // taken if it decodes to something the browser really offers; the DAW does the rest (onDropItem / onDropFiles).
+  const [dropTrack, setDropTrack] = useState(null);
+  const droppable = (e) => !!(onDropItem || onDropFiles) && (isOurs(e.dataTransfer) || (onDropFiles && hasFiles(e.dataTransfer)));
+  const dropOn = (t, laneEl) => ({
+    onDragOver: (e) => { if (!droppable(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (dropTrack !== t.id) setDropTrack(t.id); },
+    onDragLeave: (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDropTrack((x) => (x === t.id ? null : x)); },
+    onDrop: (e) => {
+      if (!droppable(e)) return;
+      e.preventDefault(); setDropTrack(null);
+      const at = laneEl ? Math.max(0, (e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom) : null;
+      if (isOurs(e.dataTransfer) && onDropItem) { const item = decode(e.dataTransfer.getData(DRAG_MIME), { savedToneIds }); if (item) onDropItem(t.id, item, at); return; }
+      if (onDropFiles && hasFiles(e.dataTransfer)) { const { ok, skipped } = mediaFiles(e.dataTransfer.files); onDropFiles(ok, t.id, at, skipped); }
+    },
+  });
   const scroller = useRef(null);
   const pending = useRef(null);                    // { t, x }: the time under the pointer, and where on screen it sat
   // Ctrl + wheel (and a trackpad pinch, which arrives as ctrl + wheel) zooms; the moment under the pointer stays put.
@@ -235,6 +252,7 @@ export default function EditWindow({
     <div className="flex overflow-hidden rounded-xl border border-white/10 bg-black/30">
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
+        {arranger && <ArrangerHeader count={(session.sections || []).length} onAdd={arranger.add} onFromLoop={arranger.fromLoop} canLoop={!!session.loop} />}
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
         <div className="flex flex-col justify-center gap-1.5 border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
           <div className="flex items-center justify-between">
@@ -257,7 +275,7 @@ export default function EditWindow({
           </div>
         </div>
         {session.tracks.map((t) => (
-          <div key={t.id} className="relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5" style={{ height: LANE_H }}>
+          <div key={t.id} {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : ""}`} style={{ height: LANE_H }}>
             <div className="flex items-center gap-1">
               {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
                                 onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
@@ -430,12 +448,13 @@ export default function EditWindow({
       {/* Timeline */}
       <div className="min-w-0 flex-1 overflow-x-auto" data-timeline ref={scroller}>
         <div className="relative" style={{ width }}>
+          {arranger && <ArrangerStrip session={session} zoom={zoom} width={width} arranger={arranger} onSeek={onJump || onSeek} />}
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
           <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} punchArmed={punchArmed} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
-              <div key={t.id} data-lane={t.id}
-                   className={`relative border-b border-white/10 ${drag?.overTrack === t.id && drag.track !== t.id ? "bg-white/5" : ""}`}
+              <div key={t.id} data-lane={t.id} {...dropOn(t, true)}
+                   className={`relative border-b border-white/10 ${dropTrack === t.id ? "bg-mcz-cyan/10" : drag?.overTrack === t.id && drag.track !== t.id ? "bg-white/5" : ""}`}
                    style={{ height: LANE_H }}
                    onPointerDown={(e) => { if (e.target === e.currentTarget) { onSelect(null); onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom); } }}>
                 {onAuto && views[t.id] && (

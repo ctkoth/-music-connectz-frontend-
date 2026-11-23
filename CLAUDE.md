@@ -2772,3 +2772,26 @@ was centred in the taller row and slid out of the track's visible height — so 
 after 7 s. Driven in a browser: FX and the Tone menu stay at the same y before and after picking, and the message is gone after 7.5 s.
 The FX panel's chain menu is now labelled **FX chains** ("🎛️ Pick an FX chain…", with a sentence saying it replaces the track's effects and Undo brings them back);
 it lists all 130 chains (voice, guitar, bass, keys, drums, mix, StatZ and the member's own) and applying one fills the panel's effect list ("FX 2").
+
+## Studio Dragon 🐉: one window, drag and drop, and a song map that moves the music
+
+`src/apps/StudioDragon.jsx` is a workflow on the shared DAW engine, not a codebase: `oneWindow` puts the mixer under the arrangement
+instead of behind a tab, `browser` shows `DragonBrowser.jsx`, `arranger` shows the section track. The three flags are the whole of
+what makes it Studio Dragon; any other DAW can switch them on. It has no art of its own yet and wears the DawZ mark (`studiodragon.png`
+is mapped to `dawz.png` in `App.jsx`) until Corey draws one.
+
+- **The arranger is a map, and moving a section moves its music** (`arranger.js`, pure, 9 tests). Sections are named spans on the
+  session; a gap between two belongs to the one before, so nothing is left behind. `arrange(session, plan)` lays the song out as a list
+  of section ids: audio is split at the edges, markers and automation points go along, and **every take lane moves together** so takes
+  stay lined up. A section id twice is a copy, left out is a cut. Fades stay at the true start and end of a take, not at the cuts.
+  Audio before the first section stays; audio after the last follows the new end. "Remove label" and "Cut with its music" are different
+  buttons and the cut says so (and confirms) because it deletes music.
+- **A drop is only taken if it decodes to something the browser offers** (`dragPayload.js`): a known effect, a known loop, a tone by
+  key, or a saved tone the member really has. Anything else, including text dragged from another page, is not a drop.
+  Audio and video files from the desktop can be dropped on a track too; other files are counted and said.
+- **Every drag also has a button** (the + beside each item) for a phone or a keyboard: HTML5 drag and drop does not work on touch.
+- **Tiers stay where they were**: StatZ effects and loops past the plan's count show locked in the browser and refuse on a drop, with
+  the same sentence the track menus use. Nothing here is charged; loops are made on the device.
+- **Driven in a real browser** (Playwright): sections added and dragged into a new order, an effect dragged from the browser onto a
+  track, a stray text drop ignored. **Not checked:** dropping a real audio file from the desktop (the file path is the same `bring()`
+  the Import button uses), loops dropped on a lane at a time, touch, or Safari.
