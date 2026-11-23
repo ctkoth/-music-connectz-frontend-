@@ -2064,6 +2064,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
+  "studiodragon.png",
   "trumpetz.png",
   "videoz.png",
   "violinz.png"
