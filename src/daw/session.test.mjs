@@ -392,7 +392,7 @@ test2("loop region: set, order, too short, toggle, wrap", () => {
   assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
 });
 
-import { emptyTakeCount, removeEmptyTakes } from "./session.js";
+import { emptyTakeCount, removeEmptyTakes, dropIfEmptied } from "./session.js";
 test2("empty take lanes are removed, populated ones and the active take are kept", () => {
   let s = newSession("t"); const id = s.tracks[0].id;
   s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
@@ -401,4 +401,14 @@ test2("empty take lanes are removed, populated ones and the active take are kept
   assert2.equal(c.tracks[0].playlists.length, 1);
   assert2.equal(emptyTakeCount(c), 0);
   assert2.equal(removeEmptyTakes(s, "nope").tracks[0].playlists.length, 3);
+});
+
+test2("dropIfEmptied removes only the lane just emptied, never a merely-new one", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id);                                          // lane 2 is new and empty (an overdub's)
+  const lane1 = s.tracks[0].playlists[0].id; const lane2 = s.tracks[0].playlists[1].id;
+  const dropped = dropIfEmptied(s, id, lane1);                     // lane 1 "emptied": goes
+  assert2.deepEqual(dropped.tracks[0].playlists.map((p) => p.id), [lane2]);
+  assert2.equal(dropIfEmptied(dropped, id, lane2).tracks[0].playlists.length, 1);   // never the last lane
+  assert2.equal(dropIfEmptied(s, id, "nope"), s);
 });

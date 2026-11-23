@@ -36,7 +36,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, emptyTakeCount, removeEmptyTakes, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -657,7 +657,16 @@ export default function Workspace({ workflow }) {
     restartIfPlaying();
   };
   const split = () => sel && commit((s) => splitRegion(s, sel.region.id, headRef.current || playhead));
-  const del = () => { if (sel) { commit((s) => removeRegion(s, sel.region.id)); setSelected(null); } };
+  // StatZ (or the sample): deleting the last region of a take lane removes that lane too — only the lane just emptied,
+  // never one that is merely new. Everyone else keeps the free "Remove empty takes" button.
+  const del = () => {
+    if (!sel) return;
+    const { track, playlist, region } = { track: sel.track, playlist: sel.playlist, region: sel.region };
+    const gone = autoAllowed && playlist.regions.length === 1 && track.playlists.length > 1;
+    commit((s) => { const out = removeRegion(s, region.id); return gone ? dropIfEmptied(out, track.id, playlist.id) : out; });
+    if (gone) setMsg(`Deleted the region, and the empty take lane "${playlist.name}" with it (StatZ). Undo brings both back.`);
+    setSelected(null);
+  };
 
   // ---- keys ----
   // The shortcuts are a map every DAW reads (defaults unless changed); Azrael is where it is edited.

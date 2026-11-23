@@ -457,7 +457,7 @@ export function recordInto(s, trackId, { src, at, name }) {
   }
   const r = { id: uid("r"), src, name: String(name || source.name).slice(0, 80), at: from, in: 0, out: source.duration, gain: 0, fadeIn: 0, fadeOut: 0 };
   out = mapTrack(out, trackId, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: [...p.regions, r] })));
-  return { session: removeEmptyTakes(out, trackId), keptPrevious: keep };
+  return { session: out, keptPrevious: keep };
 }
 
 // ---- playlists --------------------------------------------------------------------------------
@@ -508,6 +508,17 @@ export function removeEmptyTakes(s, trackId) {
       return { ...t, playlists, active: at >= 0 ? at : Math.min(t.active, playlists.length - 1) };
     }),
   });
+}
+
+/** Remove a take lane only if it is empty AND there is another lane on the track. For StatZ's automatic clean-up after a
+ *  deletion: it targets the one lane the member just emptied, never a lane that is merely new (an overdub's). */
+export function dropIfEmptied(s, trackId, playlistId) {
+  const t = s.tracks.find((x) => x.id === trackId);
+  const i = t ? t.playlists.findIndex((p) => p.id === playlistId) : -1;
+  if (i < 0 || t.playlists[i].regions.length || t.playlists.length < 2) return s;
+  const playlists = t.playlists.filter((_, k) => k !== i);
+  const active = t.active === i ? Math.min(i, playlists.length - 1) : t.active > i ? t.active - 1 : t.active;
+  return pruneSources({ ...s, tracks: s.tracks.map((x) => (x.id === trackId ? { ...x, playlists, active } : x)) });
 }
 
 // ---- loading ----------------------------------------------------------------------------------
