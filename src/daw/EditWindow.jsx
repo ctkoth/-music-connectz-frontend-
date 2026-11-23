@@ -53,19 +53,64 @@ const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color 
 });
 
 // Two rows: bars and beats on top, the clock (m:ss) under it. Sticky, so it stays in view while the tracks scroll.
-export const RULER_H = 44;
+export const LOOP_H = 16;
+export const RULER_H = 44 + LOOP_H;
 const BEATS_KEY = "mcz_daw_beats_row";
 function useBeatsRow() {
   const [on, setOn] = useState(() => { try { return localStorage.getItem(BEATS_KEY) !== "0"; } catch { return true; } });
   const set = (v) => { setOn(v); try { localStorage.setItem(BEATS_KEY, v ? "1" : "0"); } catch { /* not remembered */ } };
   return [on, set];
 }
-function Ruler({ session, zoom, width, onSeek, showBeats = true }) {
+// The loop lane: drag on empty space to draw the region, drag its edges or body to adjust, double-click to clear.
+function LoopLane({ session, zoom, width, onLoop, onToggleLoop }) {
+  const [drag, setDrag] = useState(null);           // { mode: "new"|"start"|"end"|"move", a, b, from, orig }
+  const lp = session.loop;
+  const at = (e) => Math.max(0, (e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom);
+  const view = drag && drag.b != null ? { start: Math.min(drag.a, drag.b), end: Math.max(drag.a, drag.b), on: lp?.on !== false } : lp;
+  const down = (mode) => (e) => {
+    if (!onLoop) return;
+    e.stopPropagation();
+    const lane = e.currentTarget.closest("[data-looplane]");
+    const t = (e.clientX - lane.getBoundingClientRect().left) / zoom;
+    lane.setPointerCapture?.(e.pointerId);
+    if (mode === "new") setDrag({ mode, a: t, b: null });
+    else if (mode === "start") setDrag({ mode, a: lp.end, b: lp.start });
+    else if (mode === "end") setDrag({ mode, a: lp.start, b: lp.end });
+    else setDrag({ mode, a: lp.start, b: lp.end, from: t, orig: lp });
+  };
+  const move = (e) => {
+    if (!drag) return;
+    const t = at(e);
+    if (drag.mode === "move") { const d = Math.max(-drag.orig.start, t - drag.from); setDrag({ ...drag, a: drag.orig.start + d, b: drag.orig.end + d }); }
+    else setDrag({ ...drag, b: t });
+  };
+  const up = () => {
+    if (!drag) return;
+    if (drag.b != null && Math.abs(drag.b - drag.a) * zoom >= 4) onLoop(Math.min(drag.a, drag.b), Math.max(drag.a, drag.b));
+    setDrag(null);
+  };
+  return (
+    <div data-looplane className="relative border-b border-white/10 bg-white/[0.03]" style={{ width, height: LOOP_H }} onPointerDown={down("new")} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)}
+         onDoubleClick={() => onLoop && onLoop(null)} title="Drag to set a loop region. Drag its edges to adjust, double-click to clear.">
+      {view && (
+        <div className={`absolute inset-y-0 ${view.on ? "bg-emerald-400/35 border-emerald-300" : "bg-white/10 border-white/30"} border-x`} style={{ left: view.start * zoom, width: Math.max(2, (view.end - view.start) * zoom) }}>
+          <span className="absolute inset-y-0 left-0 w-1.5 cursor-ew-resize" onPointerDown={down("start")} />
+          <span className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize" onPointerDown={down("end")} />
+          <span className="absolute inset-y-0 left-1.5 right-1.5 cursor-grab text-[9px] leading-[14px] text-white/80" onPointerDown={down("move")}
+                onClick={(e) => { e.stopPropagation(); }}>{view.on ? "🔁 loop" : "loop off"}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Ruler({ session, zoom, width, onSeek, showBeats = true, onLoop, onToggleLoop }) {
   const { bars, beats, clock } = rulerTicks(session, zoom, width);
   return (
     <div className="sticky top-0 z-30 cursor-pointer border-b border-white/10 bg-[#0b0b14] text-[10px] text-white/55" data-tour="daw-ruler"
          style={{ width, height: RULER_H }} title="Bars and beats on top, minutes and seconds below — tap to move the playhead"
          onPointerDown={(e) => onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom)}>
+      <LoopLane session={session} zoom={zoom} width={width} onLoop={onLoop} onToggleLoop={onToggleLoop} />
       <div className="relative h-[22px] border-b border-white/10">
         {showBeats && beats.map((m) => (
           <span key={`b${m.t}`} className="absolute bottom-0 h-2 border-l border-white/15 pl-0.5 text-[8px] leading-none text-white/35" style={{ left: m.t * zoom }}>
@@ -90,7 +135,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, onZoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -190,7 +235,7 @@ export default function EditWindow({
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
         <div className="flex items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
           <span>Tracks<button type="button" className={`ml-1.5 rounded px-1 normal-case tracking-normal ${beatsRow ? "text-mcz-cyan" : "text-white/40"} hover:text-white`} aria-pressed={beatsRow}
-                  onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
+                  onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>{onToggleLoop && <button type="button" disabled={!session.loop} className={`ml-1 rounded px-1 normal-case tracking-normal ${session.loop?.on ? "text-emerald-300" : "text-white/40"} hover:text-white disabled:opacity-40`} aria-pressed={!!session.loop?.on} onClick={onToggleLoop} title={session.loop ? "Loop on/off" : "Drag in the loop lane above the ruler to set a region"}>🔁 Loop</button>}{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           {atTrackCap && onUpgrade ? (
             <button type="button" className="rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}
                     title="You are at your plan's track limit. See what the next plan holds." aria-label="Track limit reached: see plans">🔒 Upgrade</button>
@@ -372,7 +417,7 @@ export default function EditWindow({
       <div className="min-w-0 flex-1 overflow-x-auto" data-timeline ref={scroller}>
         <div className="relative" style={{ width }}>
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
-          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} />
+          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
               <div key={t.id} data-lane={t.id}
@@ -404,6 +449,8 @@ export default function EditWindow({
                 })}
               </div>
             ))}
+            {session.loop && <div className={`pointer-events-none absolute top-0 z-10 ${session.loop.on ? "bg-emerald-400/10" : "bg-white/[0.03]"}`}
+                                  style={{ left: session.loop.start * zoom, width: (session.loop.end - session.loop.start) * zoom, height: session.tracks.length * LANE_H }} />}
             <Playhead position={playhead} zoom={zoom} height={session.tracks.length * LANE_H} />
           </div>
         </div>

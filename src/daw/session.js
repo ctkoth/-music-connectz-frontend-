@@ -87,6 +87,23 @@ export function newSession(name = "Untitled session") {
   return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], key: "", snap: true, genre: "", skills: [] };
 }
 
+// ---- loop region -------------------------------------------------------------------------------
+// One region on the session: { start, end, on }. Playback wraps from `end` back to `start` while `on`.
+export const MIN_LOOP = 0.1;
+export function cleanLoop(raw) {
+  const start = Math.max(0, num(raw?.start, NaN)); const end = num(raw?.end, NaN);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < MIN_LOOP) return null;
+  return { start, end, on: raw?.on !== false };
+}
+/** Set the region (start/end in seconds, either order) or clear it with null. Too short to be a loop = cleared. */
+export function setLoop(s, a, b, on = true) {
+  if (a == null) return { ...s, loop: null };
+  return { ...s, loop: cleanLoop({ start: Math.min(a, b), end: Math.max(a, b), on }) };
+}
+export const toggleLoop = (s) => (s.loop ? { ...s, loop: { ...s.loop, on: !s.loop.on } } : s);
+/** Where playback goes next: the loop's start once the position reaches its end, else null (carry on). */
+export const loopJump = (s, pos) => (s.loop && s.loop.on && pos >= s.loop.end ? s.loop.start : null);
+
 // ---- markers ----------------------------------------------------------------------------------
 // A marker is a named, coloured, optionally emoji'd point on the timeline ("Verse 2", "🔥 Drop"). It belongs to the
 // SESSION, not a track, so it is the same in every DAW and survives a session being copied from one DAW to another.
@@ -498,5 +515,5 @@ export function cleanSession(raw) {
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });
-  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers) };
+  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers), loop: cleanLoop(raw.loop) };
 }

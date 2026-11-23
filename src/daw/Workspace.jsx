@@ -35,7 +35,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, setLoop, toggleLoop, loopJump, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -261,7 +261,9 @@ export default function Workspace({ workflow }) {
     const tick = (now) => {
       const p = daw.position();
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
-      if (!recording && p != null && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
+      const jump = !recording && p != null ? loopJump(sRef.current, p) : null;
+      if (jump != null) { setPlayhead(jump); headRef.current = jump; startPlay(jump); return; }
+      if (!recording && p != null && !sRef.current.loop?.on && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -1073,6 +1075,7 @@ export default function Workspace({ workflow }) {
           keyRange={keyRange} onTranspose={transposeTrack}
           onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoAllowed={autoAllowed}
           onAddTrack={addOneTrack}
+          onLoop={(a, b) => commit((s) => (a == null ? setLoop(s, null) : setLoop(s, snapIf(s, a), snapIf(s, b))))} onToggleLoop={() => commit((s) => toggleLoop(s))}
           onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
           onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}

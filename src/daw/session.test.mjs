@@ -378,3 +378,16 @@ test2("ruler: bars, beats and clock ticks", () => {
   assert2.equal(r.clock[1].t, 2);              // 60px / 40 = 1.5s -> first nice step is 2s
   assert2.equal(clockLabel(65), "1:05");
 });
+
+import { setLoop, toggleLoop, loopJump, cleanLoop } from "./session.js";
+test2("loop region: set, order, too short, toggle, wrap", () => {
+  let s = setLoop({ tracks: [] }, 8, 2);
+  assert2.deepEqual(s.loop, { start: 2, end: 8, on: true });
+  assert2.equal(loopJump(s, 7.9), null);
+  assert2.equal(loopJump(s, 8), 2);
+  s = toggleLoop(s); assert2.equal(loopJump(s, 9), null);
+  assert2.equal(setLoop(s, 3, 3.01).loop, null);
+  assert2.equal(setLoop(s, null).loop, null);
+  assert2.equal(cleanLoop({ start: "x", end: 4 }), null);
+  assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
+});
