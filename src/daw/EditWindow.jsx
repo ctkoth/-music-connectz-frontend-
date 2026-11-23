@@ -62,7 +62,7 @@ function useBeatsRow() {
   return [on, set];
 }
 // The loop lane: drag on empty space to draw the region, drag its edges or body to adjust, double-click to clear.
-function LoopLane({ session, zoom, width, onLoop, onToggleLoop }) {
+function LoopLane({ session, zoom, width, onLoop, onToggleLoop, punchArmed }) {
   const [drag, setDrag] = useState(null);           // { mode: "new"|"start"|"end"|"move", a, b, from, orig }
   const lp = session.loop;
   const at = (e) => Math.max(0, (e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom);
@@ -93,24 +93,24 @@ function LoopLane({ session, zoom, width, onLoop, onToggleLoop }) {
     <div data-looplane className="relative border-b border-white/10 bg-white/[0.03]" style={{ width, height: LOOP_H }} onPointerDown={down("new")} onPointerMove={move} onPointerUp={up} onPointerCancel={() => setDrag(null)}
          onDoubleClick={() => onLoop && onLoop(null)} title="Drag to set a loop region. Drag its edges to adjust, double-click to clear.">
       {view && (
-        <div className={`absolute inset-y-0 ${view.on ? "bg-emerald-400/35 border-emerald-300" : "bg-white/10 border-white/30"} border-x`} style={{ left: view.start * zoom, width: Math.max(2, (view.end - view.start) * zoom) }}>
+        <div className={`absolute inset-y-0 ${punchArmed ? "bg-red-500/40 border-red-400" : view.on ? "bg-emerald-400/35 border-emerald-300" : "bg-white/10 border-white/30"} border-x`} style={{ left: view.start * zoom, width: Math.max(2, (view.end - view.start) * zoom) }}>
           <span className="absolute inset-y-0 left-0 w-1.5 cursor-ew-resize" onPointerDown={down("start")} />
           <span className="absolute inset-y-0 right-0 w-1.5 cursor-ew-resize" onPointerDown={down("end")} />
           <span className="absolute inset-y-0 left-1.5 right-1.5 cursor-grab text-[9px] leading-[14px] text-white/80" onPointerDown={down("move")}
-                onClick={(e) => { e.stopPropagation(); }}>{view.on ? "🔁 loop" : "loop off"}</span>
+                onClick={(e) => { e.stopPropagation(); }}>{punchArmed ? "🔴 punch" : view.on ? "🔁 loop" : "loop off"}</span>
         </div>
       )}
     </div>
   );
 }
 
-function Ruler({ session, zoom, width, onSeek, showBeats = true, onLoop, onToggleLoop }) {
+function Ruler({ session, zoom, width, onSeek, showBeats = true, onLoop, onToggleLoop, punchArmed }) {
   const { bars, beats, clock } = rulerTicks(session, zoom, width);
   return (
     <div className="sticky top-0 z-30 cursor-pointer border-b border-white/10 bg-[#0b0b14] text-[10px] text-white/55" data-tour="daw-ruler"
          style={{ width, height: RULER_H }} title="Bars and beats on top, minutes and seconds below — tap to move the playhead"
          onPointerDown={(e) => onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom)}>
-      <LoopLane session={session} zoom={zoom} width={width} onLoop={onLoop} onToggleLoop={onToggleLoop} />
+      <LoopLane session={session} zoom={zoom} width={width} onLoop={onLoop} onToggleLoop={onToggleLoop} punchArmed={punchArmed} />
       <div className="relative h-[22px] border-b border-white/10">
         {showBeats && beats.map((m) => (
           <span key={`b${m.t}`} className="absolute bottom-0 h-2 border-l border-white/15 pl-0.5 text-[8px] leading-none text-white/35" style={{ left: m.t * zoom }}>
@@ -135,7 +135,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, onZoom, trackSizeKey = "normal", onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -431,7 +431,7 @@ export default function EditWindow({
       <div className="min-w-0 flex-1 overflow-x-auto" data-timeline ref={scroller}>
         <div className="relative" style={{ width }}>
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
-          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} />
+          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} punchArmed={punchArmed} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
               <div key={t.id} data-lane={t.id}
@@ -463,7 +463,7 @@ export default function EditWindow({
                 })}
               </div>
             ))}
-            {session.loop && <div className={`pointer-events-none absolute top-0 z-10 ${session.loop.on ? "bg-emerald-400/10" : "bg-white/[0.03]"}`}
+            {session.loop && <div className={`pointer-events-none absolute top-0 z-10 ${punchArmed ? "bg-red-500/10" : session.loop.on ? "bg-emerald-400/10" : "bg-white/[0.03]"}`}
                                   style={{ left: session.loop.start * zoom, width: (session.loop.end - session.loop.start) * zoom, height: session.tracks.length * LANE_H }} />}
             <Playhead position={playhead} zoom={zoom} height={session.tracks.length * LANE_H} />
           </div>

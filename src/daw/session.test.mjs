@@ -392,7 +392,7 @@ test2("loop region: set, order, too short, toggle, wrap", () => {
   assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
 });
 
-import { emptyTakeCount, removeEmptyTakes, dropIfEmptied, countInPlan } from "./session.js";
+import { emptyTakeCount, removeEmptyTakes, dropIfEmptied, countInPlan, punchPlan } from "./session.js";
 test2("empty take lanes are removed, populated ones and the active take are kept", () => {
   let s = newSession("t"); const id = s.tracks[0].id;
   s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
@@ -426,4 +426,14 @@ test2("a ruler stays sane when zoomed far out over a long beat", () => {
   assert2.ok(r.bars.length > 1 && r.bars.length <= 2000);
   assert2.ok(r.clock.length > 1 && r.clock[1].t >= 300);             // clock ticks thin out to minutes, not a wall of marks
   assert2.equal(r.beats.length, 0);
+});
+
+test2("punch plan: the loop region, a bar of pre-roll, nothing without a region", () => {
+  const s = { bpm: 120, meter: 4, loop: { start: 10, end: 14, on: false } };          // a bar is 2 s; the loop need not be ON to punch
+  assert2.deepEqual(punchPlan(s, true), { from: 8, in: 10, out: 14 });
+  assert2.equal(punchPlan(s, false), null);
+  assert2.equal(punchPlan({ ...s, loop: null }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 1, end: 1.05, on: true } }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 0.5, end: 4, on: true } }, true).from, 0);   // never before the start of the song
+  assert2.equal(punchPlan({ bpm: 300, meter: 1, loop: { start: 5, end: 9, on: true } }, true).from, 4);   // at least a second of pre-roll
 });

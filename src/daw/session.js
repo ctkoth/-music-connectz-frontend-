@@ -97,6 +97,17 @@ export function countInPlan(s, bars) {
   return { beats, seconds: n * s.meter * beat };
 }
 
+// ---- punch in / out ----------------------------------------------------------------------------
+export const PREROLL_MIN = 1;                        // seconds of the session heard before a punch-in, at least
+/** Recording only inside the loop region. The transport starts a bar early so you hear what you are coming in on; the take is
+ *  trimmed to [in, out] and the take stops itself at `out`. Null when there is no region to punch (or the flag is off). */
+export function punchPlan(s, on) {
+  const lp = s.loop;
+  if (!on || !lp || !(lp.end - lp.start >= 0.1)) return null;
+  const preroll = Math.max(PREROLL_MIN, beatSeconds(s) * s.meter);
+  return { from: Math.max(0, lp.start - preroll), in: lp.start, out: lp.end };
+}
+
 // ---- loop region -------------------------------------------------------------------------------
 // One region on the session: { start, end, on }. Playback wraps from `end` back to `start` while `on`.
 export const MIN_LOOP = 0.1;

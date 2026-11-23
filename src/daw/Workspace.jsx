@@ -39,7 +39,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, COUNT_INS, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -126,6 +126,10 @@ export default function Workspace({ workflow }) {
   const [recording, setRecording] = useState(false);
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
+  const [punchOn, setPunchRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_punch") === "1"; } catch { return false; } });
+  const setPunch = (v) => { setPunchRaw(v); try { localStorage.setItem("mcz_daw_punch", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const punchRef = useRef(null);                  // the plan of the take being recorded, if it is a punch
+  const recordRef = useRef(null);                 // always the latest record(), for the auto punch-out
   const setCountBars = (v) => { setCountBarsRaw(v); try { localStorage.setItem("mcz_daw_countin", String(v)); } catch { /* not remembered */ } };
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -299,6 +303,7 @@ export default function Workspace({ workflow }) {
     let raf = 0; let last = 0;
     const tick = (now) => {
       const p = daw.position();
+      if (p != null && punchRef.current && p >= punchRef.current.out) { punchRef.current = null; recordRef.current?.(); return; }       // punch out: the take stops itself
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
       if (!recording && p != null && !(sRef.current.loop?.on && p <= sRef.current.loop.end + 0.05) && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
@@ -533,6 +538,7 @@ export default function Workspace({ workflow }) {
   const record = async () => {
     setErr(""); setMsg("");
     if (recording) {
+      punchRef.current = null;
       setBusy("Finishing the take…");
       try {
         const takes = await daw.stopRecording();
@@ -595,7 +601,10 @@ export default function Workspace({ workflow }) {
       refreshDevices();
       if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
       setBusy("Starting playback and recording…");
-      await daw.startRecording(sRef.current, playhead, { click,
+      const plan = punchPlan(sRef.current, punchOn);
+      punchRef.current = plan;
+      if (plan) setPlayhead(plan.from);
+      await daw.startRecording(sRef.current, plan ? plan.from : playhead, { click, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
@@ -696,6 +705,8 @@ export default function Workspace({ workflow }) {
     if (gone) setMsg(`Deleted the region, and the empty take lane "${playlist.name}" with it (StatZ). Undo brings both back.`);
     setSelected(null);
   };
+
+  recordRef.current = record;
 
   // ---- keys ----
   // The shortcuts are a map every DAW reads (defaults unless changed); Azrael is where it is edited.
@@ -999,6 +1010,10 @@ export default function Workspace({ workflow }) {
             {COUNT_INS.map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} bar${n === 1 ? "" : "s"}`}</option>)}
           </select>
         </label>
+        <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
+               title={session.loop ? "Records only inside the loop region: you hear a bar before it, the take is kept from its start to its end, and recording stops itself at the end. Whatever was there outside it is untouched." : "Draw a loop region first (drag in the loop lane above the ruler): that is the stretch a punch replaces."}>
+          <input type="checkbox" checked={punchOn && !!session.loop} disabled={!session.loop || recording} onChange={(e) => setPunch(e.target.checked)} /> Punch in/out
+        </label>
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-sm font-semibold text-white" title="This project">
           🎼 {session.name} <span className="font-mono text-mcz-cyan">· {session.bpm} BPM</span> <span className="text-emerald-300">· {session.key || "key not set"}</span>
@@ -1168,7 +1183,7 @@ export default function Workspace({ workflow }) {
           }} />
         <EditWindow
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
-          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
+          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}

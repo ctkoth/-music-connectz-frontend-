@@ -378,11 +378,11 @@ export function createDaw() {
    * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
    * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream, inputs }) {
+  async function startRecording(session, from, { click = false, stream, inputs, punch = null }) {
     const c = audio();
     if (c.state !== "running") await c.resume();
     const list = inputs || [{ key: "", stream, channel: "both" }];
-    const t0 = await play(session, from, { click });
+    const t0 = await play({ ...session, loop: null }, from, { click });     // a take never loops the transport; a punch is a trim, below
     const startFrame = Math.round(t0 * c.sampleRate);
     const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
     if (useWorklet && !rec?.workletReady) {
@@ -430,24 +430,31 @@ export function createDaw() {
       return { key: inp.key, node, sink, extra, chunks, inLatency };
     });
     const outLatency = (Number(c.outputLatency) || 0) + (Number(c.baseLatency) || 0);
-    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from };
+    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from, punch };
     return t0;
   }
 
-  function assemble(c, chunks, offset, from) {
+  function assemble(c, chunks, offset, from, punch = null) {
     const total = chunks.reduce((n, ch) => n + ch[0].length, 0);
     if (!total) return null;
     // Drop the samples the device's own delay put in front of the performance.
     const drop = Math.min(total - 1, Math.round(offset * c.sampleRate));
-    const n = total - drop;
+    let n = total - drop;
+    // Punch: keep only [in, out]. The take then starts at the punch-in, not at the pre-roll.
+    let cutFrom = 0;
+    if (punch) {
+      cutFrom = Math.max(0, Math.round((punch.in - from) * c.sampleRate));
+      n = Math.min(n, Math.round((punch.out - from) * c.sampleRate)) - cutFrom;
+      if (n < 1) return null;                                  // nothing was captured inside the window
+    }
     const chans = Math.max(...chunks.map((ch) => ch.length));
     const buf = c.createBuffer(Math.min(2, chans), n, c.sampleRate);
     for (let ci = 0; ci < buf.numberOfChannels; ci++) {
       const out = buf.getChannelData(ci);
-      let w = -drop;
+      let w = -drop - cutFrom;
       for (const ch of chunks) {
         const d = ch[ci] || ch[0];
-        for (let i = 0; i < d.length; i++, w++) if (w >= 0) out[w] = d[i];
+        for (let i = 0; i < d.length; i++, w++) if (w >= 0 && w < n) out[w] = d[i];
       }
     }
     let peak = 0;
@@ -456,7 +463,7 @@ export function createDaw() {
     const id = srcId();
     buffers.set(id, buf);
     peaks.set(id, computePeaks(buf, peakCount(buf)));
-    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from, silent: peak < 1e-4 };
+    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from: punch ? punch.in : from, silent: peak < 1e-4 };
   }
 
   /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
@@ -470,7 +477,7 @@ export function createDaw() {
     rec = { workletReady: r.workletReady };
     const c = audio();
     return r.parts.map((p) => {
-      const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from);
+      const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from, r.punch);
       return t ? { key: p.key, ...t } : { key: p.key, empty: true };
     });
   }
