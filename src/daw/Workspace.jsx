@@ -97,6 +97,9 @@ function Library({ onPick, onClose }) {
   );
 }
 
+const ZOOM_MIN = 5, ZOOM_MAX = 400;
+const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+
 export default function Workspace({ workflow }) {
   const daw = useMemo(() => createDaw(), []);
   const [session, setRaw] = useState(() => setSession(newSession(), { editMode: workflow.editMode || "slip" }));
@@ -989,8 +992,16 @@ export default function Workspace({ workflow }) {
                 {Object.keys(GRIDS).map((g) => <option key={g} value={g}>{g === "1" ? "1 bar" : `${g} note`}</option>)}
               </select>
             </label>
-            <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(5, z / 1.5))}><Minus size={13} /></button>
-            <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(400, z * 1.5))}><Plus size={13} /></button>
+            <span className="flex items-center gap-1" data-tour="daw-zoom" title="Zoom the timeline. Ctrl + scroll over it zooms at the pointer.">
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => clampZoom(z / 1.5))}><Minus size={13} /></button>
+              <input type="range" className="w-24 accent-cyan-400" min={0} max={1000} aria-label="Timeline zoom"
+                     value={Math.round(1000 * Math.log(zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN))}
+                     onChange={(e) => setZoom(ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 1000))} />
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
+              <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
+                      onClick={() => { const len = lengthOf(session); const w = (document.querySelector("[data-timeline]")?.clientWidth || 800) - 24; if (len > 0) setZoom(clampZoom(w / len)); }}>Fit</button>
+              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
+            </span>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Undo" onClick={undo} disabled={!past.current.length}><Undo2 size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Redo" onClick={redo} disabled={!future.current.length}><Redo2 size={13} /></button>
             <span className="text-white/55">{MODE_LABEL[session.editMode].what}</span>
@@ -1054,7 +1065,7 @@ export default function Workspace({ workflow }) {
           }} />
         <EditWindow
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
-          session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
+          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}

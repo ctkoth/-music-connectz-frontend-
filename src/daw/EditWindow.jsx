@@ -90,7 +90,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -104,6 +104,28 @@ export default function EditWindow({
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
   const [beatsRow, setBeatsRow] = useBeatsRow();
+  const scroller = useRef(null);
+  const pending = useRef(null);                    // { t, x }: the time under the pointer, and where on screen it sat
+  // Ctrl + wheel (and a trackpad pinch, which arrives as ctrl + wheel) zooms; the moment under the pointer stays put.
+  const live = useRef({});
+  live.current = { onZoom, zoom };
+  useEffect(() => {                                // native + non-passive: React's onWheel is passive and cannot stop the page zooming
+    const el = scroller.current; if (!el) return undefined;
+    const h = (e) => {
+      const { onZoom: z, zoom: cur } = live.current;
+      if (!z || !(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const x = e.clientX - el.getBoundingClientRect().left;
+      pending.current = { t: (el.scrollLeft + x) / cur, x };
+      z(Math.exp(-e.deltaY * 0.0025));
+    };
+    el.addEventListener("wheel", h, { passive: false });
+    return () => el.removeEventListener("wheel", h);
+  }, []);
+  useEffect(() => {
+    const el = scroller.current; const p = pending.current;
+    if (el && p) { el.scrollLeft = Math.max(0, p.t * zoom - p.x); pending.current = null; }
+  }, [zoom]);
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
   const total = Math.max(60, endOfSession(session) + 30);
   const width = total * zoom;
@@ -347,7 +369,7 @@ export default function EditWindow({
       </div>
 
       {/* Timeline */}
-      <div className="min-w-0 flex-1 overflow-x-auto">
+      <div className="min-w-0 flex-1 overflow-x-auto" data-timeline ref={scroller}>
         <div className="relative" style={{ width }}>
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
           <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} />
