@@ -1413,7 +1413,7 @@ function Home() {
       {/* pb leaves room for the fixed PickConnectZ dock */}
       {/* A playing track adds its bar (and a compact bar is smaller) above the dock, so the bottom of whatever is
           open — an editor's last tools, a form's save button — stays reachable instead of sitting under it. */}
-      <main className={`mx-auto max-w-4xl px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
+      <main className={`${DAW_TABS.has(tab) ? "max-w-none" : "mx-auto max-w-4xl"} px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
         <p className="mb-4 text-xs text-white/60">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
@@ -1713,6 +1713,10 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
     </div>
   );
 }
+
+// The DAWs get the whole width of the screen: a 6-minute song and its tracks do not fit in a 896px column, and Mixcraft,
+// Reaper and Pro Tools all use every pixel. Everything else keeps the readable column.
+const DAW_TABS = new Set(["arsenal", "fruitymobius", "witchcraft", "azrael", "trumptoupee", "formulawon", "intuition"]);
 
 export default function App() {
   const { user } = useAuth();

@@ -22,18 +22,20 @@ import { levelAdvice, meterPos } from "./audioIO.js";
 
 const LEVEL_TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
-const HEADER_W = 168;
-const LANE_H = 126;
+const HEADER_W = 204;
+const LANE_LARGE = 126;
+const LANE_COMPACT = 82;            // name + R / S / M (and the input meter when armed) only: five tracks fit where three did
+const DENSE_KEY = "mcz_daw_compact";
 const EDGE_PX = 10;
 
 /** One region's waveform, drawn from the engine's peaks for the window of the source it plays. */
-const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color }) {
+const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color, height }) {
   const ref = useRef(null);
   useEffect(() => {
     const c = ref.current;
     if (!c) return;
     const w = Math.max(1, Math.min(16000, Math.round(width)));
-    const h = LANE_H - 22;
+    const h = height;
     c.width = w; c.height = h;
     const g = c.getContext("2d");
     g.clearRect(0, 0, w, h);
@@ -48,8 +50,8 @@ const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color 
       const y2 = h / 2 - lo * (h / 2);
       g.fillRect(x, y1, 1, Math.max(1, y2 - y1));
     }
-  }, [peaks, sourceDur, inSec, outSec, width, color]);
-  return <canvas ref={ref} className="pointer-events-none block h-[54px] w-full" />;
+  }, [peaks, sourceDur, inSec, outSec, width, color, height]);
+  return <canvas ref={ref} className="pointer-events-none block w-full" style={{ height }} />;
 });
 
 // Two rows: bars and beats on top, the clock (m:ss) under it. Sticky, so it stays in view while the tracks scroll.
@@ -149,6 +151,9 @@ export default function EditWindow({
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
   const [beatsRow, setBeatsRow] = useBeatsRow();
+  const [dense, setDenseRaw] = useState(() => { try { return localStorage.getItem(DENSE_KEY) === "1"; } catch { return false; } });
+  const setDense = (v) => { setDenseRaw(v); try { localStorage.setItem(DENSE_KEY, v ? "1" : "0"); } catch { /* not remembered */ } };
+  const LANE_H = dense ? LANE_COMPACT : LANE_LARGE;
   const scroller = useRef(null);
   const pending = useRef(null);                    // { t, x }: the time under the pointer, and where on screen it sat
   // Ctrl + wheel (and a trackpad pinch, which arrives as ctrl + wheel) zooms; the moment under the pointer stays put.
@@ -247,6 +252,8 @@ export default function EditWindow({
           <div className="flex items-center gap-1.5 normal-case tracking-normal">
             <button type="button" className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${beatsRow ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/50"} hover:text-white`} aria-pressed={beatsRow}
                     onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>
+            <button type="button" className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${dense ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/50"} hover:text-white`} aria-pressed={dense}
+                    onClick={() => setDense(!dense)} title={dense ? "Back to full-height tracks" : "Compact tracks: name, record, solo and mute only, so more tracks fit on screen"}>↕ Compact</button>
             {onToggleLoop && (
               <button type="button" disabled={!session.loop} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${session.loop?.on ? "border-emerald-300/60 bg-emerald-400/15 text-emerald-300" : "border-white/15 text-white/50"} hover:text-white disabled:opacity-50`}
                       aria-pressed={!!session.loop?.on} onClick={onToggleLoop} title={session.loop ? "Loop on/off" : "Drag in the loop lane above the ruler to set a loop region first"}>🔁 Loop</button>
@@ -321,7 +328,7 @@ export default function EditWindow({
                 </select>
               )}
             </div>
-            <div className="flex items-center gap-1">
+            {!dense && <div className="flex items-center gap-1">
               {onTranspose && (
                 // Stem transposition: the track's key, its tempo kept. The range is the tier's.
                 <select className="w-12 shrink-0 rounded bg-white/10 px-0.5 py-0.5 text-[10px] text-white/80" data-nomemo="true"
@@ -341,8 +348,8 @@ export default function EditWindow({
                       onClick={() => onPlaylist(t.id, { type: "new" })}><Plus size={12} /></button>
               <button type="button" className="text-white/50 hover:text-white" title="Copy this take to a new playlist" aria-label="Duplicate playlist" disabled={recording}
                       onClick={() => onPlaylist(t.id, { type: "copy" })}><Copy size={12} /></button>
-            </div>
-            {onInserts && (
+            </div>}
+            {!dense && onInserts && (
               <div className="relative flex items-start gap-1 text-[10px]">
                 {t.armed && onMonitor && (
                   <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
@@ -452,7 +459,7 @@ export default function EditWindow({
                          style={{ left: r.at * zoom, width: Math.max(4, lenOf(r) * zoom), height: LANE_H - 8, background: `${t.color}26`,
                                   opacity: drag?.id === r.id ? 0.85 : 1 }}>
                       <div className="truncate px-1 text-[10px] leading-4 text-white/80" style={{ background: `${t.color}55` }}>{r.name}</div>
-                      <Wave peaks={daw.peaks(r.src)} sourceDur={src?.duration} inSec={r.in} outSec={r.out} width={lenOf(r) * zoom} color={t.color} />
+                      <Wave peaks={daw.peaks(r.src)} sourceDur={src?.duration} inSec={r.in} outSec={r.out} width={lenOf(r) * zoom} color={t.color} height={LANE_H - 22} />
                       {r.fadeIn > 0 && <div className="pointer-events-none absolute bottom-0 left-0 top-4 bg-gradient-to-r from-black/70 to-transparent" style={{ width: r.fadeIn * zoom }} />}
                       {r.fadeOut > 0 && <div className="pointer-events-none absolute bottom-0 right-0 top-4 bg-gradient-to-l from-black/70 to-transparent" style={{ width: r.fadeOut * zoom }} />}
                     </div>
