@@ -7,7 +7,7 @@
 //   * tap the ruler or an empty lane → put the playhead there
 import { memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
-import { REC_MODES, beatSeconds, endOf, lenOf, regionsOf } from "./session.js";
+import { REC_MODES, endOf, lenOf, regionsOf, rulerTicks } from "./session.js";
 import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
@@ -52,20 +52,29 @@ const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color 
   return <canvas ref={ref} className="pointer-events-none block h-[54px] w-full" />;
 });
 
+// Two rows: bars and beats on top, the clock (m:ss) under it. Sticky, so it stays in view while the tracks scroll.
+export const RULER_H = 44;
 function Ruler({ session, zoom, width, onSeek }) {
-  const beat = beatSeconds(session);
-  const bar = beat * session.meter;
-  const step = bar * zoom < 40 ? bar * Math.ceil(40 / (bar * zoom)) : bar;
-  const marks = [];
-  for (let t = 0, i = 0; t * zoom < width && i < 2000; t += step, i++) marks.push(t);
+  const { bars, beats, clock } = rulerTicks(session, zoom, width);
   return (
-    <div className="relative h-7 cursor-pointer border-b border-white/10 bg-black/40 text-[10px] text-white/50"
-         style={{ width }} onPointerDown={(e) => onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom)}>
-      {marks.map((t) => (
-        <span key={t} className="absolute top-0 h-full border-l border-white/20 pl-1" style={{ left: t * zoom }}>
-          {Math.round(t / bar) + 1}
-        </span>
-      ))}
+    <div className="sticky top-0 z-30 cursor-pointer border-b border-white/10 bg-[#0b0b14] text-[10px] text-white/55" data-tour="daw-ruler"
+         style={{ width, height: RULER_H }} title="Bars and beats on top, minutes and seconds below — tap to move the playhead"
+         onPointerDown={(e) => onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom)}>
+      <div className="relative h-[22px] border-b border-white/10">
+        {beats.map((m) => (
+          <span key={`b${m.t}`} className="absolute bottom-0 h-2 border-l border-white/15 pl-0.5 text-[8px] leading-none text-white/35" style={{ left: m.t * zoom }}>
+            {m.label && <span className="relative -top-2.5">{m.label}</span>}
+          </span>
+        ))}
+        {bars.map((m) => (
+          <span key={`B${m.t}`} className="absolute top-0 h-full border-l border-white/40 pl-1 font-semibold text-white/75" style={{ left: m.t * zoom }}>{m.label}</span>
+        ))}
+      </div>
+      <div className="relative h-[21px]">
+        {clock.map((m) => (
+          <span key={`c${m.t}`} className="absolute top-0 h-full border-l border-white/25 pl-1 font-mono tabular-nums text-mcz-cyan/80" style={{ left: m.t * zoom }}>{m.label}</span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -150,7 +159,7 @@ export default function EditWindow({
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
-        <div className="flex h-7 items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55">
+        <div className="flex items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
           <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           {atTrackCap && onUpgrade ? (
             <button type="button" className="rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}

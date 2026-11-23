@@ -366,3 +366,15 @@ test("record modes: Takes keeps the old take on a new playlist, Replace cuts it 
   assert.deepEqual(Object.keys(REC_MODES), ["takes", "replace", "overdub"]);
   assert.equal(_st(_new(), _new().tracks[0].id, {}).tracks[0].recMode, "takes");
 });
+
+import { rulerTicks, clockLabel } from "./session.js";
+import test2 from "node:test";
+import assert2 from "node:assert/strict";
+test2("ruler: bars, beats and clock ticks", () => {
+  const s = { bpm: 120, meter: 4 };           // beat 0.5s, bar 2s
+  const r = rulerTicks(s, 40, 400);            // 10s wide
+  assert2.equal(r.bars[1].t, 2); assert2.equal(r.bars[1].label, "2");
+  assert2.ok(r.beats.length > 0 && r.beats.every((b) => b.t % 2 !== 0));
+  assert2.equal(r.clock[1].t, 2);              // 60px / 40 = 1.5s -> first nice step is 2s
+  assert2.equal(clockLabel(65), "1:05");
+});

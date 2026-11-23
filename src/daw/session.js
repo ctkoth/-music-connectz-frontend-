@@ -174,6 +174,36 @@ export const minSec = (sec, tenths = true) => {
   return `${m}:${(tenths ? rest.toFixed(2) : Math.floor(rest).toString()).padStart(tenths ? 5 : 2, "0")}`;
 };
 
+/** Clock label for a ruler tick: 0:05, 1:30, 12:00 (sub-second steps get a tenth). */
+export const clockLabel = (sec, tenths = false) => {
+  const t = Math.max(0, sec);
+  const m = Math.floor(t / 60);
+  const r = t - m * 60;
+  return `${m}:${tenths ? r.toFixed(1).padStart(4, "0") : String(Math.floor(r + 1e-6)).padStart(2, "0")}`;
+};
+
+/** The ruler's marks for a view `width` px wide at `zoom` px/s: bars (always), beats (once they are 14px apart),
+ *  and clock ticks at the first "nice" step at least 60px apart. Pure, so it is tested. */
+export function rulerTicks(s, zoom, width) {
+  const beat = beatSeconds(s);
+  const bar = beat * s.meter;
+  const end = width / zoom;
+  const barEvery = Math.max(1, Math.ceil(44 / (bar * zoom)));
+  const bars = [];
+  for (let i = 0; i * bar <= end && bars.length < 2000; i += barEvery) bars.push({ t: i * bar, label: String(i + 1) });
+  const beats = [];
+  if (beat * zoom >= 14 && barEvery === 1) {
+    for (let i = 0; i * beat <= end && beats.length < 8000; i++) {
+      if (i % s.meter) beats.push({ t: i * beat, label: beat * zoom >= 30 ? `${Math.floor(i / s.meter) + 1}.${(i % s.meter) + 1}` : "" });
+    }
+  }
+  const NICE = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600];
+  const every = NICE.find((n) => n * zoom >= 60) || 3600;
+  const clock = [];
+  for (let i = 0; i * every <= end && clock.length < 2000; i++) clock.push({ t: i * every, label: clockLabel(i * every, every < 1) });
+  return { bars, beats, clock };
+}
+
 export function snapTime(s, sec) {
   const g = gridSeconds(s);
   return Math.max(0, Math.round(sec / g) * g);
