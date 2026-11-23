@@ -378,11 +378,12 @@ export function createDaw() {
    * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
    * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream, inputs, punch = null }) {
+  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null }) {
     const c = audio();
     if (c.state !== "running") await c.resume();
     const list = inputs || [{ key: "", stream, channel: "both" }];
-    const t0 = await play({ ...session, loop: null }, from, { click });     // a take never loops the transport; a punch is a trim, below
+    // A take never loops the transport, except a cycle: the loop plays seamlessly and the capture is cut at its pass boundaries on stop.
+    const t0 = cycle ? await play({ ...session, loop: { start: cycle.start, end: cycle.end, on: true } }, cycle.start, { click }) : await play({ ...session, loop: null }, from, { click });
     const startFrame = Math.round(t0 * c.sampleRate);
     const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
     if (useWorklet && !rec?.workletReady) {
@@ -430,11 +431,11 @@ export function createDaw() {
       return { key: inp.key, node, sink, extra, chunks, inLatency };
     });
     const outLatency = (Number(c.outputLatency) || 0) + (Number(c.baseLatency) || 0);
-    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from, punch };
+    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from: cycle ? cycle.start : from, punch, cycle };
     return t0;
   }
 
-  function assemble(c, chunks, offset, from, punch = null) {
+  function assemble(c, chunks, offset, from, punch = null, keep = true) {
     const total = chunks.reduce((n, ch) => n + ch[0].length, 0);
     if (!total) return null;
     // Drop the samples the device's own delay put in front of the performance.
@@ -460,10 +461,34 @@ export function createDaw() {
     let peak = 0;
     const d0 = buf.getChannelData(0);
     for (let i = 0; i < d0.length; i += 8) peak = Math.max(peak, Math.abs(d0[i]));
+    if (!keep) return { buf, from: punch ? punch.in : from, offset };         // the caller cuts it up and registers the pieces
     const id = srcId();
     buffers.set(id, buf);
     peaks.set(id, computePeaks(buf, peakCount(buf)));
     return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from: punch ? punch.in : from, silent: peak < 1e-4 };
+  }
+
+  /** A cycle recording, one part: the capture cut at the loop's pass boundaries, each pass registered as its own take. */
+  const MAX_PASSES = 32, MIN_PASS_SECONDS = 0.25;
+  function cutPasses(c, p, r) {
+    const whole = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from, null, false);
+    if (!whole) return [{ key: p.key, empty: true }];
+    const rate = c.sampleRate, buf = whole.buf;
+    const per = Math.max(1, Math.round((r.cycle.end - r.cycle.start) * rate));
+    const out = [];
+    for (let k = 0; k * per < buf.length && out.length < MAX_PASSES; k++) {
+      const a = k * per, b = Math.min(buf.length, a + per);
+      if ((b - a) / rate < MIN_PASS_SECONDS && k > 0) break;                  // a sliver left over when stop was pressed is not a take
+      const piece = c.createBuffer(buf.numberOfChannels, b - a, rate);
+      let peak = 0;
+      for (let ci = 0; ci < buf.numberOfChannels; ci++) { const d = buf.getChannelData(ci).subarray(a, b); piece.copyToChannel(d, ci); if (ci === 0) for (let i = 0; i < d.length; i += 8) peak = Math.max(peak, Math.abs(d[i])); }
+      const id = srcId();
+      buffers.set(id, piece);
+      peaks.set(id, computePeaks(piece, peakCount(piece)));
+      out.push({ key: p.key, id, duration: piece.duration, channels: piece.numberOfChannels, rate, offsetMs: Math.round(whole.offset * 1000), from: r.cycle.start, silent: peak < 1e-4, pass: k + 1 });
+    }
+    const n = out.length;
+    return out.length ? out.map((t) => ({ ...t, passes: n })) : [{ key: p.key, empty: true }];
   }
 
   /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
@@ -476,6 +501,7 @@ export function createDaw() {
     r.streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
     rec = { workletReady: r.workletReady };
     const c = audio();
+    if (r.cycle) return r.parts.flatMap((p) => cutPasses(c, p, r));
     return r.parts.map((p) => {
       const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from, r.punch);
       return t ? { key: p.key, ...t } : { key: p.key, empty: true };

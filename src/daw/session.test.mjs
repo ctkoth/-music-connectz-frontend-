@@ -437,3 +437,20 @@ test2("punch plan: the loop region, a bar of pre-roll, nothing without a region"
   assert2.equal(punchPlan({ ...s, loop: { start: 0.5, end: 4, on: true } }, true).from, 0);   // never before the start of the song
   assert2.equal(punchPlan({ bpm: 300, meter: 1, loop: { start: 5, end: 9, on: true } }, true).from, 4);   // at least a second of pre-roll
 });
+
+import { addSource as addSrc, setTrack as setTr, newSession as newSes } from "./session.js";
+test2("cycle passes: each lands in its own take lane, the last is active, and the track's own mode comes back", () => {
+  let s = newSes("t"); const id = s.tracks[0].id;
+  s = setTr(s, id, { recMode: "overdub" });                                   // the member's own mode, which a cycle must not keep
+  for (let k = 1; k <= 3; k++) {
+    s = addSrc(s, { id: `src${k}`, name: `t${k}`, duration: 4, channels: 2, rate: 48000 });
+    s = setTr(s, id, { recMode: "takes" });
+    s = recordInto(s, id, { src: `src${k}`, at: 8, name: `take ${k}` }).session;
+    s = setTr(s, id, { recMode: "overdub" });
+  }
+  const t = s.tracks[0];
+  assert2.equal(t.playlists.length, 3);
+  assert2.deepEqual(t.playlists.map((p) => p.regions.map((r) => r.src)), [["src1"], ["src2"], ["src3"]]);   // one region per lane: nothing stacked
+  assert2.equal(t.active, 2);
+  assert2.equal(t.recMode, "overdub");
+});

@@ -128,6 +128,10 @@ export default function Workspace({ workflow }) {
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
   const [punchOn, setPunchRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_punch") === "1"; } catch { return false; } });
   const setPunch = (v) => { setPunchRaw(v); try { localStorage.setItem("mcz_daw_punch", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const [cycleOn, setCycleRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_cycle") === "1"; } catch { return false; } });
+  const setCycle = (v) => { setCycleRaw(v); try { localStorage.setItem("mcz_daw_cycle", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const cycleInfo = useRef(null);                 // { t0, len } of the cycle being recorded, for the pass counter
+  const [cyclePass, setCyclePass] = useState(0);
   const punchRef = useRef(null);                  // the plan of the take being recorded, if it is a punch
   const recordRef = useRef(null);                 // always the latest record(), for the auto punch-out
   const setCountBars = (v) => { setCountBarsRaw(v); try { localStorage.setItem("mcz_daw_countin", String(v)); } catch { /* not remembered */ } };
@@ -304,6 +308,7 @@ export default function Workspace({ workflow }) {
     const tick = (now) => {
       const p = daw.position();
       if (p != null && punchRef.current && p >= punchRef.current.out) { punchRef.current = null; recordRef.current?.(); return; }       // punch out: the take stops itself
+      if (cycleInfo.current) { const c = cycleInfo.current; setCyclePass(Math.floor((performance.now() - c.t0) / 1000 / c.len) + 1); }
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
       if (!recording && p != null && !(sRef.current.loop?.on && p <= sRef.current.loop.end + 0.05) && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
@@ -538,7 +543,7 @@ export default function Workspace({ workflow }) {
   const record = async () => {
     setErr(""); setMsg("");
     if (recording) {
-      punchRef.current = null;
+      punchRef.current = null; cycleInfo.current = null; setCyclePass(0);
       setBusy("Finishing the take…");
       try {
         const takes = await daw.stopRecording();
@@ -553,11 +558,14 @@ export default function Workspace({ workflow }) {
           for (const take of good) {
             const tr = byId[take.key];
             if (!tr) continue;
-            const name = `${tr.name} take`;
+            const cyc = take.pass != null;                          // a pass of a cycle: always its own take lane, whatever the track's mode
+            const name = cyc ? `${tr.name} take ${take.pass}` : `${tr.name} take`;
             cur = addSource(cur, { id: take.id, name, duration: take.duration, channels: take.channels, rate: take.rate });
+            if (cyc) cur = setTrack(cur, tr.id, { recMode: "takes" });
             const out = recordInto(cur, tr.id, { src: take.id, at: take.from, name });
             if (out.keptPrevious) kept++;
             cur = out.session;
+            if (cyc) cur = setTrack(cur, tr.id, { recMode: tr.recMode });
             longest = Math.max(longest, take.from + take.duration);
           }
           return cur;
@@ -565,7 +573,9 @@ export default function Workspace({ workflow }) {
         setPlayhead(longest || playhead);
         const names = good.map((t) => byId[t.key]?.name).filter(Boolean);
         const lined = good[0].offsetMs > 0 ? ` Lined up ${good[0].offsetMs} ms earlier for this device's own audio delay.` : "";
-        setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
+        const passes = good[0].pass != null ? good.filter((t) => t.key === good[0].key).length : 0;
+        if (passes) { setMsg(`Cycle recorded ${passes} pass${passes === 1 ? "" : "es"} onto ${[...new Set(names)].join(", ")}, each as its own take. The last one is playing; pick another from the track's take menu to hear it.${silent.length ? " A silent pass was not added." : ""}`); }
+        else setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
         for (const take of good) {
           try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
         }
@@ -601,11 +611,14 @@ export default function Workspace({ workflow }) {
       refreshDevices();
       if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
       setBusy("Starting playback and recording…");
-      const plan = punchPlan(sRef.current, punchOn);
+      const lp = sRef.current.loop;
+      const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take
+      const plan = cyc ? null : punchPlan(sRef.current, punchOn);
       punchRef.current = plan;
-      if (plan) setPlayhead(plan.from);
-      await daw.startRecording(sRef.current, plan ? plan.from : playhead, { click, punch: plan ? { in: plan.in, out: plan.out } : null,
+      if (plan) setPlayhead(plan.from); else if (cyc) setPlayhead(cyc.start);
+      await daw.startRecording(sRef.current, plan ? plan.from : cyc ? cyc.start : playhead, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
+      if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
   };
@@ -1012,8 +1025,13 @@ export default function Workspace({ workflow }) {
         </label>
         <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
                title={session.loop ? "Records only inside the loop region: you hear a bar before it, the take is kept from its start to its end, and recording stops itself at the end. Whatever was there outside it is untouched." : "Draw a loop region first (drag in the loop lane above the ruler): that is the stretch a punch replaces."}>
-          <input type="checkbox" checked={punchOn && !!session.loop} disabled={!session.loop || recording} onChange={(e) => setPunch(e.target.checked)} /> Punch in/out
+          <input type="checkbox" checked={punchOn && !!session.loop && !cycleOn} disabled={!session.loop || recording || cycleOn} onChange={(e) => setPunch(e.target.checked)} /> Punch in/out
         </label>
+        <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
+               title={session.loop ? "Loop recording: the loop plays over and over while you record, and every pass is kept as its own take on the track. Pick the best from the track's take menu. Needs a loop region at least half a second long." : "Draw a loop region first (drag in the loop lane above the ruler): each trip around it becomes a take."}>
+          <input type="checkbox" checked={cycleOn && !!session.loop} disabled={!session.loop || recording} onChange={(e) => setCycle(e.target.checked)} /> Cycle record
+        </label>
+        {recording && cyclePass > 0 && <span className="rounded-full border border-red-400/60 bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-300" role="status">● pass {cyclePass}</span>}
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-sm font-semibold text-white" title="This project">
           🎼 {session.name} <span className="font-mono text-mcz-cyan">· {session.bpm} BPM</span> <span className="text-emerald-300">· {session.key || "key not set"}</span>
