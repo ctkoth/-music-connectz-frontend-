@@ -26,20 +26,21 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
   const ok = new Set((cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k));
-  const allowed = (k) => (ok.has(k) ? k : INSTRUMENTS[0][0]);
+  // Above the plan's list a part falls back to the voice its own program would get, and only then to the first.
+  const allowed = (k, track) => (ok.has(k) ? k : track && ok.has(instrumentFor(track)) ? instrumentFor(track) : INSTRUMENTS[0][0]);
 
-  const open = async (name, bytes) => {
+  const open = async (name, bytes, sounds) => {
     setErr("");
     try {
       const m = parseMidi(bytes);
       setFile({ name, ...m });
-      setPick(Object.fromEntries(m.tracks.map((t, i) => [i, instrumentFor(t)])));
+      setPick(Object.fromEntries(m.tracks.map((t, i) => [i, sounds?.[t.name] && INSTRUMENTS.some(([k]) => k === sounds[t.name]) ? sounds[t.name] : instrumentFor(t)])));
       setOn(Object.fromEntries(m.tracks.map((_, i) => [i, true])));
     } catch (e) { setErr(e.message); setFile(null); }
   };
   useEffect(() => {
     if (!initial?.url) return;
-    fetch(initial.url).then((r) => r.arrayBuffer()).then((b) => open(initial.name || "Imported.mid", b)).catch(() => setErr("That MIDI file couldn't be read."));
+    fetch(initial.url).then((r) => r.arrayBuffer()).then((b) => open(initial.name || "Imported.mid", b, initial.sounds)).catch(() => setErr("That MIDI file couldn't be read."));
   }, [initial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new, empty part to draw in — the start of a melody with no file at all.
@@ -61,7 +62,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
       const l = live.current || (live.current = { ctx: new (window.AudioContext || window.webkitAudioContext)() });
       if (l.ctx.state !== "running") await l.ctx.resume();
       const t = file.tracks[i];
-      const buf = await renderNotes(t.notes.filter((n) => n[1] < 32), allowed(pick[i]), { bpm, rate: l.ctx.sampleRate });
+      const buf = await renderNotes(t.notes.filter((n) => n[1] < 32), allowed(pick[i], t), { bpm, rate: l.ctx.sampleRate });
       const src = l.ctx.createBufferSource(); src.buffer = buf; src.connect(l.ctx.destination); src.start();
       src.onended = () => setPlaying((p) => (p === i ? null : p));
       l.src = src; setPlaying(i);
@@ -73,7 +74,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
       let n = 0;
       for (const [i, t] of file.tracks.entries()) {
         if (!on[i] || !t.notes.length) continue;
-        const inst = allowed(pick[i]);
+        const inst = allowed(pick[i], t);
         const buf = await renderNotes(t.notes, inst, { bpm, rate: daw.sampleRate() });
         await onSend(daw.toWav(buf, 24), `${t.name} · ${INSTRUMENTS.find(([k]) => k === inst)[1]}.wav`);
         n++;

@@ -668,7 +668,7 @@ export default function Workspace({ workflow }) {
   // A MIDI file handed over (Instrumental ConnectZ's .mid) opens in the MIDI window; anything else is audio.
   const [midiIn, setMidiIn] = useState(null);
   useEffect(() => onHandoff(workflow.app, (p) => {
-    if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid" }); setView("midi"); return; }
+    if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid", sounds: p.sounds }); setView("midi"); return; }
     if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" });
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
