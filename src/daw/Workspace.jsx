@@ -28,6 +28,7 @@ import KeyActions from "./KeyActions.jsx";
 import VstRack from "./VstRack.jsx";
 import { pitchShift, rangeFor } from "./pitch.js";
 import { loadLimits } from "../limits.js";
+import { normalizeGain, NORMALIZE_TARGET_DB } from "./normalize.js";
 import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } from "./keymap.js";
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
@@ -35,7 +36,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, emptyTakeCount, removeEmptyTakes, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -753,6 +754,23 @@ export default function Workspace({ workflow }) {
     const buf = await daw.bounce(solo, { tail: 0 });
     return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
   };
+  // Normalize: each ticked track (or all of them when none is ticked) gets the fader that puts its peak at -1 dBFS.
+  const normalizeTracks = async () => {
+    setErr("");
+    const ids = pickedLive.length ? pickedLive : session.tracks.map((t) => t.id);
+    const targets = session.tracks.filter((t) => ids.includes(t.id) && playlistOf(t).regions.length);
+    if (!targets.length) { setMsg("Nothing to normalize yet: no track has audio on it."); return; }
+    const moves = []; const quiet = []; const maxed = [];
+    try {
+      for (const [i, t] of targets.entries()) {
+        setBusy(`Measuring ${i + 1} of ${targets.length}: ${t.name}…`);
+        const r = normalizeGain((await measureTrackAudio(t)).channels);
+        if (!r) quiet.push(t.name); else { moves.push({ id: t.id, gain: r.gain }); if (r.clamped) maxed.push(t.name); }
+      }
+      if (moves.length) commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain }), s));
+      setMsg(`${moves.length ? `Normalized ${moves.length} track${moves.length === 1 ? "" : "s"} so each one's loudest moment sits at ${NORMALIZE_TARGET_DB} dBFS (peak, not loudness — two tracks can still sound different in level). Undo puts the faders back.` : "Nothing changed."}${maxed.length ? ` ${maxed.join(", ")} hit the top of the fader and are still quiet.` : ""}${quiet.length ? ` Silent, left alone: ${quiet.join(", ")}.` : ""} Stacked tracks can add up past 0 dB on the master, so check the meter.`);
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  };
   const sendStems = async () => {
     setErr("");
     const list = stemCap == null ? stemTracks : stemTracks.slice(0, stemCap);
@@ -1058,6 +1076,14 @@ export default function Workspace({ workflow }) {
       ) : view === "edit" ? (<>
         <div className="flex flex-wrap items-center gap-2 text-xs" data-tour="daw-select-tracks">
           <SelectAllBar all={session.tracks.map((t) => t.id)} picked={pickedLive} onChange={setPicked} disabled={recording} allLabel="Select all tracks" />
+          <button type="button" className="pill" disabled={!!busy || recording} onClick={normalizeTracks}
+                  title={`Raise or lower each track's fader so its loudest moment sits at ${NORMALIZE_TARGET_DB} dBFS. Free, on this device; Undo puts it back.`}>
+            📏 Normalize {pickedLive.length ? `${pickedLive.length} selected` : "all"}
+          </button>
+          {emptyTakeCount(session) > 0 && (
+            <button type="button" className="pill" disabled={recording} onClick={() => { const n = emptyTakeCount(session); commit((s) => removeEmptyTakes(s)); setMsg(`Removed ${n} empty take lane${n === 1 ? "" : "s"}. Takes with audio are untouched. Undo puts them back.`); }}
+                    title="Delete take lanes that have nothing in them (overdubbing and New take leave these behind)">🧹 Remove {emptyTakeCount(session)} empty take{emptyTakeCount(session) === 1 ? "" : "s"}</button>
+          )}
           {pickedLive.length > 0 && (<>
             <span className="text-white/60">{pickedLive.length} selected:</span>
             <button type="button" className="pill" onClick={() => toPicked({ mute: true }, "Muted")}>Mute</button>

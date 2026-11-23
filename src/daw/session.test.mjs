@@ -391,3 +391,14 @@ test2("loop region: set, order, too short, toggle, wrap", () => {
   assert2.equal(cleanLoop({ start: "x", end: 4 }), null);
   assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
 });
+
+import { emptyTakeCount, removeEmptyTakes } from "./session.js";
+test2("empty take lanes are removed, populated ones and the active take are kept", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
+  assert2.equal(emptyTakeCount(s), 2);                            // a track keeps one
+  const c = removeEmptyTakes(s);
+  assert2.equal(c.tracks[0].playlists.length, 1);
+  assert2.equal(emptyTakeCount(c), 0);
+  assert2.equal(removeEmptyTakes(s, "nope").tracks[0].playlists.length, 3);
+});

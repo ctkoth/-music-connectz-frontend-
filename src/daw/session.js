@@ -457,7 +457,7 @@ export function recordInto(s, trackId, { src, at, name }) {
   }
   const r = { id: uid("r"), src, name: String(name || source.name).slice(0, 80), at: from, in: 0, out: source.duration, gain: 0, fadeIn: 0, fadeOut: 0 };
   out = mapTrack(out, trackId, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: [...p.regions, r] })));
-  return { session: out, keptPrevious: keep };
+  return { session: removeEmptyTakes(out, trackId), keptPrevious: keep };
 }
 
 // ---- playlists --------------------------------------------------------------------------------
@@ -485,6 +485,29 @@ export function deletePlaylist(s, trackId) {
     const playlists = t.playlists.filter((_, i) => i !== t.active);
     return { ...t, playlists, active: Math.min(t.active, playlists.length - 1) };
   }));
+}
+
+/** Take lanes (playlists) with nothing in them, beyond the one every track must keep. Overdubbing and "new take" leave these behind. */
+export function emptyTakeCount(s, trackId) {
+  return s.tracks.reduce((n, t) => {
+    if (trackId && t.id !== trackId) return n;
+    const empties = t.playlists.filter((p) => !p.regions.length).length;
+    return n + (empties === t.playlists.length ? empties - 1 : empties);   // an all-empty track keeps one
+  }, 0);
+}
+/** Delete the empty take lanes (one track, or all). The active take stays the same take; a track left with only empties keeps its first. */
+export function removeEmptyTakes(s, trackId) {
+  return pruneSources({
+    ...s,
+    tracks: s.tracks.map((t) => {
+      if (trackId && t.id !== trackId) return t;
+      const keepIdx = t.playlists.map((p, i) => (p.regions.length || i === (t.playlists.every((q) => !q.regions.length) ? t.active : -1) ? i : -1)).filter((i) => i >= 0);
+      if (keepIdx.length === t.playlists.length) return t;
+      const playlists = keepIdx.map((i) => t.playlists[i]);
+      const at = keepIdx.indexOf(t.active);
+      return { ...t, playlists, active: at >= 0 ? at : Math.min(t.active, playlists.length - 1) };
+    }),
+  });
 }
 
 // ---- loading ----------------------------------------------------------------------------------
