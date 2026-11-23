@@ -35,7 +35,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, setLoop, toggleLoop, loopJump, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -254,6 +254,14 @@ export default function Workspace({ workflow }) {
   // Faders and pans reach a playing session without a restart (automation included).
   useEffect(() => { daw.setLive(liveView(session)); }, [daw, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const wrapping = useRef(false);                  // a loop wrap is restarting playback; do not fire another
+  // Loop exactly the selected region (its start to its end), on. No selection says so rather than guessing.
+  const loopSelected = () => {
+    const r = selected && session.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected);
+    if (!r) { setMsg("Select a region first (click it), then press Shift+L — or drag in the loop lane above the ruler."); return; }
+    commit((s) => setLoop(s, r.at, endOf(r)));
+    setMsg(`Looping ${minSec(r.at)} to ${minSec(endOf(r))}. Press L to turn it off, Space to hear it.`);
+  };
   // The playhead while playing.
   useEffect(() => {
     if (!playing) return undefined;
@@ -262,7 +270,7 @@ export default function Workspace({ workflow }) {
       const p = daw.position();
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
       const jump = !recording && p != null ? loopJump(sRef.current, p) : null;
-      if (jump != null) { setPlayhead(jump); headRef.current = jump; startPlay(jump); return; }
+      if (jump != null && !wrapping.current) { wrapping.current = true; setPlayhead(jump); headRef.current = jump; Promise.resolve(startPlay(jump)).finally(() => { wrapping.current = false; }); }
       if (!recording && p != null && !sRef.current.loop?.on && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
     };
@@ -672,6 +680,8 @@ export default function Workspace({ workflow }) {
       else if (act === "home") seek(0);
       else if (act === "addtrack") addOneTrack();
       else if (act === "bounce") { e.preventDefault(); bounce(); }
+      else if (act === "loop") { e.preventDefault(); if (session.loop) commit((s) => toggleLoop(s)); else loopSelected(); }
+      else if (act === "loopsel") { e.preventDefault(); loopSelected(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

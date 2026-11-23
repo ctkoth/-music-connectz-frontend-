@@ -12,6 +12,8 @@ export const ACTIONS = [
   ["delete", "Delete the region", "Delete"],
   ["addtrack", "Add a track", "T"],
   ["bounce", "Bounce the mix", "Ctrl+Shift+B"],
+  ["loop", "Loop on / off", "L"],
+  ["loopsel", "Loop the selected region", "Shift+L"],
 ];
 export const DEFAULTS = Object.fromEntries(ACTIONS.map(([id, , k]) => [id, k]));
 
