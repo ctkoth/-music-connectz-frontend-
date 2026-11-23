@@ -16,16 +16,14 @@ import { StatzSample as StatzOffer, useStatzTrial } from "../components/StatzSam
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
+import { trackSize } from "./view.js";
 import Popover from "./Popover.jsx";
 import { PLUGINS, newInsert } from "./plugins.js";
 import { levelAdvice, meterPos } from "./audioIO.js";
 
 const LEVEL_TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
-const HEADER_W = 204;
-const LANE_LARGE = 126;
-const LANE_COMPACT = 82;            // name + R / S / M (and the input meter when armed) only: five tracks fit where three did
-const DENSE_KEY = "mcz_daw_compact";
+const HEADER_W = 190;
 const EDGE_PX = 10;
 
 /** One region's waveform, drawn from the engine's peaks for the window of the source it plays. */
@@ -137,7 +135,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, onZoom, onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, trackSizeKey = "normal", onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -151,9 +149,9 @@ export default function EditWindow({
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
   const [beatsRow, setBeatsRow] = useBeatsRow();
-  const [dense, setDenseRaw] = useState(() => { try { return localStorage.getItem(DENSE_KEY) === "1"; } catch { return false; } });
-  const setDense = (v) => { setDenseRaw(v); try { localStorage.setItem(DENSE_KEY, v ? "1" : "0"); } catch { /* not remembered */ } };
-  const LANE_H = dense ? LANE_COMPACT : LANE_LARGE;
+  const size = trackSize(trackSizeKey);
+  const dense = !size.full;
+  const LANE_H = size.h;
   const scroller = useRef(null);
   const pending = useRef(null);                    // { t, x }: the time under the pointer, and where on screen it sat
   // Ctrl + wheel (and a trackpad pinch, which arrives as ctrl + wheel) zooms; the moment under the pointer stays put.
@@ -252,8 +250,6 @@ export default function EditWindow({
           <div className="flex items-center gap-1.5 normal-case tracking-normal">
             <button type="button" className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${beatsRow ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/50"} hover:text-white`} aria-pressed={beatsRow}
                     onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the beat ticks (keeps bar numbers and the clock)" : "Show the beat ticks"}>♩ Beats</button>
-            <button type="button" className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${dense ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/50"} hover:text-white`} aria-pressed={dense}
-                    onClick={() => setDense(!dense)} title={dense ? "Back to full-height tracks" : "Compact tracks: name, record, solo and mute only, so more tracks fit on screen"}>↕ Compact</button>
             {onToggleLoop && (
               <button type="button" disabled={!session.loop} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] ${session.loop?.on ? "border-emerald-300/60 bg-emerald-400/15 text-emerald-300" : "border-white/15 text-white/50"} hover:text-white disabled:opacity-50`}
                       aria-pressed={!!session.loop?.on} onClick={onToggleLoop} title={session.loop ? "Loop on/off" : "Drag in the loop lane above the ruler to set a loop region first"}>🔁 Loop</button>

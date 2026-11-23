@@ -20,6 +20,7 @@ import { useRecordingHold, useTabActive } from "../useRecordingHold.js";
 import { createDaw } from "./engine.js";
 import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
+import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
 import SynthEditor from "./synth/SynthEditor.jsx";
 import MixWindow from "./MixWindow.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
@@ -99,9 +100,6 @@ function Library({ onPick, onClose }) {
   );
 }
 
-// The floor has to let a long beat fit: 5 px/s could not show anything over ~2 minutes on a phone. 0.1 px/s is ~2 hours across 800 px.
-const ZOOM_MIN = 0.1, ZOOM_MAX = 400;
-const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 export default function Workspace({ workflow }) {
   const daw = useMemo(() => createDaw(), []);
@@ -118,6 +116,8 @@ export default function Workspace({ workflow }) {
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
   const [zoom, setZoomRaw] = useState(40);        // pixels per second
+  const [trackSizeKey, setTrackSizeRaw] = useState(() => { try { const v = localStorage.getItem("mcz_daw_tracksize"); return TRACK_SIZES.some((x) => x.key === v) ? v : localStorage.getItem("mcz_daw_compact") === "1" ? "compact" : "normal"; } catch { return "normal"; } });
+  const setTrackSize = (k) => { setTrackSizeRaw(k); try { localStorage.setItem("mcz_daw_tracksize", k); } catch { /* not remembered */ } };
   const zoomedByHand = useRef(false);             // once the member zooms, we stop fitting for them
   const setZoom = (v) => { zoomedByHand.current = true; setZoomRaw(v); };
   const [playhead, setPlayhead] = useState(0);
@@ -1126,8 +1126,21 @@ export default function Workspace({ workflow }) {
               <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
               <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
                       onClick={() => fitZoom(true)}>Fit</button>
-              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 1 ? zoom.toFixed(2) : zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
+              <label className="flex items-center gap-0.5 text-[11px] text-white/60" title="Zoom as a percentage. 100% is the DAW's classic view; type a number to set it.">
+                <input type="number" className="neon-input !w-[4.5rem] !py-0.5 text-right text-xs" aria-label="Zoom percentage" min={PCT_MIN} max={PCT_MAX} step="any"
+                       key={Math.round(zoom * 1000)} defaultValue={Number(zoomPct(zoom).toPrecision(3))}
+                       onBlur={(e) => { const z = zoomFromPct(e.target.value); if (z != null) setZoom(z); else e.target.value = Number(zoomPct(zoom).toPrecision(3)); }}
+                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />%
+              </label>
             </span>
+          <span className="flex items-center gap-1" data-tour="daw-trackheight" role="radiogroup" aria-label="Track height">
+            <span className="text-white/55">Track height</span>
+            {TRACK_SIZES.map((x) => (
+              <button key={x.key} type="button" role="radio" aria-checked={trackSizeKey === x.key} onClick={() => setTrackSize(x.key)}
+                      className={`rounded-full border px-2 py-0.5 text-[11px] ${trackSizeKey === x.key ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/55"} hover:text-white`}
+                      title={x.full ? `${x.label}: every control on the track` : "Compact: name, record, solo and mute only, so more tracks fit"}>{x.label}</button>
+            ))}
+          </span>
           {emptyTakeCount(session) > 0 && (
             <button type="button" className="pill" disabled={recording} onClick={() => { const n = emptyTakeCount(session); commit((s) => removeEmptyTakes(s)); setMsg(`Removed ${n} empty take lane${n === 1 ? "" : "s"}. Takes with audio are untouched. Undo puts them back.`); }}
                     title="Delete take lanes that have nothing in them (overdubbing and New take leave these behind)">🧹 Remove {emptyTakeCount(session)} empty take{emptyTakeCount(session) === 1 ? "" : "s"}</button>
@@ -1151,7 +1164,7 @@ export default function Workspace({ workflow }) {
           }} />
         <EditWindow
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
-          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
+          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
