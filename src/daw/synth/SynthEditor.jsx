@@ -14,6 +14,7 @@ import { FRAME_NAMES } from "./tables.js";
 import { BASE_DEFAULT, OCTAVE_KEYS, clampBase, isBlack, layout, noteName, parseMidi, pitchForKey } from "./liveKeys.js";
 import { createLiveSynth, liveSupported } from "./liveSynth.js";
 import { eventsToNotes } from "./performance.js";
+import { writeMidi } from "../midiWrite.js";
 import { renderPatchNotes } from "../instruments.js";
 
 const setIn = (obj, path, val) => {
@@ -71,6 +72,7 @@ function LivePlay({ patch, studio, name = "" }) {
   const [along, setAlong] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [note, setNote] = useState("");
+  const [kept, setKept] = useState(null);                      // the last take as notes: { notes, bpm, from, patch, name }
   const take = useRef(null);                                  // { from, along, t0, events }
   const held = useRef(new Map());                         // pointerId or key -> pitch, so every release matches its press
   const supported = liveSupported();
@@ -90,7 +92,7 @@ function LivePlay({ patch, studio, name = "" }) {
 
   const startTake = async () => {
     if (!live || take.current) return;
-    setNote(""); setErr("");
+    setNote(""); setErr(""); setKept(null);
     const withSession = along && studio?.hasAudio;
     take.current = { from: studio.playhead, along: withSession, t0: performance.now(), events: [] };
     setRec({ notes: 0, secs: 0 });
@@ -108,6 +110,7 @@ function LivePlay({ patch, studio, name = "" }) {
       const buf = await renderPatchNotes(notes, patch, { bpm: studio.bpm, rate: studio.sampleRate() });
       const nm = `${(name || patch.name || "Synth").slice(0, 50)} (played)`;
       await studio.place(studio.toWav(buf), nm, t.from);
+      setKept({ notes, bpm: studio.bpm, from: t.from, patch, name: nm });
       setNote(`Recorded ${notes.length} note${notes.length === 1 ? "" : "s"} onto a new track at ${Math.floor(t.from / 60)}:${String(Math.floor(t.from % 60)).padStart(2, "0")}. Open Edit to see it; Undo takes it off.`);
     } catch (e) { setErr(e.message); } finally { setPlacing(false); }
   };
@@ -201,6 +204,19 @@ function LivePlay({ patch, studio, name = "" }) {
         </div>
       )}
       {note && <p className="text-xs text-emerald-300" role="status">{note}</p>}
+      {kept && (
+        <div className="flex flex-wrap items-center gap-2 text-xs" data-tour="daw-synth-kept">
+          <span className="text-white/60">The take is also kept as notes:</span>
+          {studio?.editNotes && <button type="button" className="re-btn !w-auto px-3" onClick={() => studio.editNotes(kept)}>Edit the notes (piano roll)</button>}
+          <button type="button" className="re-btn !w-auto px-3" onClick={() => {
+            const bytes = writeMidi({ bpm: kept.bpm, name: kept.name, parts: [{ name: kept.name, notes: kept.notes }] });
+            const url = URL.createObjectURL(new Blob([bytes], { type: "audio/midi" }));
+            const a = document.createElement("a"); a.href = url; a.download = `${kept.name.replace(/[^\w\- ]+/g, "").trim() || "take"}.mid`; a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 2000);
+          }}>Download .mid</button>
+          <span className="text-white/45">Free. Edit, then Send to put the fixed part on a track. Starts at the point you began recording.</span>
+        </div>
+      )}
       {!supported && <p className="text-xs text-mcz-gold">This browser can't run the live synth (it needs AudioWorklet). You can still build and hear patches with Hear it.</p>}
       {live && (
         <div className="relative h-28 select-none touch-none" role="group" aria-label="Piano keyboard">

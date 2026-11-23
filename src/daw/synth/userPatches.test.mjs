@@ -12,3 +12,12 @@ test("saved patches become instruments and resolve back to a cleaned patch", () 
   assert.equal(userRows().length, 1);
 });
 test("setting the list again replaces it", () => { setUserPatches([]); assert.equal(userRows().length, 0); });
+
+import { registerTemp } from "./userPatches.js";
+test("an unsaved patch can be registered as a temporary instrument, and only the last 8 are kept", () => {
+  const first = registerTemp({ oscs: [{ shape: "saw" }], name: "Take patch" });
+  assert.equal(userPatch(first).name, "Take patch");
+  for (let i = 0; i < 8; i++) registerTemp({ oscs: [{ shape: "sine" }] });
+  assert.equal(userPatch(first), null);
+  assert.equal(userRows().length, 0);                       // temps are not listed as saved patches
+});

@@ -22,6 +22,7 @@ import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
 import SynthEditor from "./synth/SynthEditor.jsx";
+import { registerTemp } from "./synth/userPatches.js";
 import MixWindow from "./MixWindow.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
 import MidiImport from "./MidiImport.jsx";
@@ -1101,6 +1102,7 @@ export default function Workspace({ workflow }) {
           position: () => daw.position(), start: (from) => startPlay(from), stop: () => stopPlay(),
           sampleRate: () => daw.sampleRate(), toWav: (buf) => daw.toWav(buf, 24),
           place: async (blob, name, at) => { await bring([{ name, blob }], { own: true, at }); },
+          editNotes: (k) => { seek(k.from); setMidiIn({ take: { name: k.name, bpm: k.bpm, notes: k.notes, soundKey: registerTemp(k.patch), soundLabel: `🎛️ ${k.patch.name || "This take's patch"} (this take)` }, n: Date.now() }); setView("midi"); },
         }} />
       ) : view === "midi" ? (
         <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}

@@ -3,6 +3,8 @@
 import { cleanPatch } from "./patch.js";
 
 const registry = new Map();                      // id -> cleaned patch
+const temps = new Map();                         // key -> cleaned patch: a take's patch before it has been saved
+let tempN = 0;
 export const USER_PREFIX = "synth:u:";
 export const isUserSound = (k) => typeof k === "string" && k.startsWith(USER_PREFIX);
 export const userKey = (id) => `${USER_PREFIX}${id}`;
@@ -18,5 +20,12 @@ export function setUserPatches(presets) {
   }
   return rows;
 }
-export const userPatch = (key) => registry.get(String(key).slice(USER_PREFIX.length)) || null;
+export const userPatch = (key) => registry.get(String(key).slice(USER_PREFIX.length)) || temps.get(String(key)) || null;
+/** Keep an unsaved patch usable as an instrument for this session of the app only (the last 8). Returns its key. */
+export function registerTemp(patch) {
+  const key = `${USER_PREFIX}t${++tempN}`;
+  temps.set(key, cleanPatch(patch));
+  if (temps.size > 8) temps.delete(temps.keys().next().value);
+  return key;
+}
 export const userRows = () => [...registry.entries()].map(([id, p]) => [userKey(id), `🎛️ ${p.name} (mine)`]);

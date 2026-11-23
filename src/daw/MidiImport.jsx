@@ -30,8 +30,9 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
   // The member's own saved synth patches (Synth window) are instruments too, wherever the plan's list ends.
   const [mineRows, setMineRows] = useState(userRows);
   useEffect(() => { api("/api/economy/tonez/").then((d) => setMineRows(setUserPatches(d.presets))).catch(() => {}); }, []);
-  const allRows = [...INSTRUMENTS, ...mineRows];
-  const ok = new Set([...(cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k), ...mineRows.map(([k]) => k)]);
+  const [tempRows, setTempRows] = useState([]);              // a live take's own patch, before it has been saved
+  const allRows = [...INSTRUMENTS, ...mineRows, ...tempRows];
+  const ok = new Set([...(cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k), ...mineRows.map(([k]) => k), ...tempRows.map(([k]) => k)]);
   // Above the plan's list a part falls back to the voice its own program would get, and only then to the first.
   const allowed = (k, track) => (ok.has(k) ? k : track && ok.has(instrumentFor(track)) ? instrumentFor(track) : INSTRUMENTS[0][0]);
 
@@ -44,6 +45,15 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
       setOn(Object.fromEntries(m.tracks.map((_, i) => [i, true])));
     } catch (e) { setErr(e.message); setFile(null); }
   };
+  // A take played live: its notes open here to fix, on the patch it was played with.
+  useEffect(() => {
+    const t = initial?.take;
+    if (!t) return;
+    setErr("");
+    setTempRows([[t.soundKey, t.soundLabel]]);
+    setFile({ name: t.name, bpm: t.bpm, cut: false, tracks: [{ name: t.name, channel: 0, program: 0, drums: false, notes: t.notes }] });
+    setPick({ 0: t.soundKey }); setOn({ 0: true }); setRollOf(0);
+  }, [initial?.take, initial?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!initial?.url) return;
     fetch(initial.url).then((r) => r.arrayBuffer()).then((b) => open(initial.name || "Imported.mid", b, initial.sounds)).catch(() => setErr("That MIDI file couldn't be read."));
