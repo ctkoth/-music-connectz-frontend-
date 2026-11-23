@@ -171,7 +171,10 @@ export function createDaw() {
   const peaks = new Map();
   let graph = null;
   let playing = null;               // { from, t0 }
-  let clickTimer = null;
+  let clickTimers = [];
+  // Seamless looping: while a loop is on, the NEXT pass is built and scheduled ahead on the audio clock, so the wrap is sample-
+  // accurate and there is no gap. { session, loop, click, endT: when the current pass ends (context time), queue: [passes], timer }
+  let loopCtl = null;
   let rec = null;
   let masterMeter = null;
   const scratch = new Float32Array(1024);
@@ -197,23 +200,55 @@ export function createDaw() {
     peaks.set(id, computePeaks(buf, peakCount(buf)));
   }
 
+  function disposeGraph(g) {
+    if (!g) return;
+    g.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
+    try { g.master.disconnect(); } catch { /* gone */ }
+    g.disposers?.forEach((d) => d());
+  }
   function stopSources() {
-    if (clickTimer) { clearInterval(clickTimer); clickTimer = null; }
-    if (graph) {
-      graph.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
-      try { graph.master.disconnect(); } catch { /* gone */ }
-      graph.disposers?.forEach((d) => d());
-      graph = null;
+    clickTimers.forEach((t) => clearInterval(t)); clickTimers = [];
+    if (loopCtl) { clearInterval(loopCtl.timer); loopCtl.queue.forEach((q) => disposeGraph(q.graph)); loopCtl = null; }
+    if (graph) { disposeGraph(graph); graph = null; }
+  }
+
+  /** A scheduled pass has begun sounding: it becomes the current one, and the pass before it is freed a moment later. */
+  function promote(now) {
+    const L = loopCtl;
+    if (!L) return;
+    while (L.queue.length && now >= L.queue[0].t0) {
+      const q = L.queue.shift();
+      const old = graph;
+      graph = q.graph; playing = { from: q.from, t0: q.t0 }; L.endT = q.endT;
+      if (masterMeter) graph.master.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
+      setTimeout(() => disposeGraph(old), 1500);          // its effects' tails ring on over the new pass, then it is freed
+    }
+  }
+  function loopTick() {
+    const L = loopCtl;
+    if (!L || !playing) return;
+    const now = ctx.currentTime;
+    promote(now);
+    while (L.loop?.on && L.queue.length < 8 && (L.queue.at(-1)?.endT ?? L.endT) < now + 0.6) {
+      const lp = L.loop;
+      const prevEnd = L.queue.at(-1)?.endT ?? L.endT;
+      const prev = L.queue.at(-1)?.graph ?? graph;
+      const g = buildGraph(ctx, L.session, buffers, { from: lp.start, t0: prevEnd, live: true });
+      prev.sources.forEach((s) => { try { s.stop(prevEnd); } catch { /* already ended */ } });     // the old pass ends exactly where the new one begins
+      L.queue.push({ from: lp.start, t0: prevEnd, endT: prevEnd + (lp.end - lp.start), graph: g });
+      if (L.click) startClick(L.session, lp.start, prevEnd, lp.end);
     }
   }
 
-  function startClick(session, from, t0) {
+  function startClick(session, from, t0, until = Infinity) {
     const c = audio();
     const beat = beatSeconds(session);
     let next = Math.ceil(from / beat - 1e-6);
+    let timer = null;
     const schedule = () => {
       const horizon = c.currentTime + 0.3;
       for (;;) {
+        if (next * beat >= until - 1e-6) { clearInterval(timer); return; }   // a loop's click stops at its end; the next pass has its own
         const when = t0 + (next * beat - from);
         if (when > horizon) break;
         if (when >= c.currentTime - 0.01) {
@@ -228,7 +263,8 @@ export function createDaw() {
       }
     };
     schedule();
-    clickTimer = setInterval(schedule, 100);
+    timer = setInterval(schedule, 100);
+    clickTimers.push(timer);
   }
 
   /** Click `bars` bars (accent on each downbeat), resolving when the last beat's bar is over. Nothing is recorded meanwhile. */
@@ -260,7 +296,10 @@ export function createDaw() {
     masterMeter.fftSize = 1024;
     graph.master.connect(masterMeter);
     playing = { from, t0 };
-    if (click) startClick(session, from, t0);
+    const lp = session.loop;
+    const looping = !!(lp && lp.on && from < lp.end);
+    if (looping) loopCtl = { session, loop: lp, click: !!click, endT: t0 + (lp.end - from), queue: [], timer: setInterval(loopTick, 40) };
+    if (click) startClick(session, from, t0, looping ? lp.end : Infinity);
     return t0;
   }
 
@@ -273,11 +312,13 @@ export function createDaw() {
 
   function position() {
     if (!playing || !ctx) return null;
+    promote(ctx.currentTime);
     return playing.from + Math.max(0, ctx.currentTime - playing.t0);
   }
 
   /** Move faders and pans of a playing session without restarting it. */
   function setLive(session) {
+    if (loopCtl) { loopCtl.session = session; loopCtl.loop = session.loop; }       // a loop edge dragged while it plays is the next pass's
     if (!graph) return;
     const heard = new Set(audible(session).map((t) => t.id));
     graph.master.gain.setTargetAtTime(dbToGain(session.master), ctx.currentTime, 0.01);

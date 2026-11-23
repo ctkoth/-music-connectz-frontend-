@@ -39,7 +39,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, COUNT_INS, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, COUNT_INS, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -286,7 +286,6 @@ export default function Workspace({ workflow }) {
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, [recording]); // eslint-disable-line react-hooks/exhaustive-deps
-  const wrapping = useRef(false);                  // a loop wrap is restarting playback; do not fire another
   // Loop exactly the selected region (its start to its end), on. No selection says so rather than guessing.
   const loopSelected = () => {
     const r = selected && session.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected);
@@ -301,9 +300,7 @@ export default function Workspace({ workflow }) {
     const tick = (now) => {
       const p = daw.position();
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
-      const jump = !recording && p != null ? loopJump(sRef.current, p) : null;
-      if (jump != null && !wrapping.current) { wrapping.current = true; setPlayhead(jump); headRef.current = jump; Promise.resolve(startPlay(jump)).finally(() => { wrapping.current = false; }); }
-      if (!recording && p != null && !sRef.current.loop?.on && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
+      if (!recording && p != null && !(sRef.current.loop?.on && p <= sRef.current.loop.end + 0.05) && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
