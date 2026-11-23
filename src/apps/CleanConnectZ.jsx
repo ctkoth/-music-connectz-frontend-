@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FolderOpen, HardDrive, Percent, Scale, ShieldCheck, Trash2, History as HistoryIcon } from "lucide-react";
 import { IconImg } from "../App.jsx";
-import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
-import { MODES, dupeCopies, human, plan, sumBytes, targetBytes } from "../cleanPlan.js";
+import { loadLimits } from "../limits.js";
+import { MODES, MODE_ORDER, dupeCopies, dupesOpen, human, openModes, plan, sumBytes, targetBytes } from "../cleanPlan.js";
 
 // Clean ConnectZ — free space on your own device. Pick a folder, say how much to free (a percent of it or a size),
 // choose how files are ranked, and review exactly which files would go: untick any you want to keep. It runs in this
 // browser, uploads nothing, and deletes nothing until you press the red button — and then only the files still ticked.
-// StatZ's (or the daily sample).
+// open to every plan; the tier sets how many ways of choosing what goes are open (`clean_modes`).
 //
 // Every number on this screen is read or counted: files and bytes scanned, what the browser says it stores for this
 // site, what you freed. Nothing is a made-up "junk" figure, and the scan shows files counted — never a percentage
@@ -50,8 +50,13 @@ const DUST = [[8, 78, 0], [18, 84, .35], [4, 70, .7], [14, 90, 1.05], [10, 74, 1
 const SPARK = [["-90px", "-70px", "✨"], ["90px", "-80px", "⭐"], ["-100px", "10px", "✦"], ["100px", "20px", "✨"], ["-40px", "-110px", "✦"], ["50px", "-110px", "⭐"]];
 
 export default function CleanConnectZ() {
-  const { s: statz } = useStatzTrial();
-  const allowed = !!(statz?.is_statz || statz?.active);
+  // The tier says how MUCH of this you get, never whether: every plan can pick a folder, see every file and clear space.
+  // `clean_modes` (server, /limits/) is how many ways of choosing what goes are open, and the duplicate finder opens with the 2nd.
+  const [lim, setLim] = useState(null);
+  useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  const modesN = lim && "clean_modes" in lim ? lim.clean_modes : undefined;
+  const open = openModes(modesN);
+  const canDupes = dupesOpen(modesN);
   const [stage, setStage] = useState("home");                // home | scanning | plan | done
   const [files, setFiles] = useState(null);
   const [root, setRoot] = useState("");
@@ -60,7 +65,7 @@ export default function CleanConnectZ() {
   const [percent, setPercent] = useState(10);
   const [amount, setAmount] = useState(1);
   const [unit, setUnit] = useState("GB");
-  const [mode, setMode] = useState("priority");
+  const [mode, setMode] = useState("size");
   const [kept, setKept] = useState(() => new Set());
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -125,7 +130,8 @@ export default function CleanConnectZ() {
 
   const total = useMemo(() => sumBytes(files || []), [files]);
   const target = useMemo(() => targetBytes(files || [], kind === "percent" ? { percent } : { bytes: Number(amount) * UNITS[unit] }), [files, kind, percent, amount, unit]);
-  const result = useMemo(() => plan(files || [], mode, target), [files, mode, target]);
+  const useMode = open.includes(mode) ? mode : open[0];
+  const result = useMemo(() => plan(files || [], useMode, target), [files, useMode, target]);
   const ticked = result.selected.filter((f) => !kept.has(f.path));
   const freed = sumBytes(ticked);
 
@@ -156,7 +162,7 @@ export default function CleanConnectZ() {
       by.set(top, (by.get(top) || 0) + f.size);
     }
     const parts = [...by.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([name, b]) => ({ name, bytes: b }));
-    const result = { root, ok, failed, bytes, mode: dupeMode ? "dupes" : mode, recycled, parts, at: Date.now() };
+    const result = { root, ok, failed, bytes, mode: dupeMode ? "dupes" : useMode, recycled, parts, at: Date.now() };
     const h = [result, ...history]; setHistory(h); writeHistory(h);
     setDone(result); setFiles(null); setBusy(""); setStage("done");
   }
@@ -206,7 +212,7 @@ export default function CleanConnectZ() {
         </div>
       </header>
 
-      {!allowed ? <StatzSample what="Clean ConnectZ" /> : (
+      {(
         <>
           {stage === "home" && (
             <>
@@ -215,7 +221,7 @@ export default function CleanConnectZ() {
                 className="my-1 w-full rounded-[20px] px-4 py-[17px] text-[17px] font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.4)] disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#7c3aed,#a78bfa)" }}>🧹 Clean Now</button>
               {!canPick && <p className="text-sm text-mcz-gold">This browser can't open a folder for cleaning. Use Chrome or Edge, or the Windows app.</p>}
-              {bridge && <p className="text-center text-[12px] text-emerald-300">Windows app: real last-opened dates, duplicate finder and Recycle Bin.</p>}
+              {bridge && <p className="text-center text-[12px] text-emerald-300">Windows app: real last-opened dates and the Recycle Bin{canDupes ? ", plus the duplicate finder" : "; the duplicate finder opens on Premium"}.</p>}
               {msg && <p role="status" className="text-sm text-white/80">{msg}</p>}
               <div className={`${card} flex items-center gap-3 p-4`}>
                 <span className="text-[22px]">🛡️</span>
@@ -237,7 +243,7 @@ export default function CleanConnectZ() {
                     <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{sub}</div>
                   </button>
                 ))}
-                {bridge && (
+                {bridge && canDupes && (
                   <button onClick={() => pick("percent", { dupes: true })}
                     className="col-span-2 rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20">
                     <div className="mb-1.5 text-2xl">♊</div><div className="text-[14px] font-semibold">Find duplicates</div>
@@ -305,11 +311,22 @@ export default function CleanConnectZ() {
                   <select data-nomemo="true" value={unit} onChange={(e) => setUnit(e.target.value)} className="neon-input !w-24"><option>MB</option><option>GB</option></select></label>
               )}
               <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Order">
-                {Object.entries(MODES).map(([k, m]) => (
-                  <button key={k} role="tab" aria-selected={mode === k} className={pill(mode === k)} onClick={() => { setMode(k); setKept(new Set()); }}>{m.emoji} {m.label}</button>
-                ))}
+                {MODE_ORDER.map((k) => {
+                  const m = MODES[k], on = open.includes(k);
+                  return (
+                    <button key={k} role="tab" aria-selected={useMode === k} disabled={!on} title={on ? m.what : "Opens on a higher plan"}
+                      className={`${pill(useMode === k)} ${on ? "" : "opacity-50"}`} onClick={() => { setMode(k); setKept(new Set()); }}>
+                      {on ? m.emoji : "🔒"} {m.label}
+                    </button>
+                  );
+                })}
               </div>
-              <p className="text-[12px] text-white/60">{MODES[mode].what} {usedNote}</p>
+              {open.length < MODE_ORDER.length && (
+                <p className="text-[12px] text-white/60">
+                  Your plan opens {open.length} of {MODE_ORDER.length} ways to choose what goes{lim?.tier === "free" && lim?.tiers?.premium?.clean_modes ? `; Premium opens ${lim.tiers.premium.clean_modes}, and the duplicate finder starts with the second` : ""}{lim?.tier === "free" || lim?.tier === "premium" ? "; StatZ opens them all" : ""}. Everything else here is the same on every plan.
+                </p>
+              )}
+              <p className="text-[12px] text-white/60">{MODES[useMode].what} {usedNote}</p>
                 </>
               )}
               <p className="text-[14px] text-white">

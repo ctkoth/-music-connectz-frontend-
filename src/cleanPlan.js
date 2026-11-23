@@ -73,3 +73,16 @@ export function dupeCopies(files, groups) {
   }
   return out;
 }
+
+/** The three ways of choosing what goes, in the order a plan opens them: Size, then Frequency, then Priority. */
+export const MODE_ORDER = ["size", "frequency", "priority"];
+
+/** Which ways are open for the tier's number (`clean_modes` from /limits/: Free 1, Premium 2, StatZ null = all).
+ *  Unknown (still loading) or unlimited blocks nothing; the number is a floor of 1, so nobody is shut out. */
+export function openModes(n) {
+  if (n == null || n === "" || !Number.isFinite(Number(n))) return [...MODE_ORDER];
+  return MODE_ORDER.slice(0, Math.max(1, Math.min(MODE_ORDER.length, Math.floor(Number(n)))));
+}
+
+/** The duplicate finder (Windows app) opens with the second way. */
+export const dupesOpen = (n) => openModes(n).length >= 2;

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { dupeCopies, order, plan, sumBytes, targetBytes, human } from "./cleanPlan.js";
+import { MODE_ORDER, dupesOpen, openModes, dupeCopies, order, plan, sumBytes, targetBytes, human } from "./cleanPlan.js";
 
 const F = (path, size, used) => ({ path, size, used });
 const files = [F("a", 100, 5), F("b", 900, 9), F("c", 500, 1), F("d", 50, 0), F("e", 400, 7)];
@@ -53,4 +53,14 @@ test("dupeCopies keeps the oldest of each group and names it, and never empties 
   assert.deepEqual(out.map((x) => x.path).sort(), ["a/new.wav", "b/mid.wav"]);
   assert.ok(out.every((x) => x.dupeOf === "a/orig.wav"));
   assert.ok(!out.some((x) => x.path === "a/orig.wav"));
+});
+
+test("the tier's number opens ways in order, never fewer than one, and unknown or unlimited opens all", () => {
+  assert.deepEqual(openModes(1), ["size"]);
+  assert.deepEqual(openModes(2), ["size", "frequency"]);
+  assert.deepEqual(openModes(null), MODE_ORDER);
+  assert.deepEqual(openModes(undefined), MODE_ORDER);
+  assert.deepEqual(openModes(0), ["size"]);
+  assert.deepEqual(openModes(99), MODE_ORDER);
+  assert.equal(dupesOpen(1), false); assert.equal(dupesOpen(2), true); assert.equal(dupesOpen(null), true);
 });
