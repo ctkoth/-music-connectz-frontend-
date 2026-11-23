@@ -72,3 +72,48 @@ test("cleanPatch clamps junk and drops bad modulation", () => {
   assert.equal(p.mods.length, 1); assert.equal(p.mods[0].amount, 1); assert.equal(p.voices, 32);
   assert.ok(PRESETS.ether && cleanPatch(null).name === "Init");
 });
+
+import { SynthCore } from "./engine.js";
+const stream = (core, blocks, size, on) => {
+  const out = []; const L = new Float32Array(size); const R = new Float32Array(size);
+  for (let b = 0; b < blocks; b++) { on?.(b); core.process(L, R, size); out.push(...L); }
+  return Float32Array.from(out);
+};
+test("live: the audio does not depend on how it is cut into blocks", () => {
+  const mk = () => new SynthCore(presetPatch("supersaw"), RATE);
+  const a = mk(); a.noteOn(60, 100);
+  const b = mk(); b.noteOn(60, 100);
+  const x = stream(a, 32, 128); const y = stream(b, 8, 512);
+  for (let i = 0; i < x.length; i += 97) assert.ok(Math.abs(x[i] - y[i]) < 1e-5, `differs at ${i}`);
+});
+test("live: a held note sounds, noteOff lets it die, and the voice is freed", () => {
+  const c = new SynthCore(dry({ oscs: [{ shape: "saw" }], amp: { a: 0.001, d: 0.1, s: 1, r: 0.1 } }), RATE);
+  c.noteOn(60, 100);
+  const held = stream(c, 40, 128);
+  assert.ok(rms(held, 3000, 5000) > 0.01 && c.active === 1);
+  c.noteOff(60);
+  const after = stream(c, 80, 128);
+  assert.ok(rms(after, after.length - 1000, after.length) < 1e-4 && c.active === 0);
+});
+test("live: changing the patch changes a sounding note without cutting it", () => {
+  const c = new SynthCore(dry({ oscs: [{ shape: "saw" }] }), RATE);
+  c.noteOn(57, 100);
+  const bright = stream(c, 40, 128);
+  c.setPatch(dry({ oscs: [{ shape: "saw" }], filter: { cutoff: 300, keytrack: 0 } }));
+  const dark = stream(c, 40, 128);
+  assert.ok(c.active === 1 && rms(dark, 2000, 5000) > 0.001);
+  assert.ok(at(dark, 4840, 1000, 5000) < at(bright, 4840, 1000, 5000) * 0.2);
+});
+test("live: more notes than voices releases the oldest held, and the pile stays bounded", () => {
+  const c = new SynthCore(dry({ voices: 4 }), RATE);
+  for (let i = 0; i < 20; i++) c.noteOn(40 + i, 100);
+  assert.ok(c.active <= 8);
+  const out = stream(c, 10, 128);
+  assert.ok(out.every(Number.isFinite));
+});
+test("live: allNotesOff releases everything", () => {
+  const c = new SynthCore(dry({ amp: { a: 0.001, d: 0.1, s: 1, r: 0.05 } }), RATE);
+  [60, 64, 67].forEach((p) => c.noteOn(p, 100)); stream(c, 10, 128);
+  c.allNotesOff(); stream(c, 60, 128);
+  assert.equal(c.active, 0);
+});

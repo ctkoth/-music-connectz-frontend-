@@ -11,6 +11,8 @@ import { setUserPatches } from "./userPatches.js";
 import { useTonePresets } from "../TonePresets.jsx";
 import { presetRoom } from "../tonePresets.js";
 import { FRAME_NAMES } from "./tables.js";
+import { BASE_DEFAULT, OCTAVE_KEYS, clampBase, isBlack, layout, noteName, parseMidi, pitchForKey } from "./liveKeys.js";
+import { createLiveSynth, liveSupported } from "./liveSynth.js";
 
 const setIn = (obj, path, val) => {
   const out = Array.isArray(obj) ? [...obj] : { ...obj };
@@ -48,6 +50,125 @@ const Section = ({ title, hint, children }) => (
     {children}
   </section>
 );
+
+const typing = (el) => !!el?.closest?.("input, select, textarea, [contenteditable=true]");
+
+// Play it: an on-screen keyboard (touch and mouse, several keys at once), the computer's keys, and any MIDI keyboard.
+// The sound is the patch as it is right now: move a slider while holding a chord and the chord changes. Nothing is
+// recorded and nothing is charged; it is the same engine that renders a part, running live on this device.
+function LivePlay({ patch }) {
+  const [live, setLive] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [base, setBase] = useState(BASE_DEFAULT);
+  const [down, setDown] = useState(() => new Set());
+  const [midi, setMidi] = useState({ names: [], err: "" });
+  const [err, setErr] = useState("");
+  const ctxRef = useRef(null);
+  const held = useRef(new Map());                         // pointerId or key -> pitch, so every release matches its press
+  const supported = liveSupported();
+
+  const mark = (pitch, on) => setDown((d) => { const n = new Set(d); if (on) n.add(pitch); else n.delete(pitch); return n; });
+  const on = (id, pitch, vel = 100) => { if (!live || held.current.has(id)) return; held.current.set(id, pitch); live.noteOn(pitch, vel); mark(pitch, true); };
+  const off = (id) => { const p = held.current.get(id); if (p === undefined) return; held.current.delete(id); if (live) live.noteOff(p); if (![...held.current.values()].includes(p)) mark(p, false); };
+  const panic = () => { held.current.clear(); setDown(new Set()); live?.panic(); };
+
+  const start = async () => {
+    setErr(""); setStarting(true);
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      const ctx = ctxRef.current || (ctxRef.current = new Ctx({ latencyHint: "interactive" }));
+      setLive(await createLiveSynth(ctx, patch));
+    } catch (e) { setErr(e.message); } finally { setStarting(false); }
+  };
+  const stop = () => { panic(); live?.close(); setLive(null); };
+  useEffect(() => () => { try { ctxRef.current?.close(); } catch { /* gone */ } }, []);
+  useEffect(() => { live?.setPatch(patch); }, [patch, live]);       // moving a slider changes what is sounding
+
+  // The computer keyboard. Captured before the DAW's own shortcuts see the key, and only for the keys the synth plays.
+  useEffect(() => {
+    if (!live) return undefined;
+    const down$ = (e) => {
+      if (typing(e.target)) return;
+      const shift = OCTAVE_KEYS[String(e.key).toLowerCase()];
+      if (shift !== undefined && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) setBase((b) => clampBase(b + shift)); return; }
+      const p = pitchForKey(e, base);
+      if (p === null) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!e.repeat) on(`k:${e.key.toLowerCase()}`, p);
+    };
+    const up$ = (e) => off(`k:${String(e.key).toLowerCase()}`);
+    window.addEventListener("keydown", down$, true); window.addEventListener("keyup", up$, true);
+    window.addEventListener("blur", panic);
+    return () => { window.removeEventListener("keydown", down$, true); window.removeEventListener("keyup", up$, true); window.removeEventListener("blur", panic); };
+  }, [live, base]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const connectMidi = async () => {
+    setMidi({ names: [], err: "" });
+    if (!navigator.requestMIDIAccess) { setMidi({ names: [], err: "This browser can't read MIDI keyboards. Chrome and Edge can; Safari and Firefox need the keys below." }); return; }
+    try {
+      const access = await navigator.requestMIDIAccess();
+      const bind = () => {
+        const names = [];
+        access.inputs.forEach((inp) => {
+          names.push(inp.name || "MIDI input");
+          inp.onmidimessage = (m) => {
+            const d = parseMidi(m.data);
+            if (!d) return;
+            if (d.type === "on") on(`m:${d.pitch}`, d.pitch, d.vel); else if (d.type === "off") off(`m:${d.pitch}`); else panic();
+          };
+        });
+        setMidi({ names, err: names.length ? "" : "No MIDI keyboard found. Plug one in and it will appear here." });
+      };
+      access.onstatechange = bind; bind();
+    } catch (e) { setMidi({ names: [], err: e?.name === "SecurityError" ? "MIDI access was blocked. Allow it for this site in the browser's address bar." : `Couldn't open MIDI: ${e.message || e}` }); }
+  };
+
+  const { keys, whites } = layout(base, 25);
+  const w = 100 / whites;
+  return (
+    <section className="space-y-2 rounded-xl border border-white/10 bg-white/[0.03] p-3" data-tour="daw-synth-live">
+      <div className="flex flex-wrap items-center gap-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider text-mcz-cyan">Play it live</h4>
+        {live
+          ? <button type="button" className="re-btn !w-auto px-3 text-xs" onClick={stop}><Square size={12} /> Stop playing</button>
+          : <button type="button" className="re-btn !w-auto px-3 text-xs" onClick={start} disabled={starting || !supported}>{starting ? <><Loader2 size={12} className="animate-spin" /> Starting…</> : "🎹 Start playing"}</button>}
+        {live && (<>
+          <span className="flex items-center gap-1 text-[11px] text-white/60">Octave
+            <button type="button" className="pill !px-2 text-[11px]" onClick={() => setBase((b) => clampBase(b - 12))} aria-label="Octave down">−</button>
+            <span className="w-8 text-center font-mono text-white/80">{noteName(base)}</span>
+            <button type="button" className="pill !px-2 text-[11px]" onClick={() => setBase((b) => clampBase(b + 12))} aria-label="Octave up">+</button>
+          </span>
+          <button type="button" className="pill text-[11px]" onClick={connectMidi}>{midi.names.length ? `MIDI: ${midi.names.join(", ")}` : "Connect a MIDI keyboard"}</button>
+        </>)}
+      </div>
+      {!supported && <p className="text-xs text-mcz-gold">This browser can't run the live synth (it needs AudioWorklet). You can still build and hear patches with Hear it.</p>}
+      {live && (
+        <div className="relative h-28 select-none touch-none" role="group" aria-label="Piano keyboard">
+          {keys.filter((k) => !k.black).map((k) => (
+            <button key={k.pitch} type="button" tabIndex={-1} aria-label={noteName(k.pitch)}
+                    className={`absolute top-0 h-full rounded-b-md border border-black/50 ${down.has(k.pitch) ? "bg-mcz-cyan" : "bg-white"} touch-none`} style={{ left: `${k.at * w}%`, width: `${w}%` }}
+                    onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); on(`p:${e.pointerId}`, k.pitch); }}
+                    onPointerUp={(e) => off(`p:${e.pointerId}`)} onPointerCancel={(e) => off(`p:${e.pointerId}`)}>
+              {k.pitch % 12 === 0 && <span className="pointer-events-none absolute bottom-1 left-1 text-[9px] text-black/60">{noteName(k.pitch)}</span>}
+            </button>
+          ))}
+          {keys.filter((k) => k.black).map((k) => (
+            <button key={k.pitch} type="button" tabIndex={-1} aria-label={noteName(k.pitch)}
+                    className={`absolute top-0 z-10 h-[60%] rounded-b-md border border-black ${down.has(k.pitch) ? "bg-mcz-cyan" : "bg-zinc-900"} touch-none`} style={{ left: `${k.at * w - w * 0.3}%`, width: `${w * 0.6}%` }}
+                    onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); on(`p:${e.pointerId}`, k.pitch); }}
+                    onPointerUp={(e) => off(`p:${e.pointerId}`)} onPointerCancel={(e) => off(`p:${e.pointerId}`)} />
+          ))}
+        </div>
+      )}
+      <p className="text-[11px] text-white/50">
+        {live ? "Computer keys: A S D F G H J K are the white keys, W E T Y U O P the black ones; Z and X move the octave. A MIDI keyboard plays the same sound. Move any slider while you hold a chord and it changes under your fingers."
+          : "Plays the patch below in real time: click or touch the keys, use your computer keyboard, or plug in a MIDI keyboard. It runs on this device and is free."}
+      </p>
+      {midi.err && <p className="text-xs text-mcz-gold">{midi.err}</p>}
+      {err && <p className="text-xs text-mcz-ember" role="alert">{err}</p>}
+    </section>
+  );
+}
 
 export default function SynthEditor() {
   const tones = useTonePresets();
@@ -127,6 +248,8 @@ export default function SynthEditor() {
           ? <button type="button" className="re-btn !w-auto px-3" onClick={stop}><Square size={13} /> Stop</button>
           : <button type="button" className="re-btn !w-auto px-3" onClick={audition} disabled={!!busy}>{busy ? <><Loader2 size={13} className="animate-spin" /> {busy}</> : <><Play size={13} /> Hear it</>}</button>}
       </div>
+
+      <LivePlay patch={patch} />
 
       <div className="grid gap-3 md:grid-cols-2">
         {[0, 1].map((i) => (
