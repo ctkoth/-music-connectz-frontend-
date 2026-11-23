@@ -54,13 +54,20 @@ const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color 
 
 // Two rows: bars and beats on top, the clock (m:ss) under it. Sticky, so it stays in view while the tracks scroll.
 export const RULER_H = 44;
-function Ruler({ session, zoom, width, onSeek }) {
+export const CLOCK_H = 22;
+const BEATS_KEY = "mcz_daw_beats_row";
+function useBeatsRow() {
+  const [on, setOn] = useState(() => { try { return localStorage.getItem(BEATS_KEY) !== "0"; } catch { return true; } });
+  const set = (v) => { setOn(v); try { localStorage.setItem(BEATS_KEY, v ? "1" : "0"); } catch { /* not remembered */ } };
+  return [on, set];
+}
+function Ruler({ session, zoom, width, onSeek, showBeats = true }) {
   const { bars, beats, clock } = rulerTicks(session, zoom, width);
   return (
     <div className="sticky top-0 z-30 cursor-pointer border-b border-white/10 bg-[#0b0b14] text-[10px] text-white/55" data-tour="daw-ruler"
-         style={{ width, height: RULER_H }} title="Bars and beats on top, minutes and seconds below — tap to move the playhead"
+         style={{ width, height: showBeats ? RULER_H : CLOCK_H }} title="Bars and beats on top, minutes and seconds below — tap to move the playhead"
          onPointerDown={(e) => onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom)}>
-      <div className="relative h-[22px] border-b border-white/10">
+      {showBeats && <div className="relative h-[22px] border-b border-white/10">
         {beats.map((m) => (
           <span key={`b${m.t}`} className="absolute bottom-0 h-2 border-l border-white/15 pl-0.5 text-[8px] leading-none text-white/35" style={{ left: m.t * zoom }}>
             {m.label && <span className="relative -top-2.5">{m.label}</span>}
@@ -69,7 +76,7 @@ function Ruler({ session, zoom, width, onSeek }) {
         {bars.map((m) => (
           <span key={`B${m.t}`} className="absolute top-0 h-full border-l border-white/40 pl-1 font-semibold text-white/75" style={{ left: m.t * zoom }}>{m.label}</span>
         ))}
-      </div>
+      </div>}
       <div className="relative h-[21px]">
         {clock.map((m) => (
           <span key={`c${m.t}`} className="absolute top-0 h-full border-l border-white/25 pl-1 font-mono tabular-nums text-mcz-cyan/80" style={{ left: m.t * zoom }}>{m.label}</span>
@@ -97,6 +104,7 @@ export default function EditWindow({
   const [fxMsg, setFxMsg] = useState("");
   // Which lane each track shows: its clips, or its volume / pan automation drawn over them.
   const [views, setViews] = useState({});
+  const [beatsRow, setBeatsRow] = useBeatsRow();
   const [drag, setDrag] = useState(null);          // { id, mode, startX, startAt, region, track, dx, overTrack }
   const total = Math.max(60, endOfSession(session) + 30);
   const width = total * zoom;
@@ -159,8 +167,9 @@ export default function EditWindow({
       {/* Track headers */}
       <div className="shrink-0 border-r border-white/10" style={{ width: HEADER_W }}>
         {onAddMarker && <MarkerHeader count={(session.markers || []).length} onAdd={() => onAddMarker(playhead)} />}
-        <div className="flex items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: RULER_H }}>
-          <span>Tracks{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
+        <div className="flex items-center justify-between border-b border-white/10 px-2 text-[10px] uppercase tracking-wider text-white/55" style={{ height: beatsRow ? RULER_H : CLOCK_H }}>
+          <span>Tracks<button type="button" className={`ml-1.5 rounded px-1 normal-case tracking-normal ${beatsRow ? "text-mcz-cyan" : "text-white/40"} hover:text-white`} aria-pressed={beatsRow}
+                  onClick={() => setBeatsRow(!beatsRow)} title={beatsRow ? "Hide the bars and beats row (keeps the clock)" : "Show the bars and beats row"}>♩ Beats</button>{trackLabel && <span className="ml-1 normal-case tracking-normal text-white/50">{trackLabel}</span>}</span>
           {atTrackCap && onUpgrade ? (
             <button type="button" className="rounded px-1 normal-case tracking-normal text-mcz-gold hover:text-white" onClick={onUpgrade}
                     title="You are at your plan's track limit. See what the next plan holds." aria-label="Track limit reached: see plans">🔒 Upgrade</button>
@@ -342,7 +351,7 @@ export default function EditWindow({
       <div className="min-w-0 flex-1 overflow-x-auto">
         <div className="relative" style={{ width }}>
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
-          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} />
+          <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
               <div key={t.id} data-lane={t.id}
