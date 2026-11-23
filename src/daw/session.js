@@ -87,6 +87,16 @@ export function newSession(name = "Untitled session") {
   return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], key: "", snap: true, genre: "", skills: [] };
 }
 
+// ---- count-in ----------------------------------------------------------------------------------
+export const COUNT_INS = [0, 1, 2];                  // bars of click before a recording starts
+/** The clicks of a count-in: one per beat, the first of each bar accented, and how long it all lasts. Pure, so it is tested. */
+export function countInPlan(s, bars) {
+  const n = COUNT_INS.includes(bars) ? bars : 0;
+  const beat = beatSeconds(s);
+  const beats = Array.from({ length: n * s.meter }, (_, i) => ({ at: i * beat, accent: i % s.meter === 0 }));
+  return { beats, seconds: n * s.meter * beat };
+}
+
 // ---- loop region -------------------------------------------------------------------------------
 // One region on the session: { start, end, on }. Playback wraps from `end` back to `start` while `on`.
 export const MIN_LOOP = 0.1;

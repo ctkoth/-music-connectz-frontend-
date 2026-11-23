@@ -12,7 +12,7 @@
 // is how takes land a few tens of milliseconds late and flam against the beat. What the device itself
 // adds — the time playback takes to reach the speaker and the mic to reach the page — is measured
 // where the browser reports it and taken off, and the screen says by how much.
-import { audible, beatSeconds, lengthOf, playlistOf } from "./session.js";
+import { audible, beatSeconds, countInPlan, lengthOf, playlistOf } from "./session.js";
 import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
@@ -229,6 +229,24 @@ export function createDaw() {
     };
     schedule();
     clickTimer = setInterval(schedule, 100);
+  }
+
+  /** Click `bars` bars (accent on each downbeat), resolving when the last beat's bar is over. Nothing is recorded meanwhile. */
+  async function countIn(session, bars) {
+    const plan = countInPlan(session, bars);
+    if (!plan.beats.length) return;
+    const c = audio();
+    if (c.state !== "running") await c.resume();
+    const t0 = c.currentTime + 0.1;
+    for (const b of plan.beats) {
+      const o = c.createOscillator(); const g = c.createGain();
+      o.frequency.value = b.accent ? 1600 : 1000;
+      g.gain.setValueAtTime(0.4, t0 + b.at);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + b.at + 0.05);
+      o.connect(g).connect(c.destination);
+      o.start(t0 + b.at); o.stop(t0 + b.at + 0.06);
+    }
+    await new Promise((done) => setTimeout(done, (0.1 + plan.seconds) * 1000));
   }
 
   async function play(session, from = 0, { click = false } = {}) {
@@ -500,7 +518,7 @@ export function createDaw() {
   const outputCanChange = () => typeof (typeof AudioContext !== "undefined" ? AudioContext.prototype.setSinkId : undefined) === "function";
   return {
     inputMeter, monitorOn, monitorOff, setOutput, setLatencyMode, latencyMode, outputCanChange, audioInfo, testTone, context: () => audio(),
-    decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
+    decode, adopt, countIn, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,
   };

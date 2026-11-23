@@ -36,7 +36,7 @@ import {
   BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, COUNT_INS, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, loopJump, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { cleanInserts } from "./plugins.js";
 import { laneOf, writePass } from "./automation.js";
@@ -120,6 +120,8 @@ export default function Workspace({ workflow }) {
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
   const [click, setClick] = useState(false);
+  const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
+  const setCountBars = (v) => { setCountBarsRaw(v); try { localStorage.setItem("mcz_daw_countin", String(v)); } catch { /* not remembered */ } };
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -564,8 +566,9 @@ export default function Workspace({ workflow }) {
         streams.set(dev, stream);
       }
       clearTimeout(slow);
-      setBusy("Starting playback and recording…");
       refreshDevices();
+      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
+      setBusy("Starting playback and recording…");
       await daw.startRecording(sRef.current, playhead, { click,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       setRecording(true); setPlaying(true);
@@ -964,6 +967,12 @@ export default function Workspace({ workflow }) {
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
           <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
+        <label className="flex items-center gap-1 text-white/70" title="Clicks this many bars before recording starts, so you can come in on the beat. Nothing is recorded during the count-in.">
+          Count-in
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={countBars} disabled={recording} onChange={(e) => setCountBars(Number(e.target.value))} aria-label="Count-in bars">
+            {COUNT_INS.map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} bar${n === 1 ? "" : "s"}`}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-sm font-semibold text-white" title="This project">
           🎼 {session.name} <span className="font-mono text-mcz-cyan">· {session.bpm} BPM</span> <span className="text-emerald-300">· {session.key || "key not set"}</span>

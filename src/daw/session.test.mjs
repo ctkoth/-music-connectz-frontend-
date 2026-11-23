@@ -392,7 +392,7 @@ test2("loop region: set, order, too short, toggle, wrap", () => {
   assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
 });
 
-import { emptyTakeCount, removeEmptyTakes, dropIfEmptied } from "./session.js";
+import { emptyTakeCount, removeEmptyTakes, dropIfEmptied, countInPlan } from "./session.js";
 test2("empty take lanes are removed, populated ones and the active take are kept", () => {
   let s = newSession("t"); const id = s.tracks[0].id;
   s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
@@ -411,4 +411,12 @@ test2("dropIfEmptied removes only the lane just emptied, never a merely-new one"
   assert2.deepEqual(dropped.tracks[0].playlists.map((p) => p.id), [lane2]);
   assert2.equal(dropIfEmptied(dropped, id, lane2).tracks[0].playlists.length, 1);   // never the last lane
   assert2.equal(dropIfEmptied(s, id, "nope"), s);
+});
+
+test2("count-in: a click per beat, the downbeat accented, the right length", () => {
+  const p = countInPlan({ bpm: 120, meter: 4 }, 2);
+  assert2.equal(p.beats.length, 8); assert2.equal(p.seconds, 4);
+  assert2.deepEqual(p.beats.filter((b) => b.accent).map((b) => b.at), [0, 2]);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 0).beats.length, 0);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 9).seconds, 0);   // junk means off
 });
