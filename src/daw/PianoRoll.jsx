@@ -12,6 +12,16 @@ export default function PianoRoll({ part, onChange, onClose }) {
   const [len, setLen] = useState(0.5);
   const [bars, setBars] = useState(() => barsFor(notes));
   const [range, setRange] = useState(() => rangeFor(notes));
+  const [strength, setStrength] = useState(100);
+  const [swing, setSwing] = useState(0);
+  const [snapLen, setSnapLen] = useState(true);
+  const past = useRef([]); const future = useRef([]);
+  const [, bump] = useState(0);
+  // Every edit is undoable: the roll keeps the notes as they were before it, and a drag or a slider is one step, not one per pixel.
+  const mark = () => { past.current.push(notes); if (past.current.length > 100) past.current.shift(); future.current = []; bump((n) => n + 1); };
+  const edit = (next) => { mark(); onChange(next); };
+  const undo = () => { const prev = past.current.pop(); if (!prev) return; future.current.push(notes); onChange(prev); bump((n) => n + 1); };
+  const redo = () => { const nxt = future.current.pop(); if (!nxt) return; past.current.push(notes); onChange(nxt); bump((n) => n + 1); };
   const drag = useRef(null);
   const [lo, hi] = range;
   const pitches = useMemo(() => Array.from({ length: hi - lo + 1 }, (_, i) => hi - i), [lo, hi]);
@@ -24,11 +34,12 @@ export default function PianoRoll({ part, onChange, onClose }) {
     if (drag.current) return;
     const { pitch, beat } = at(e);
     if (pitch < lo || pitch > hi || beat < 0 || beat >= beats) return;
-    onChange(toggleAt(notes, pitch, beat, { grid, len, vel: 100 }));
+    edit(toggleAt(notes, pitch, beat, { grid, len, vel: 100 }));
   };
   const startResize = (e, i) => {
     e.stopPropagation(); e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
+    mark();
     drag.current = { i, x: e.clientX, len: notes[i][2] };
   };
   const moveResize = (e) => {
@@ -48,17 +59,24 @@ export default function PianoRoll({ part, onChange, onClose }) {
         <label className="flex items-center gap-1">New note
           <select className="neon-input !w-auto !py-0.5 text-xs" data-nomemo="true" value={len} onChange={(e) => setLen(+e.target.value)}>
             {GRIDS.map(([l, v]) => <option key={l} value={v}>{l}</option>)}</select></label>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange(quantize(notes, grid))}>Quantize</button>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange(transpose(notes, -12))}>−8va</button>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange(transpose(notes, -1))}>−1</button>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange(transpose(notes, 1))}>+1</button>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange(transpose(notes, 12))}>+8va</button>
+        <button className="re-btn !w-auto px-2" onClick={undo} disabled={!past.current.length} aria-label="Undo">↶ Undo</button>
+        <button className="re-btn !w-auto px-2" onClick={redo} disabled={!future.current.length} aria-label="Redo">↷ Redo</button>
+        <span className="flex flex-wrap items-center gap-2 rounded-lg border border-white/10 px-2 py-0.5" title="Quantize moves each note's start toward the grid. Strength 100% snaps; 50% tightens a take and keeps its feel. Swing delays the off-beats.">
+          <button className="re-btn !w-auto px-2" onClick={() => edit(quantize(notes, grid, { strength: strength / 100, swing: swing / 100, lengths: snapLen }))}>Quantize to {GRIDS.find(([, v]) => v === grid)?.[0] || "grid"}</button>
+          <label className="flex items-center gap-1">Strength <input type="range" min="0" max="100" value={strength} onChange={(e) => setStrength(+e.target.value)} aria-label="Quantize strength" /><span className="w-8 tabular-nums text-white/60">{strength}%</span></label>
+          <label className="flex items-center gap-1">Swing <input type="range" min="0" max="100" value={swing} onChange={(e) => setSwing(+e.target.value)} aria-label="Swing" /><span className="w-8 tabular-nums text-white/60">{swing}%</span></label>
+          <label className="flex items-center gap-1"><input type="checkbox" checked={snapLen} onChange={(e) => setSnapLen(e.target.checked)} /> Snap lengths</label>
+        </span>
+        <button className="re-btn !w-auto px-2" onClick={() => edit(transpose(notes, -12))}>−8va</button>
+        <button className="re-btn !w-auto px-2" onClick={() => edit(transpose(notes, -1))}>−1</button>
+        <button className="re-btn !w-auto px-2" onClick={() => edit(transpose(notes, 1))}>+1</button>
+        <button className="re-btn !w-auto px-2" onClick={() => edit(transpose(notes, 12))}>+8va</button>
         <label className="flex items-center gap-1">Velocity
-          <input type="range" min="10" max="127" defaultValue="100" onChange={(e) => onChange(setVelocity(notes, +e.target.value))} /></label>
+          <input type="range" min="10" max="127" defaultValue="100" onPointerDown={mark} onChange={(e) => onChange(setVelocity(notes, +e.target.value))} /></label>
         <button className="re-btn !w-auto px-2" onClick={() => setBars((b) => Math.min(64, b + 4))}>+4 bars</button>
         <button className="re-btn !w-auto px-2" onClick={() => setRange(([a, b]) => [Math.max(0, a - 12), b])}>Lower</button>
         <button className="re-btn !w-auto px-2" onClick={() => setRange(([a, b]) => [a, Math.min(127, b + 12)])}>Higher</button>
-        <button className="re-btn !w-auto px-2" onClick={() => onChange([])}>Clear</button>
+        <button className="re-btn !w-auto px-2" onClick={() => edit([])}>Clear</button>
         <button className="re-link ml-auto" onClick={onClose}>Done</button>
       </div>
       <p className="text-[11px] text-white/60">Click to add a note, click a note to remove it, drag its right edge to lengthen it. {notes.length} notes.</p>
