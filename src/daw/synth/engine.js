@@ -45,6 +45,7 @@ class Voice {
     this.vel = clamp((vel127 ?? 100) / 127, 0.02, 1);
     this.t0 = core.time;                                  // free-running LFOs are in the core's clock
     this.n = 0; this.tickLeft = 0; this.gateT = Infinity; this.done = false;
+    this.keyDown = true;                                  // the key is still held (a pedal can keep the sound going after it is not)
     const rand = rng(id * 7919 + pitch);
     this.ph = [new Float64Array(MAX_UNISON), new Float64Array(MAX_UNISON)];
     for (const p of this.ph) for (let u = 0; u < MAX_UNISON; u++) p[u] = rand();
@@ -201,7 +202,7 @@ function makeFx(core) {
 export class SynthCore {
   constructor(patchRaw, rate = 44100) {
     this.rate = rate; this.P = cleanPatch(patchRaw); this.F = tables();
-    this.voices = []; this.nextId = 0; this.time = 0;
+    this.voices = []; this.nextId = 0; this.time = 0; this.pedal = false;
     this.fx = makeFx(this);
   }
   setPatch(raw) { this.P = cleanPatch(raw); }
@@ -215,10 +216,17 @@ export class SynthCore {
     return v;
   }
   noteOff(pitch) {
-    const v = this.voices.find((x) => x.pitch === pitch && x.gateT === Infinity);
-    if (v) v.release();
+    const v = this.voices.find((x) => x.pitch === pitch && x.keyDown && x.gateT === Infinity);
+    if (!v) return;
+    v.keyDown = false;
+    if (!this.pedal) v.release();                         // with the pedal down the note keeps sounding until it comes up
   }
-  allNotesOff() { for (const v of this.voices) v.release(); }
+  /** The sustain pedal. Down: notes whose keys come up keep sounding. Up: every one of them lets go. */
+  sustain(on) {
+    this.pedal = !!on;
+    if (!this.pedal) for (const v of this.voices) if (!v.keyDown) v.release();
+  }
+  allNotesOff() { this.pedal = false; for (const v of this.voices) { v.keyDown = false; v.release(); } }
   get active() { return this.voices.length; }
   /** Fill L[0..n) and R[0..n) with the next n samples (they are overwritten, not added to). */
   process(L, R, n) {

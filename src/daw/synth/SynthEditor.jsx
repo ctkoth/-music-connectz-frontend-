@@ -13,6 +13,8 @@ import { presetRoom } from "../tonePresets.js";
 import { FRAME_NAMES } from "./tables.js";
 import { BASE_DEFAULT, OCTAVE_KEYS, clampBase, isBlack, layout, noteName, parseMidi, pitchForKey } from "./liveKeys.js";
 import { createLiveSynth, liveSupported } from "./liveSynth.js";
+import { eventsToNotes } from "./performance.js";
+import { renderPatchNotes } from "../instruments.js";
 
 const setIn = (obj, path, val) => {
   const out = Array.isArray(obj) ? [...obj] : { ...obj };
@@ -56,7 +58,7 @@ const typing = (el) => !!el?.closest?.("input, select, textarea, [contenteditabl
 // Play it: an on-screen keyboard (touch and mouse, several keys at once), the computer's keys, and any MIDI keyboard.
 // The sound is the patch as it is right now: move a slider while holding a chord and the chord changes. Nothing is
 // recorded and nothing is charged; it is the same engine that renders a part, running live on this device.
-function LivePlay({ patch }) {
+function LivePlay({ patch, studio, name = "" }) {
   const [live, setLive] = useState(null);
   const [starting, setStarting] = useState(false);
   const [base, setBase] = useState(BASE_DEFAULT);
@@ -64,13 +66,56 @@ function LivePlay({ patch }) {
   const [midi, setMidi] = useState({ names: [], err: "" });
   const [err, setErr] = useState("");
   const ctxRef = useRef(null);
+  const [pedal, setPedal] = useState(false);
+  const [rec, setRec] = useState(null);                       // { notes, secs } while a take is running
+  const [along, setAlong] = useState(true);
+  const [placing, setPlacing] = useState(false);
+  const [note, setNote] = useState("");
+  const take = useRef(null);                                  // { from, along, t0, events }
   const held = useRef(new Map());                         // pointerId or key -> pitch, so every release matches its press
   const supported = liveSupported();
 
   const mark = (pitch, on) => setDown((d) => { const n = new Set(d); if (on) n.add(pitch); else n.delete(pitch); return n; });
-  const on = (id, pitch, vel = 100) => { if (!live || held.current.has(id)) return; held.current.set(id, pitch); live.noteOn(pitch, vel); mark(pitch, true); };
-  const off = (id) => { const p = held.current.get(id); if (p === undefined) return; held.current.delete(id); if (live) live.noteOff(p); if (![...held.current.values()].includes(p)) mark(p, false); };
-  const panic = () => { held.current.clear(); setDown(new Set()); live?.panic(); };
+  // Seconds into the take: on the session's own clock when playing along (so the part lines up with what is heard), else wall time.
+  const stamp = () => {
+    const t = take.current; if (!t) return 0;
+    if (t.along) { const p = studio?.position?.(); if (p != null) return Math.max(0, p - t.from); }
+    return (performance.now() - t.t0) / 1000;
+  };
+  const record = (e) => { if (take.current) { take.current.events.push({ t: stamp(), ...e }); } };
+  const on = (id, pitch, vel = 100) => { if (!live || held.current.has(id)) return; held.current.set(id, pitch); live.noteOn(pitch, vel); mark(pitch, true); record({ type: "on", pitch, vel }); };
+  const off = (id) => { const p = held.current.get(id); if (p === undefined) return; held.current.delete(id); if (live) live.noteOff(p); if (![...held.current.values()].includes(p)) mark(p, false); record({ type: "off", pitch: p }); };
+  const sustain = (v) => { if (!live) return; live.sustain(v); setPedal(v); record({ type: "sustain", on: v }); };
+  const panic = () => { held.current.clear(); setDown(new Set()); setPedal(false); live?.panic(); };
+
+  const startTake = async () => {
+    if (!live || take.current) return;
+    setNote(""); setErr("");
+    const withSession = along && studio?.hasAudio;
+    take.current = { from: studio.playhead, along: withSession, t0: performance.now(), events: [] };
+    setRec({ notes: 0, secs: 0 });
+    if (withSession) { try { await studio.start(studio.playhead); take.current.t0 = performance.now(); } catch (e) { setErr(e.message); } }
+  };
+  const stopTake = async () => {
+    const t = take.current; if (!t) return;
+    const endT = stamp();
+    take.current = null; setRec(null);
+    if (t.along) studio.stop();
+    const notes = eventsToNotes(t.events, studio.bpm, endT);
+    if (!notes.length) { setNote("Nothing was played, so nothing was added."); return; }
+    setPlacing(true);
+    try {
+      const buf = await renderPatchNotes(notes, patch, { bpm: studio.bpm, rate: studio.sampleRate() });
+      const nm = `${(name || patch.name || "Synth").slice(0, 50)} (played)`;
+      await studio.place(studio.toWav(buf), nm, t.from);
+      setNote(`Recorded ${notes.length} note${notes.length === 1 ? "" : "s"} onto a new track at ${Math.floor(t.from / 60)}:${String(Math.floor(t.from % 60)).padStart(2, "0")}. Open Edit to see it; Undo takes it off.`);
+    } catch (e) { setErr(e.message); } finally { setPlacing(false); }
+  };
+  useEffect(() => {
+    if (!rec) return undefined;
+    const id = setInterval(() => setRec({ notes: take.current?.events.filter((e) => e.type === "on").length || 0, secs: Math.round(stamp()) }), 300);
+    return () => clearInterval(id);
+  }, [!!rec]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const start = async () => {
     setErr(""); setStarting(true);
@@ -80,7 +125,7 @@ function LivePlay({ patch }) {
       setLive(await createLiveSynth(ctx, patch));
     } catch (e) { setErr(e.message); } finally { setStarting(false); }
   };
-  const stop = () => { panic(); live?.close(); setLive(null); };
+  const stop = () => { if (take.current) { take.current.events.length = 0; take.current = null; setRec(null); studio?.stop?.(); } panic(); live?.close(); setLive(null); };
   useEffect(() => () => { try { ctxRef.current?.close(); } catch { /* gone */ } }, []);
   useEffect(() => { live?.setPatch(patch); }, [patch, live]);       // moving a slider changes what is sounding
 
@@ -91,12 +136,13 @@ function LivePlay({ patch }) {
       if (typing(e.target)) return;
       const shift = OCTAVE_KEYS[String(e.key).toLowerCase()];
       if (shift !== undefined && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) setBase((b) => clampBase(b + shift)); return; }
+      if (e.key === " " && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) sustain(true); return; }
       const p = pitchForKey(e, base);
       if (p === null) return;
       e.preventDefault(); e.stopImmediatePropagation();
       if (!e.repeat) on(`k:${e.key.toLowerCase()}`, p);
     };
-    const up$ = (e) => off(`k:${String(e.key).toLowerCase()}`);
+    const up$ = (e) => { if (e.key === " ") { sustain(false); return; } off(`k:${String(e.key).toLowerCase()}`); };
     window.addEventListener("keydown", down$, true); window.addEventListener("keyup", up$, true);
     window.addEventListener("blur", panic);
     return () => { window.removeEventListener("keydown", down$, true); window.removeEventListener("keyup", up$, true); window.removeEventListener("blur", panic); };
@@ -114,7 +160,7 @@ function LivePlay({ patch }) {
           inp.onmidimessage = (m) => {
             const d = parseMidi(m.data);
             if (!d) return;
-            if (d.type === "on") on(`m:${d.pitch}`, d.pitch, d.vel); else if (d.type === "off") off(`m:${d.pitch}`); else panic();
+            if (d.type === "on") on(`m:${d.pitch}`, d.pitch, d.vel); else if (d.type === "off") off(`m:${d.pitch}`); else if (d.type === "sustain") sustain(d.on); else panic();
           };
         });
         setMidi({ names, err: names.length ? "" : "No MIDI keyboard found. Plug one in and it will appear here." });
@@ -141,6 +187,20 @@ function LivePlay({ patch }) {
           <button type="button" className="pill text-[11px]" onClick={connectMidi}>{midi.names.length ? `MIDI: ${midi.names.join(", ")}` : "Connect a MIDI keyboard"}</button>
         </>)}
       </div>
+      {live && studio && (
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          {rec
+            ? <button type="button" className="re-btn !w-auto px-3 !border-mcz-ember !text-mcz-ember" onClick={stopTake}><Square size={12} /> Stop and put it on a track</button>
+            : <button type="button" className="re-btn !w-auto px-3" onClick={startTake} disabled={placing || studio.busy}>{placing ? <><Loader2 size={12} className="animate-spin" /> Rendering…</> : "● Record what I play"}</button>}
+          {rec && <span className="font-mono text-mcz-ember" role="status">● {Math.floor(rec.secs / 60)}:{String(rec.secs % 60).padStart(2, "0")} · {rec.notes} note{rec.notes === 1 ? "" : "s"}</span>}
+          <label className={`flex items-center gap-1 ${studio.hasAudio ? "text-white/70" : "text-white/35"}`} title={studio.hasAudio ? "Plays the session from the playhead while you record, so you play along and the part lines up exactly" : "Add something to the session to play along with it"}>
+            <input type="checkbox" checked={along && studio.hasAudio} disabled={!!rec || !studio.hasAudio} onChange={(e) => setAlong(e.target.checked)} /> Play the session along
+          </label>
+          <span className="text-white/50">Free. Lands on a new track at the playhead; Undo removes it.</span>
+          <span className={pedal ? "text-mcz-cyan" : "text-white/35"}>Sustain: {pedal ? "down" : "up"}</span>
+        </div>
+      )}
+      {note && <p className="text-xs text-emerald-300" role="status">{note}</p>}
       {!supported && <p className="text-xs text-mcz-gold">This browser can't run the live synth (it needs AudioWorklet). You can still build and hear patches with Hear it.</p>}
       {live && (
         <div className="relative h-28 select-none touch-none" role="group" aria-label="Piano keyboard">
@@ -161,7 +221,7 @@ function LivePlay({ patch }) {
         </div>
       )}
       <p className="text-[11px] text-white/50">
-        {live ? "Computer keys: A S D F G H J K are the white keys, W E T Y U O P the black ones; Z and X move the octave. A MIDI keyboard plays the same sound. Move any slider while you hold a chord and it changes under your fingers."
+        {live ? "Computer keys: A S D F G H J K are the white keys, W E T Y U O P the black ones; Z and X move the octave; hold Space for the sustain pedal. A MIDI keyboard plays the same sound, pedal included. Recording renders the part with the patch as it is when you stop. Move any slider while you hold a chord and it changes under your fingers."
           : "Plays the patch below in real time: click or touch the keys, use your computer keyboard, or plug in a MIDI keyboard. It runs on this device and is free."}
       </p>
       {midi.err && <p className="text-xs text-mcz-gold">{midi.err}</p>}
@@ -170,7 +230,7 @@ function LivePlay({ patch }) {
   );
 }
 
-export default function SynthEditor() {
+export default function SynthEditor({ studio = null }) {
   const tones = useTonePresets();
   const mine = useMemo(() => (tones.state?.presets || []).filter((p) => p.kind === "synth"), [tones.state]);
   useEffect(() => { if (tones.state) setUserPatches(tones.state.presets); }, [tones.state]);
@@ -249,7 +309,7 @@ export default function SynthEditor() {
           : <button type="button" className="re-btn !w-auto px-3" onClick={audition} disabled={!!busy}>{busy ? <><Loader2 size={13} className="animate-spin" /> {busy}</> : <><Play size={13} /> Hear it</>}</button>}
       </div>
 
-      <LivePlay patch={patch} />
+      <LivePlay patch={patch} studio={studio} name={name} />
 
       <div className="grid gap-3 md:grid-cols-2">
         {[0, 1].map((i) => (

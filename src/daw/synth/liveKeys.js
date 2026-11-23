@@ -14,12 +14,13 @@ export function pitchForKey(e, base) {
   const p = base + off;
   return p >= 0 && p <= 127 ? p : null;
 }
-/** A decoded MIDI message: { type: "on" | "off" | "panic", pitch, vel } or null for anything the synth does not use. */
+/** A decoded MIDI message: { type: "on" | "off" | "sustain" | "panic", pitch, vel, on } or null for anything the synth does not use. */
 export function parseMidi(data) {
   if (!data || data.length < 2) return null;
   const status = data[0] & 0xf0;
   if (status === 0x90 && data[2] > 0) return { type: "on", pitch: data[1], vel: data[2] };
   if (status === 0x80 || (status === 0x90 && data[2] === 0)) return { type: "off", pitch: data[1], vel: 0 };
+  if (status === 0xb0 && data[1] === 64) return { type: "sustain", on: data[2] >= 64 };            // the sustain pedal
   if (status === 0xb0 && (data[1] === 123 || data[1] === 120)) return { type: "panic" };     // all notes off / all sound off
   return null;
 }

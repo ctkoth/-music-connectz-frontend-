@@ -13,6 +13,7 @@ class SynthProcessor extends AudioWorkletProcessor {
       else if (!this.core) return;
       else if (m.type === "on") this.core.noteOn(m.pitch, m.vel);
       else if (m.type === "off") this.core.noteOff(m.pitch);
+      else if (m.type === "sustain") this.core.sustain(m.on);
       else if (m.type === "panic") this.core.allNotesOff();
     };
   }

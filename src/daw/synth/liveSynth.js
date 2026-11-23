@@ -17,6 +17,7 @@ export async function createLiveSynth(ctx, patch) {
     noteOn: (pitch, vel = 100) => send({ type: "on", pitch, vel }),
     noteOff: (pitch) => send({ type: "off", pitch }),
     setPatch: (p) => send({ type: "patch", patch: p }),
+    sustain: (on) => send({ type: "sustain", on: !!on }),
     panic: () => send({ type: "panic" }),
     close: () => { send({ type: "panic" }); try { node.disconnect(); } catch { /* gone */ } },
   };

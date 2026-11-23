@@ -17,6 +17,8 @@ test("MIDI: note on, note off (including velocity-0 on), all-notes-off, and noth
   assert.deepEqual(parseMidi([0x93, 64, 80]), { type: "on", pitch: 64, vel: 80 });          // any channel
   assert.equal(parseMidi([0x90, 60, 0]).type, "off"); assert.equal(parseMidi([0x80, 60, 40]).type, "off");
   assert.equal(parseMidi([0xb0, 123, 0]).type, "panic");
+  assert.deepEqual(parseMidi([0xb0, 64, 127]), { type: "sustain", on: true }); assert.deepEqual(parseMidi([0xb0, 64, 0]), { type: "sustain", on: false });
+  assert.deepEqual(parseMidi([0xb0, 64, 63]), { type: "sustain", on: false });                 // the pedal switches at the halfway point
   assert.equal(parseMidi([0xe0, 0, 64]), null); assert.equal(parseMidi([0xf8]), null); assert.equal(parseMidi(null), null);
 });
 test("the on-screen layout puts black keys between whites, two octaves and a C is 15 whites", () => {

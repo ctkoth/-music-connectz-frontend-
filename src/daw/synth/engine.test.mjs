@@ -117,3 +117,21 @@ test("live: allNotesOff releases everything", () => {
   c.allNotesOff(); stream(c, 60, 128);
   assert.equal(c.active, 0);
 });
+
+test("live: the sustain pedal keeps a released note sounding until it comes up", () => {
+  const c = new SynthCore(dry({ oscs: [{ shape: "saw" }], amp: { a: 0.001, d: 0.1, s: 1, r: 0.05 } }), RATE);
+  c.sustain(true); c.noteOn(60, 100); stream(c, 10, 128);
+  c.noteOff(60);
+  const held = stream(c, 40, 128);
+  assert.ok(rms(held, 3000, 5000) > 0.01 && c.active === 1, "should still be sounding with the pedal down");
+  c.sustain(false);
+  const after = stream(c, 40, 128);
+  assert.ok(rms(after, after.length - 800, after.length) < 1e-4 && c.active === 0);
+});
+test("live: a key still held when the pedal comes up keeps sounding", () => {
+  const c = new SynthCore(dry({ amp: { a: 0.001, d: 0.1, s: 1, r: 0.05 } }), RATE);
+  c.noteOn(60, 100); c.sustain(true); stream(c, 10, 128); c.sustain(false);
+  stream(c, 40, 128);
+  assert.equal(c.active, 1);
+  c.noteOff(60); stream(c, 60, 128); assert.equal(c.active, 0);
+});

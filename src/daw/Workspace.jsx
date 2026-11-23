@@ -618,14 +618,14 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items, { own = false, stems = false } = {}) => {
+  const bring = async (items, { own = false, stems = false, at: atGiven } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
       try {
         const meta = await daw.decode(await it.blob.arrayBuffer(), it.name);
         try { await putSource(meta.id, it.blob); } catch { setStoreErr("This audio couldn't be kept on the device — it plays now but won't be here after the tab closes."); }
-        const at = stems ? 0 : playhead;   // stems line up from the top of the song
+        const at = stems ? 0 : atGiven ?? playhead;   // stems line up from the top of the song; a take recorded alongside goes where it started
         commit((s) => {
           let next = addSource(s, meta);
           let track = items.length === 1 && !own && !stems ? targetTrack(next) : null;
@@ -1096,7 +1096,12 @@ export default function Workspace({ workflow }) {
       ) : view === "actions" ? (
         <KeyActions keymap={keymap} onKeymap={setKeymap} skin={skin} onSkin={setSkin} />
       ) : view === "synth" ? (
-        <SynthEditor />
+        <SynthEditor studio={{
+          bpm: session.bpm, playhead, busy: !!busy || recording, hasAudio: lengthOf(session) > 0, name: session.name,
+          position: () => daw.position(), start: (from) => startPlay(from), stop: () => stopPlay(),
+          sampleRate: () => daw.sampleRate(), toWav: (buf) => daw.toWav(buf, 24),
+          place: async (blob, name, at) => { await bring([{ name, blob }], { own: true, at }); },
+        }} />
       ) : view === "midi" ? (
         <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}
                     onBpm={(v) => { if (!recording) commit((s) => setSession(s, { bpm: v })); }}

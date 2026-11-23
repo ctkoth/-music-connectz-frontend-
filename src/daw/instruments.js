@@ -110,6 +110,16 @@ function note(ctx, out, inst, pitch, t, len, vel) {
   }
 }
 
+/** Render notes through a synth patch (any patch, saved or not) to a stereo AudioBuffer at `rate`. */
+export async function renderPatchNotes(notes, patch, { bpm, rate = 44100 }) {
+  const Off = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
+  if (!Off) throw new Error("This browser can't render audio.");
+  const out = await renderSynth(notes, patch, { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
+  const buf = new Off(2, 1, rate).createBuffer(2, out.length, rate);
+  buf.copyToChannel(out.left, 0); buf.copyToChannel(out.right, 1);
+  return buf;
+}
+
 /**
  * Render one MIDI part through an instrument to an AudioBuffer: notes are [pitch, startBeat,
  * lengthBeats, velocity], played at `bpm`. Stereo, at the DAW's sample rate.
@@ -124,10 +134,7 @@ export async function renderNotes(notes, instrument, { bpm, rate = 44100 }) {
   const inst = isUserSound(instrument) && userPatch(instrument) ? instrument : cleanInstrument(instrument);
   if (inst.startsWith("synth:")) {
     const patch = isUserSound(inst) ? userPatch(inst) : presetPatch(inst.slice(6));
-    const out = await renderSynth(notes, patch, { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
-    const buf = new Off(2, 1, rate).createBuffer(2, out.length, rate);
-    buf.copyToChannel(out.left, 0); buf.copyToChannel(out.right, 1);
-    return buf;
+    return renderPatchNotes(notes, patch, { bpm, rate });
   }
   for (const [pitch, start, length, vel] of notes) {
     const t = start * spb, v = Math.max(0.05, vel / 127);
