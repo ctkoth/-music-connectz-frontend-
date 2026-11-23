@@ -10,6 +10,8 @@ import { FileUp, Play, Send, Square } from "lucide-react";
 import { parseMidi, beatsOf } from "./midi.js";
 import PianoRoll from "./PianoRoll.jsx";
 import { INSTRUMENTS, instrumentFor, renderNotes } from "./instruments.js";
+import { api } from "../api.js";
+import { setUserPatches, userRows } from "./synth/userPatches.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
 
@@ -25,7 +27,11 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
   const live = useRef(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
-  const ok = new Set((cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k));
+  // The member's own saved synth patches (Synth window) are instruments too, wherever the plan's list ends.
+  const [mineRows, setMineRows] = useState(userRows);
+  useEffect(() => { api("/api/economy/tonez/").then((d) => setMineRows(setUserPatches(d.presets))).catch(() => {}); }, []);
+  const allRows = [...INSTRUMENTS, ...mineRows];
+  const ok = new Set([...(cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k), ...mineRows.map(([k]) => k)]);
   // Above the plan's list a part falls back to the voice its own program would get, and only then to the first.
   const allowed = (k, track) => (ok.has(k) ? k : track && ok.has(instrumentFor(track)) ? instrumentFor(track) : INSTRUMENTS[0][0]);
 
@@ -76,7 +82,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
         if (!on[i] || !t.notes.length) continue;
         const inst = allowed(pick[i], t);
         const buf = await renderNotes(t.notes, inst, { bpm, rate: daw.sampleRate() });
-        await onSend(daw.toWav(buf, 24), `${t.name} · ${INSTRUMENTS.find(([k]) => k === inst)[1]}.wav`);
+        await onSend(daw.toWav(buf, 24), `${t.name} · ${(allRows.find(([k]) => k === inst) || [, "synth"])[1]}.wav`);
         n++;
       }
       if (!n) setErr("Tick at least one part.");
@@ -105,7 +111,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
                 onChange={(e) => setFile((f) => ({ ...f, tracks: f.tracks.map((x, k) => (k === i ? { ...x, name: e.target.value.slice(0, 40) } : x)) }))} />
               <span className="text-white/55">{t.notes.length} notes · {Math.ceil(beatsOf(t.notes) / 4)} bars{t.drums ? " · drums" : ""}</span>
               <select className="neon-input !w-auto !py-1 text-xs" data-nomemo="true" value={pick[i]} onChange={(e) => setPick({ ...pick, [i]: e.target.value })}>
-                {INSTRUMENTS.map(([k, label]) => <option key={k} value={k} disabled={!ok.has(k)}>{label}{ok.has(k) ? "" : " — upgrade"}</option>)}
+                {allRows.map(([k, label]) => <option key={k} value={k} disabled={!ok.has(k)}>{label}{ok.has(k) ? "" : " — upgrade"}</option>)}
               </select>
               {!ok.has(pick[i]) && <span className="text-mcz-gold">plays as {INSTRUMENTS[0][1]} on {TIER_LABEL[lim?.tier] || "your tier"}</span>}
               <button className="re-btn !w-auto px-2" onClick={() => setRollOf(rollOf === i ? null : i)}>{rollOf === i ? "Close notes" : "Edit notes"}</button>

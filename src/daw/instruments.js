@@ -12,6 +12,7 @@ export const INSTRUMENTS = [
 ];
 import { PRESETS, PRESET_IDS, presetPatch } from "./synth/patch.js";
 import { renderSynth } from "./synth/engine.js";
+import { isUserSound, userPatch } from "./synth/userPatches.js";
 
 // The synth engine's patches, after the original twelve, so the tier ladder (the first N) never moves what a member
 // already had: Free 3 and Premium 6 are unchanged, StatZ's "all" now includes these.
@@ -120,9 +121,10 @@ export async function renderNotes(notes, instrument, { bpm, rate = 44100 }) {
   const lastEnd = notes.reduce((m, n) => Math.max(m, (n[1] + n[2]) * spb), 0);
   const ctx = new Off(2, Math.ceil((lastEnd + 2.5) * rate), rate);
   const master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
-  const inst = cleanInstrument(instrument);
+  const inst = isUserSound(instrument) && userPatch(instrument) ? instrument : cleanInstrument(instrument);
   if (inst.startsWith("synth:")) {
-    const out = await renderSynth(notes, presetPatch(inst.slice(6)), { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
+    const patch = isUserSound(inst) ? userPatch(inst) : presetPatch(inst.slice(6));
+    const out = await renderSynth(notes, patch, { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
     const buf = new Off(2, 1, rate).createBuffer(2, out.length, rate);
     buf.copyToChannel(out.left, 0); buf.copyToChannel(out.right, 1);
     return buf;
