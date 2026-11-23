@@ -22,6 +22,7 @@ import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
 import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
 import SynthEditor from "./synth/SynthEditor.jsx";
+import PostBounce from "../components/PostBounce.jsx";
 import { registerTemp } from "./synth/userPatches.js";
 import MixWindow from "./MixWindow.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
@@ -1351,7 +1352,8 @@ export default function Workspace({ workflow }) {
             {upload && (
               <>
                 <p className="text-emerald-300">Saved to FileZ.</p>
-                <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} />
+                <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} noPost />
+                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={mb} />
               </>
             )}
           </div>
