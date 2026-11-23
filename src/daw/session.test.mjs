@@ -420,3 +420,10 @@ test2("count-in: a click per beat, the downbeat accented, the right length", () 
   assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 0).beats.length, 0);
   assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 9).seconds, 0);   // junk means off
 });
+
+test2("a ruler stays sane when zoomed far out over a long beat", () => {
+  const r = rulerTicks({ bpm: 90, meter: 4 }, 0.2, 800);            // 4000 s across 800 px
+  assert2.ok(r.bars.length > 1 && r.bars.length <= 2000);
+  assert2.ok(r.clock.length > 1 && r.clock[1].t >= 300);             // clock ticks thin out to minutes, not a wall of marks
+  assert2.equal(r.beats.length, 0);
+});

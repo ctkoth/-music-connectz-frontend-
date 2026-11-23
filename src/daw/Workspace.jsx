@@ -98,7 +98,8 @@ function Library({ onPick, onClose }) {
   );
 }
 
-const ZOOM_MIN = 5, ZOOM_MAX = 400;
+// The floor has to let a long beat fit: 5 px/s could not show anything over ~2 minutes on a phone. 0.1 px/s is ~2 hours across 800 px.
+const ZOOM_MIN = 0.1, ZOOM_MAX = 400;
 const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 export default function Workspace({ workflow }) {
@@ -277,6 +278,12 @@ export default function Workspace({ workflow }) {
     const id = requestAnimationFrame(() => fitZoom(false));
     return () => cancelAnimationFrame(id);
   }, [sessionLen, sessionId, view]);               // eslint-disable-line react-hooks/exhaustive-deps
+  // Rotating a phone or resizing the window re-fits too, until the member has zoomed by hand.
+  useEffect(() => {
+    const on = () => { if (!zoomedByHand.current && !recording) fitZoom(false); };
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [recording]); // eslint-disable-line react-hooks/exhaustive-deps
   const wrapping = useRef(false);                  // a loop wrap is restarting playback; do not fire another
   // Loop exactly the selected region (its start to its end), on. No selection says so rather than guessing.
   const loopSelected = () => {
@@ -1116,7 +1123,7 @@ export default function Workspace({ workflow }) {
               <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
               <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
                       onClick={() => fitZoom(true)}>Fit</button>
-              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
+              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 1 ? zoom.toFixed(2) : zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
             </span>
           {emptyTakeCount(session) > 0 && (
             <button type="button" className="pill" disabled={recording} onClick={() => { const n = emptyTakeCount(session); commit((s) => removeEmptyTakes(s)); setMsg(`Removed ${n} empty take lane${n === 1 ? "" : "s"}. Takes with audio are untouched. Undo puts them back.`); }}
