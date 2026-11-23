@@ -115,7 +115,9 @@ export default function Workspace({ workflow }) {
   const [storeErr, setStoreErr] = useState("");
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
-  const [zoom, setZoom] = useState(40);           // pixels per second
+  const [zoom, setZoomRaw] = useState(40);        // pixels per second
+  const zoomedByHand = useRef(false);             // once the member zooms, we stop fitting for them
+  const setZoom = (v) => { zoomedByHand.current = true; setZoomRaw(v); };
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -257,6 +259,24 @@ export default function Workspace({ workflow }) {
   // Faders and pans reach a playing session without a restart (automation included).
   useEffect(() => { daw.setLive(liveView(session)); }, [daw, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fit the whole session on screen. Automatic when a session opens or first gets audio (until the member zooms by hand);
+  // the Fit button does it on demand. Free at every tier: seeing your own session is not a feature.
+  const fitZoom = (byHand = false) => {
+    const len = lengthOf(sRef.current);
+    const w = (document.querySelector("[data-timeline]")?.clientWidth || 0) - 24;
+    if (len <= 0 || w <= 0) return;
+    setZoomRaw(clampZoom(w / (len * 1.05)));
+    zoomedByHand.current = byHand;
+  };
+  const sessionLen = lengthOf(session);
+  useEffect(() => {
+    zoomedByHand.current = false;
+  }, [sessionId]);                                 // a different session: fit again
+  useEffect(() => {
+    if (zoomedByHand.current || !sessionLen || recording) return undefined;   // never rescale under a take being recorded
+    const id = requestAnimationFrame(() => fitZoom(false));
+    return () => cancelAnimationFrame(id);
+  }, [sessionLen, sessionId, view]);               // eslint-disable-line react-hooks/exhaustive-deps
   const wrapping = useRef(false);                  // a loop wrap is restarting playback; do not fire another
   // Loop exactly the selected region (its start to its end), on. No selection says so rather than guessing.
   const loopSelected = () => {
@@ -1040,16 +1060,6 @@ export default function Workspace({ workflow }) {
                 {Object.keys(GRIDS).map((g) => <option key={g} value={g}>{g === "1" ? "1 bar" : `${g} note`}</option>)}
               </select>
             </label>
-            <span className="flex items-center gap-1" data-tour="daw-zoom" title="Zoom the timeline. Ctrl + scroll over it zooms at the pointer.">
-              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => clampZoom(z / 1.5))}><Minus size={13} /></button>
-              <input type="range" className="w-24 accent-cyan-400" min={0} max={1000} aria-label="Timeline zoom"
-                     value={Math.round(1000 * Math.log(zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN))}
-                     onChange={(e) => setZoom(ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 1000))} />
-              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
-              <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
-                      onClick={() => { const len = lengthOf(session); const w = (document.querySelector("[data-timeline]")?.clientWidth || 800) - 24; if (len > 0) setZoom(clampZoom(w / len)); }}>Fit</button>
-              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
-            </span>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Undo" onClick={undo} disabled={!past.current.length}><Undo2 size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Redo" onClick={redo} disabled={!future.current.length}><Redo2 size={13} /></button>
             <span className="text-white/55">{MODE_LABEL[session.editMode].what}</span>
@@ -1098,6 +1108,16 @@ export default function Workspace({ workflow }) {
                   title={`Raise or lower each track's fader so its loudest moment sits at ${NORMALIZE_TARGET_DB} dBFS. Free, on this device; Undo puts it back.`}>
             📏 Normalize {pickedLive.length ? `${pickedLive.length} selected` : "all"}
           </button>
+          <span className="flex items-center gap-1" data-tour="daw-zoom" title="Zoom the timeline. Ctrl + scroll over it zooms at the pointer.">
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => clampZoom(z / 1.5))}><Minus size={13} /></button>
+              <input type="range" className="w-24 accent-cyan-400" min={0} max={1000} aria-label="Timeline zoom"
+                     value={Math.round(1000 * Math.log(zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN))}
+                     onChange={(e) => setZoom(ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 1000))} />
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
+              <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
+                      onClick={() => fitZoom(true)}>Fit</button>
+              <span className="w-14 font-mono text-[10px] tabular-nums text-white/55">{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)} px/s</span>
+            </span>
           {emptyTakeCount(session) > 0 && (
             <button type="button" className="pill" disabled={recording} onClick={() => { const n = emptyTakeCount(session); commit((s) => removeEmptyTakes(s)); setMsg(`Removed ${n} empty take lane${n === 1 ? "" : "s"}. Takes with audio are untouched. Undo puts them back.`); }}
                     title="Delete take lanes that have nothing in them (overdubbing and New take leave these behind)">🧹 Remove {emptyTakeCount(session)} empty take{emptyTakeCount(session) === 1 ? "" : "s"}</button>
