@@ -10,6 +10,13 @@ export const INSTRUMENTS = [
   ["pad", "Warm pad"], ["organ", "Organ"], ["pluck", "Pluck"], ["bell", "Bell"],
   ["brass", "Brass"], ["sub808", "808"],
 ];
+import { PRESETS, PRESET_IDS, presetPatch } from "./synth/patch.js";
+import { renderSynth } from "./synth/engine.js";
+
+// The synth engine's patches, after the original twelve, so the tier ladder (the first N) never moves what a member
+// already had: Free 3 and Premium 6 are unchanged, StatZ's "all" now includes these.
+const SYNTHS = PRESET_IDS.map((id) => [`synth:${id}`, `🎛️ ${PRESETS[id].name} (synth)`]);
+INSTRUMENTS.push(...SYNTHS);
 const KEYS = new Set(INSTRUMENTS.map(([k]) => k));
 
 /** Pick a sensible instrument for a MIDI track from its General MIDI program (0-127). */
@@ -114,6 +121,12 @@ export async function renderNotes(notes, instrument, { bpm, rate = 44100 }) {
   const ctx = new Off(2, Math.ceil((lastEnd + 2.5) * rate), rate);
   const master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
   const inst = cleanInstrument(instrument);
+  if (inst.startsWith("synth:")) {
+    const out = await renderSynth(notes, presetPatch(inst.slice(6)), { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
+    const buf = new Off(2, 1, rate).createBuffer(2, out.length, rate);
+    buf.copyToChannel(out.left, 0); buf.copyToChannel(out.right, 1);
+    return buf;
+  }
   for (const [pitch, start, length, vel] of notes) {
     const t = start * spb, v = Math.max(0.05, vel / 127);
     if (inst === "drums") drumHit(ctx, master, pitch, t, v);
