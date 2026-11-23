@@ -7,12 +7,15 @@ import { GRIDS, barsFor, deleteSelected, isBlack, moveSelected, pitchName, quant
 
 const ROW = 14, CELL = 18;   // px per pitch row, px per 1/16
 
-export default function PianoRoll({ part, onChange, onClose, mix = null, onMix = null }) {
+export default function PianoRoll({ part, onChange, onClose, mix = null, onMix = null, onAudition = null }) {
   const notes = part.notes;
   const [grid, setGrid] = useState(0.25);
   const [len, setLen] = useState(0.5);
   const [bars, setBars] = useState(() => barsFor(notes));
   const [range, setRange] = useState(() => rangeFor(notes));
+  const [hearEdits, setHearEditsRaw] = useState(() => { try { return localStorage.getItem("mcz_roll_hear") !== "0"; } catch { return true; } });
+  const setHearEdits = (v) => { setHearEditsRaw(v); try { localStorage.setItem("mcz_roll_hear", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const hear = (pitch) => { if (onAudition && hearEdits) onAudition(pitch); };
   const [sel, setSel] = useState(() => new Set());          // indexes of the selected notes
   const [strength, setStrength] = useState(100);
   const [swing, setSwing] = useState(0);
@@ -40,7 +43,7 @@ export default function PianoRoll({ part, onChange, onClose, mix = null, onMix =
     if (sel.size) { setSel(new Set()); return; }                // the first click on empty space lets go of the selection; the next adds a note
     const next = toggleAt(notes, pitch, beat, { grid, len, vel: 100 });
     if (next.length < notes.length) return;                      // a click lands on a note only through its own handler now; never delete here
-    edit(next);
+    edit(next); hear(pitch);
   };
   const startResize = (e, i) => {
     e.stopPropagation(); e.preventDefault();
@@ -55,7 +58,8 @@ export default function PianoRoll({ part, onChange, onClose, mix = null, onMix =
     let group = sel;
     if (e.shiftKey) { group = new Set(sel); if (group.has(i)) group.delete(i); else group.add(i); setSel(group); drag.current = null; return; }
     if (!sel.has(i)) { group = new Set([i]); setSel(group); }
-    drag.current = { move: true, x: e.clientX, y: e.clientY, orig: notes, sel: group, moved: false };
+    drag.current = { move: true, x: e.clientX, y: e.clientY, orig: notes, sel: group, moved: false, pitch: notes[i][0], lead: i, dp: 0 };
+    hear(notes[i][0]);
   };
   const moveResize = (e) => {
     const g = drag.current;
@@ -65,6 +69,7 @@ export default function PianoRoll({ part, onChange, onClose, mix = null, onMix =
       const dPitch = -Math.round((e.clientY - g.y) / ROW);
       if (!g.moved && (dBeat || dPitch)) { g.moved = true; mark(); }
       if (g.moved) onChange(moveSelected(g.orig, g.sel, dBeat, dPitch));
+      if (dPitch !== g.dp) { g.dp = dPitch; hear(Math.max(0, Math.min(127, g.pitch + dPitch))); }          // each new pitch it passes over is heard once
       return;
     }
     onChange(resize(notes, g.i, g.len + (e.clientX - g.x) / (4 * CELL), grid));
@@ -82,7 +87,7 @@ export default function PianoRoll({ part, onChange, onClose, mix = null, onMix =
     if (!sel.size) return;
     if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); edit(deleteSelected(notes, sel)); setSel(new Set()); return; }
     const d = { ArrowLeft: [-grid, 0], ArrowRight: [grid, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
-    if (d) { e.preventDefault(); const r = sortKeep(moveSelected(notes, sel, d[0], d[1]), sel); mark(); onChange(r.notes); setSel(r.sel); }
+    if (d) { e.preventDefault(); const moved = moveSelected(notes, sel, d[0], d[1]); const r = sortKeep(moved, sel); mark(); onChange(r.notes); setSel(r.sel); if (d[1]) { const first = [...sel][0]; hear(moved[first][0]); } }
     if (e.key === "Escape") setSel(new Set());
   };
 
@@ -126,14 +131,15 @@ export default function PianoRoll({ part, onChange, onClose, mix = null, onMix =
             <button type="button" className="re-link" onClick={() => onMix({ gain: 100, pan: 0 })} disabled={mix.gain === 100 && mix.pan === 0}>Reset</button>
           </span>
         )}
+        {onAudition && <label className="flex items-center gap-1 text-white/70" title="Plays a note as you add it, pick it up, or move it to a new pitch. The piano keys on the left always play."><input type="checkbox" checked={hearEdits} onChange={(e) => setHearEdits(e.target.checked)} /> Hear notes as I edit</label>}
         <button className="re-link ml-auto" onClick={onClose}>Done</button>
       </div>
       <p className="text-[11px] text-white/60">Click empty space to add a note. Click a note to select it (Shift adds more), drag to move it, drag its right edge to lengthen it, press Delete to remove it, arrows nudge it, Ctrl+A selects all. {notes.length} notes{sel.size ? `, ${sel.size} selected` : ""}.</p>
       <div className="flex max-h-[420px] overflow-auto">
         <div className="sticky left-0 z-10 shrink-0 bg-black/80">
           {pitches.map((p) => (
-            <div key={p} className={`border-b border-black/40 pr-1 text-right text-[9px] leading-[14px] ${isBlack(p) ? "bg-neutral-800 text-white/50" : "bg-neutral-200 text-black/70"}`}
-              style={{ height: ROW, width: 34 }}>{p % 12 === 0 ? pitchName(p) : ""}</div>
+            <div key={p} onPointerDown={() => onAudition && onAudition(p)} className={`border-b border-black/40 pr-1 text-right text-[9px] leading-[14px] ${onAudition ? "cursor-pointer active:brightness-150" : ""} ${isBlack(p) ? "bg-neutral-800 text-white/50" : "bg-neutral-200 text-black/70"}`}
+              style={{ height: ROW, width: 34 }} title={onAudition ? `Hear ${pitchName(p)}` : undefined}>{p % 12 === 0 ? pitchName(p) : ""}</div>
           ))}
         </div>
         <div className="relative shrink-0 cursor-crosshair" style={{ width, height: pitches.length * ROW }}

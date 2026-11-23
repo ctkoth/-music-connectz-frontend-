@@ -72,6 +72,28 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
   const setMix = (i, patch) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, ...patch } : t)) }));
   const setNotes = (i, notes) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, notes } : t)) }));
 
+  // One note, to hear what is being drawn. Rendered once per (instrument, pitch) and kept, so a pitch heard before is instant;
+  // the first time costs a short render. It plays through the part's own gain and pan, like Hear does.
+  const noteCache = useRef(new Map());
+  const audition = async (pitch) => {
+    if (rollOf == null || !file?.tracks[rollOf]) return;
+    try {
+      const l = live.current || (live.current = { ctx: new (window.AudioContext || window.webkitAudioContext)() });
+      if (l.ctx.state !== "running") await l.ctx.resume();
+      const t = file.tracks[rollOf]; const inst = allowed(pick[rollOf], t);
+      const key = `${inst}:${pitch}`;
+      let buf = noteCache.current.get(key);
+      if (!buf) {
+        buf = await renderNotes([[pitch, 0, 0.5, 100]], inst, { bpm: 120, rate: l.ctx.sampleRate });
+        noteCache.current.set(key, buf);
+        if (noteCache.current.size > 150) noteCache.current.delete(noteCache.current.keys().next().value);
+      }
+      const src = l.ctx.createBufferSource(); src.buffer = buf;
+      const g = l.ctx.createGain(); g.gain.value = gainPctToLinear(t.gain ?? 100);
+      const pn = l.ctx.createStereoPanner(); pn.pan.value = panToUnit(t.pan ?? 0);
+      src.connect(g).connect(pn).connect(l.ctx.destination); src.start();
+    } catch { /* a note that will not play is not worth an error on a click */ }
+  };
   const stop = () => { try { live.current?.src?.stop(); } catch { /* ended */ } setPlaying(null); };
   useEffect(() => () => { stop(); live.current?.ctx?.close().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const hear = async (i) => {
@@ -145,7 +167,7 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
         </div>
         {rollOf != null && file.tracks[rollOf] && (
           <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)}
-                     mix={{ gain: cleanGainPct(file.tracks[rollOf].gain ?? 100), pan: cleanPanPct(file.tracks[rollOf].pan ?? 0) }} onMix={(m) => setMix(rollOf, m)} />
+                     mix={{ gain: cleanGainPct(file.tracks[rollOf].gain ?? 100), pan: cleanPanPct(file.tracks[rollOf].pan ?? 0) }} onMix={(m) => setMix(rollOf, m)} onAudition={audition} />
         )}
         {cap != null && cap < INSTRUMENTS.length && (
           <p className="text-[11px] text-white/60">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
