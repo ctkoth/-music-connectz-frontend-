@@ -47,6 +47,24 @@ export function quantize(notes, grid = 0.25, { strength = 1, swing = 0, lengths 
   return sortNotes([...out.values()]);
 }
 
+// ---- selection edits ------------------------------------------------------------------------------------------
+// A selection is a Set of indexes into the notes array. Moves keep the array's order (so the indexes stay valid while a
+// drag is in progress); `sortKeep` puts the notes in time order afterwards and carries the selection with them.
+export function moveSelected(notes, sel, dBeat, dPitch) {
+  const minStart = Math.min(...[...sel].map((i) => notes[i]?.[1] ?? Infinity));
+  const dB = Number.isFinite(minStart) ? Math.max(dBeat, -minStart) : dBeat;                       // the group stops at the start of the part
+  const ps = [...sel].map((i) => notes[i]?.[0]).filter((x) => x !== undefined);
+  const dP = ps.length ? Math.max(-Math.min(...ps), Math.min(127 - Math.max(...ps), dPitch)) : 0;  // and at the ends of the keyboard
+  return notes.map((n, i) => (sel.has(i) ? [clampPitch(n[0] + dP), round(Math.max(0, n[1] + dB)), n[2], n[3]] : n));
+}
+export function sortKeep(notes, sel) {
+  const order = notes.map((n, i) => ({ n, i, s: sel.has(i) })).sort((a, b) => a.n[1] - b.n[1] || a.n[0] - b.n[0] || a.i - b.i);
+  return { notes: order.map((o) => o.n), sel: new Set(order.flatMap((o, k) => (o.s ? [k] : []))) };
+}
+export const deleteSelected = (notes, sel) => notes.filter((_, i) => !sel.has(i));
+export const setVelocitySelected = (notes, sel, v) => notes.map((n, i) => (sel.has(i) ? [n[0], n[1], n[2], Math.max(1, Math.min(127, Math.round(v)))] : n));
+export const selectAll = (notes) => new Set(notes.map((_, i) => i));
+
 export const transpose = (notes, semis) => notes.map(([p, s, l, v]) => [clampPitch(p + semis), s, l, v]);
 export const setVelocity = (notes, v) => notes.map(([p, s, l]) => [p, s, l, Math.max(1, Math.min(127, Math.round(v)))]);
 
