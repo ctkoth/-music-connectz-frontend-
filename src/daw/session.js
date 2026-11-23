@@ -567,13 +567,14 @@ export function cleanSession(raw) {
   const tracks = raw.tracks.slice(0, MAX_TRACKS).map((t, i) => {
     const d = newTrack(i + 1);
     const playlists = (Array.isArray(t?.playlists) && t.playlists.length ? t.playlists : d.playlists).slice(0, MAX_PLAYLISTS).map((p) => ({
-      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40),
+      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40), ...(p?.comp ? { comp: true } : {}),
       regions: (Array.isArray(p?.regions) ? p.regions : []).filter((r) => r && base.sources[r.src]).map((r) => ({
         id: String(r.id || uid("r")), src: r.src, name: String(r.name || "").slice(0, 80),
         at: Math.max(0, num(r.at, 0)), in: Math.max(0, num(r.in, 0)), out: Math.max(num(r.in, 0) + MIN_LEN, num(r.out, MIN_LEN)),
         gain: clamp(num(r.gain, 0), GAIN_DB.min, GAIN_DB.max), fadeIn: clamp(num(r.fadeIn, 0), 0, FADE_MAX), fadeOut: clamp(num(r.fadeOut, 0), 0, FADE_MAX),
         // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
         // new key is always made from the original and 0 gives the original back exactly.
+        ...(r.from ? { from: String(r.from).slice(0, 60) } : {}),
         ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
       })),
     }));

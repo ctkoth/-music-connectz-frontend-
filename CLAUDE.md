@@ -2795,3 +2795,21 @@ is mapped to `dawz.png` in `App.jsx`) until Corey draws one.
 - **Driven in a real browser** (Playwright): sections added and dragged into a new order, an effect dragged from the browser onto a
   track, a stray text drop ignored. **Not checked:** dropping a real audio file from the desktop (the file path is the same `bring()`
   the Import button uses), loops dropped on a lane at a time, touch, or Safari.
+
+## Comping: the takes are never touched, and the comp remembers where every piece came from
+
+Cycle and punch recording leave a take lane per pass; comping is how they become one finished take. `✂ Comp` on a track with more
+than one take opens its takes as rows under it. Dragging across a take's row takes that stretch into the **comp**, one more lane
+(`comp: true`) that is the one that plays. `comp.js` is pure and tested (9 tests); the screen only draws it.
+
+- **The take lanes are never edited**, so any swipe can be redone from the originals, and "Use all" restarts the comp as a copy of
+  one whole take. Clearing the comp takes the one lane away and leaves every take.
+- **Every piece in the comp carries `from`** (the lane it came from), which is how each take row lights up green where it is being
+  used (`compSpans`). `cleanSession` keeps both `comp` and `from`; a session saved and reopened still shows what came from where.
+- **Joins get a 10 ms fade on each side** (`XFADE`) so a cut between takes does not click. That is a dip, not an overlapping
+  crossfade; a true overlap would need the regions to share time, which the engine's "two regions that overlap crossfade" rule
+  could give later.
+- **A track holding the most lanes has no room for a comp** and the swipe is refused with a sentence, rather than overwriting a take.
+- Swipes snap to the grid when Snap is on. Driven in a real browser: three takes, a swipe across take 2, the comp row reading
+  take 1 | take 2 | take 1, the green markers, Clear. **Not checked:** by ear (the audio is assembled from the same regions the
+  engine already plays), on a phone, or with a swipe that crosses a take's own fades.

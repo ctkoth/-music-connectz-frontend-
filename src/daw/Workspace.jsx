@@ -23,6 +23,7 @@ import EditWindow from "./EditWindow.jsx";
 import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
 import SynthEditor from "./synth/SynthEditor.jsx";
 import PostBounce from "../components/PostBounce.jsx";
+import { swipeComp, startComp, clearComp } from "./comp.js";
 import DragonBrowser from "./DragonBrowser.jsx";
 import { moveSection, duplicateSection, deleteSectionWithMusic, appendSection, addSection, updateSection, removeSection, sectionProblem } from "./arranger.js";
 import { loopById, renderLoop, loopFileName } from "./loopRender.js";
@@ -43,7 +44,7 @@ import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } fro
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
-  BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
+  BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
@@ -1289,6 +1290,9 @@ export default function Workspace({ workflow }) {
           keyRange={keyRange} onTranspose={transposeTrack}
           onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoAllowed={autoAllowed}
           onAddTrack={addOneTrack}
+          onComp={(id, lane, a, b) => { const before = sRef.current; commit((s) => swipeComp(s, id, lane, snapIf(s, a), snapIf(s, b))); restartIfPlaying(); const t = before.tracks.find((x) => x.id === id); if (t && t.playlists.length >= MAX_PLAYLISTS && !t.playlists.some((p) => p.comp)) setErr("This track already holds the most takes it can, so there is no room for a comp lane. Delete a take first."); else setMsg("That stretch is in the comp. Swipe more, or press Undo."); }}
+          onStartComp={(id, lane) => { commit((s) => startComp(s, id, lane)); restartIfPlaying(); setMsg("The comp is now a copy of that take. Swipe the better bits in from the others."); }}
+          onClearComp={(id) => { commit((s) => clearComp(s, id)); restartIfPlaying(); setMsg("Comp cleared. Your takes are untouched."); }}
           onLoop={(a, b) => commit((s) => (a == null ? setLoop(s, null) : setLoop(s, snapIf(s, a), snapIf(s, b))))} onToggleLoop={() => commit((s) => toggleLoop(s))}
           onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
           onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}

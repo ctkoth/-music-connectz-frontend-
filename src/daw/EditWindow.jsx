@@ -5,7 +5,7 @@
 //   * drag a region's body  → move it (to another track too, by dragging over that lane)
 //   * drag near either edge → trim that edge
 //   * tap the ruler or an empty lane → put the playhead there
-import { memo, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
 import { REC_MODES, endOf, lenOf, regionsOf, rulerTicks } from "./session.js";
 import { PARAMS, laneOf } from "./automation.js";
@@ -17,6 +17,7 @@ import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
 import { ArrangerHeader, ArrangerStrip } from "./ArrangerStrip.jsx";
+import { compIndex, compSpans } from "./comp.js";
 import { DRAG_MIME, decode, hasFiles, isOurs, mediaFiles } from "./dragPayload.js";
 import { trackSize } from "./view.js";
 import Popover from "./Popover.jsx";
@@ -56,6 +57,7 @@ const Wave = memo(function Wave({ peaks, sourceDur, inSec, outSec, width, color,
 
 // Two rows: bars and beats on top, the clock (m:ss) under it. Sticky, so it stays in view while the tracks scroll.
 export const LOOP_H = 16;
+export const COMP_ROW = 40;
 export const RULER_H = 44 + LOOP_H;
 const BEATS_KEY = "mcz_daw_beats_row";
 function useBeatsRow() {
@@ -137,7 +139,7 @@ export function Playhead({ position, zoom, height }) {
 }
 
 export default function EditWindow({
-  session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
+  session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onComp = null, onStartComp = null, onClearComp = null, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
   onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
@@ -157,6 +159,16 @@ export default function EditWindow({
   // Drag and drop (Studio Dragon): the browser's effects, tones and loops, and audio files from the desktop. A drop is only
   // taken if it decodes to something the browser really offers; the DAW does the rest (onDropItem / onDropFiles).
   const [dropTrack, setDropTrack] = useState(null);
+  // Comping: a track with several takes can open them as rows under it; swiping across a take's row takes that stretch into the comp.
+  const [compOpen, setCompOpen] = useState(() => new Set());
+  const [swipe, setSwipe] = useState(null);                 // { trackId, lane, x0, x1 } while a swipe is being dragged
+  const toggleComp = (id) => setCompOpen((c) => { const n = new Set(c); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const compLanes = (t) => {                                // the comp first, then every take, each with its index on the track
+    const rows = t.playlists.map((p, i) => ({ p, i }));
+    return [...rows.filter((r) => r.p.comp), ...rows.filter((r) => !r.p.comp)];
+  };
+  const openRows = (t) => (compOpen.has(t.id) && onComp ? compLanes(t).length : 0);
+  const extraH = session.tracks.reduce((n, t) => n + openRows(t) * COMP_ROW, 0);
   const droppable = (e) => !!(onDropItem || onDropFiles) && (isOurs(e.dataTransfer) || (onDropFiles && hasFiles(e.dataTransfer)));
   const dropOn = (t, laneEl) => ({
     onDragOver: (e) => { if (!droppable(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = "copy"; if (dropTrack !== t.id) setDropTrack(t.id); },
@@ -275,7 +287,8 @@ export default function EditWindow({
           </div>
         </div>
         {session.tracks.map((t) => (
-          <div key={t.id} {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : ""}`} style={{ height: LANE_H }}>
+          <Fragment key={t.id}>
+          <div {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : ""}`} style={{ height: LANE_H }}>
             <div className="flex items-center gap-1">
               {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
                                 onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
@@ -362,6 +375,10 @@ export default function EditWindow({
                       onClick={() => onPlaylist(t.id, { type: "new" })}><Plus size={12} /></button>
               <button type="button" className="text-white/50 hover:text-white" title="Copy this take to a new playlist" aria-label="Duplicate playlist" disabled={recording}
                       onClick={() => onPlaylist(t.id, { type: "copy" })}><Copy size={12} /></button>
+              {onComp && t.playlists.length > 1 && (
+                <button type="button" className={`rounded px-1 text-[10px] ${compOpen.has(t.id) ? "bg-emerald-400/20 text-emerald-200" : "text-white/55 hover:text-white"}`} aria-pressed={compOpen.has(t.id)} aria-label={`Comp ${t.name}`}
+                        title="Comping: open the takes as rows and swipe across the best parts to build one finished take" onClick={() => toggleComp(t.id)}>✂ Comp</button>
+              )}
             </div>}
             {!dense && onInserts && (
               <div className="relative flex items-start gap-1 text-[10px]">
@@ -442,6 +459,15 @@ export default function EditWindow({
               </Popover>
             )}
           </div>
+          {openRows(t) > 0 && compLanes(t).map(({ p, i }) => (
+            <div key={p.id} className={`flex items-center gap-1 border-b border-white/10 px-2 text-[10px] ${p.comp ? "bg-emerald-400/10 text-emerald-200" : "bg-white/[0.03] text-white/70"}`} style={{ height: COMP_ROW }} data-comp-head={p.id}>
+              <span className="min-w-0 flex-1 truncate">{p.comp ? "✂ Comp — plays" : p.name}</span>
+              {p.comp
+                ? <button type="button" className="rounded px-1 text-white/60 hover:text-mcz-ember" onClick={() => onClearComp && onClearComp(t.id)} title="Take the comp away (the takes stay)">Clear</button>
+                : <button type="button" className="rounded px-1 text-white/60 hover:text-white" onClick={() => onStartComp && onStartComp(t.id, i)} title="Start the comp as a copy of this whole take, then swipe in the better bits">Use all</button>}
+            </div>
+          ))}
+          </Fragment>
         ))}
       </div>
 
@@ -453,7 +479,8 @@ export default function EditWindow({
           <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} punchArmed={punchArmed} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
             {session.tracks.map((t) => (
-              <div key={t.id} data-lane={t.id} {...dropOn(t, true)}
+              <Fragment key={t.id}>
+              <div data-lane={t.id} {...dropOn(t, true)}
                    className={`relative border-b border-white/10 ${dropTrack === t.id ? "bg-mcz-cyan/10" : drag?.overTrack === t.id && drag.track !== t.id ? "bg-white/5" : ""}`}
                    style={{ height: LANE_H }}
                    onPointerDown={(e) => { if (e.target === e.currentTarget) { onSelect(null); onSeek((e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom); } }}>
@@ -481,10 +508,33 @@ export default function EditWindow({
                   );
                 })}
               </div>
+              {openRows(t) > 0 && (() => { const spans = compSpans(t); return compLanes(t).map(({ p, i }) => {
+                const at = (e) => Math.max(0, (e.clientX - e.currentTarget.getBoundingClientRect().left) / zoom);
+                return (
+                  <div key={p.id} data-comp-lane={p.id} className={`relative touch-none border-b border-white/10 ${p.comp ? "bg-emerald-400/[0.06]" : "bg-white/[0.02] cursor-col-resize"}`} style={{ height: COMP_ROW }}
+                       title={p.comp ? "What plays now" : "Drag across the part you want to use"}
+                       onPointerDown={(e) => { if (p.comp) return; e.currentTarget.setPointerCapture?.(e.pointerId); const x = at(e); setSwipe({ trackId: t.id, lane: i, x0: x, x1: x }); }}
+                       onPointerMove={(e) => { if (swipe && swipe.trackId === t.id && swipe.lane === i) setSwipe({ ...swipe, x1: at(e) }); }}
+                       onPointerUp={() => { const w = swipe; setSwipe(null); if (w && Math.abs(w.x1 - w.x0) >= 0.05) onComp(w.trackId, w.lane, Math.min(w.x0, w.x1), Math.max(w.x0, w.x1)); }}
+                       onPointerCancel={() => setSwipe(null)}>
+                    {p.regions.map((r) => (
+                      <div key={r.id} className="pointer-events-none absolute top-1 overflow-hidden rounded-sm border border-white/15 px-1 text-[9px] leading-3 text-white/70"
+                           style={{ left: r.at * zoom, width: Math.max(2, lenOf(r) * zoom), height: COMP_ROW - 8, background: `${t.color}${p.comp ? "40" : "22"}` }}>{r.name}</div>
+                    ))}
+                    {!p.comp && spans.filter((x) => x.lane === p.id).map((x) => (
+                      <div key={`${x.a}`} className="pointer-events-none absolute inset-y-0 border-x-2 border-emerald-300 bg-emerald-300/25" style={{ left: x.a * zoom, width: Math.max(2, (x.b - x.a) * zoom) }} title="Used in the comp" />
+                    ))}
+                    {swipe && swipe.trackId === t.id && swipe.lane === i && (
+                      <div className="pointer-events-none absolute inset-y-0 bg-white/30" style={{ left: Math.min(swipe.x0, swipe.x1) * zoom, width: Math.abs(swipe.x1 - swipe.x0) * zoom }} />
+                    )}
+                  </div>
+                );
+              }); })()}
+              </Fragment>
             ))}
             {session.loop && <div className={`pointer-events-none absolute top-0 z-10 ${punchArmed ? "bg-red-500/10" : session.loop.on ? "bg-emerald-400/10" : "bg-white/[0.03]"}`}
-                                  style={{ left: session.loop.start * zoom, width: (session.loop.end - session.loop.start) * zoom, height: session.tracks.length * LANE_H }} />}
-            <Playhead position={playhead} zoom={zoom} height={session.tracks.length * LANE_H} />
+                                  style={{ left: session.loop.start * zoom, width: (session.loop.end - session.loop.start) * zoom, height: session.tracks.length * LANE_H + extraH }} />}
+            <Playhead position={playhead} zoom={zoom} height={session.tracks.length * LANE_H + extraH} />
           </div>
         </div>
       </div>
