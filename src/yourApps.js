@@ -12,6 +12,8 @@ export const LAST_KEY = "mcz_app_last";
 export const PINS_KEY = "mcz_pinned_apps";
 // What a NEW member told us or came in through — the coach they tried, the role they picked —
 // so their first "Your apps" is theirs, not a fixed list. Real use takes over as it builds up.
+// Apps the member PICKED for "Your apps" with the Edit button (as many as their plan's count).
+export const CHOSEN_KEY = "mcz_your_apps";
 export const SEED_KEY = "mcz_app_seed";
 export const SEED_MAX = 6;
 export const HALF_LIFE_DAYS = 14;
@@ -30,11 +32,13 @@ export function frecency(key, usage = {}, last = {}, now = Date.now()) {
   return n * Math.pow(0.5, days / HALF_LIFE_DAYS);
 }
 
-/** Pins first (in the member's order), then their own apps by frecency. */
-export function rankApps({ usage = {}, last = {}, pins = [], seeds = [], now = Date.now(), exclude = [], limit = 8, valid = null } = {}) {
+/** Pins, then the member's own picks, then their most-used apps by frecency, then seeds. */
+export function rankApps({ usage = {}, last = {}, pins = [], chosen = [], seeds = [], now = Date.now(), exclude = [], limit = 8, valid = null } = {}) {
   const ok = (k) => !exclude.includes(k) && (!valid || valid.has(k));
   const out = [];
   for (const k of pins) if (ok(k) && !out.includes(k)) out.push(k);
+  // What they picked themselves comes before what use suggests.
+  for (const k of chosen) if (ok(k) && !out.includes(k)) out.push(k);
   Object.keys(usage)
     .filter((k) => ok(k) && !out.includes(k) && (usage[k] || 0) >= OWN_MIN_OPENS)
     .sort((a, b) => frecency(b, usage, last, now) - frecency(a, usage, last, now))
@@ -42,6 +46,28 @@ export function rankApps({ usage = {}, last = {}, pins = [], seeds = [], now = D
   // Seeds fill whatever room real use has not taken yet, newest first.
   for (const k of seeds) if (ok(k) && !out.includes(k)) out.push(k);
   return out.slice(0, limit);
+}
+
+/**
+ * Add or remove one app from the member's picks. `cap` is the plan's count (null = unlimited).
+ * Removing is always allowed, and a list already over the cap (the plan's number moved) is kept
+ * whole — only ADDING past it is refused. Returns { list, refused }.
+ */
+export function toggleChosen(list = [], key, cap = null) {
+  if (list.includes(key)) return { list: list.filter((k) => k !== key), refused: false };
+  if (cap != null && list.length >= cap) return { list, refused: true };
+  return { list: [...list, key], refused: false };
+}
+
+export function readChosen() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CHOSEN_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
+export function writeChosen(list) {
+  try { localStorage.setItem(CHOSEN_KEY, JSON.stringify(list)); } catch { /* private mode: lasts this visit */ }
 }
 
 /** Does this member have enough of their own apps that the home screen should lead with them? */

@@ -1015,7 +1015,7 @@ export default function Workspace({ workflow }) {
       setStorage(res);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
-  const mb = bounced ? bounced.blob.size / 1048576 : 0;
+  const bounceMb = bounced ? bounced.blob.size / 1048576 : 0;
 
   const mixEl = (
     <MixWindow
@@ -1527,10 +1527,10 @@ export default function Workspace({ workflow }) {
             <audio src={bounced.url} controls className="w-full" />
             <KeyBadge url={bounced.url} auto />
             <div className="flex flex-wrap items-center gap-2">
-              <a className="re-btn !w-auto px-3" href={bounced.url} download={fileName()}><Download size={13} /> Download WAV ({mb.toFixed(1)} MB)</a>
+              <a className="re-btn !w-auto px-3" href={bounced.url} download={fileName()}><Download size={13} /> Download WAV ({bounceMb.toFixed(1)} MB)</a>
               {!upload && (
                 <button type="button" className="neon-btn-primary !w-auto px-3" disabled={!!busy} onClick={saveToFileZ}>
-                  <Save size={13} /> Save to FileZ <span className="text-white/60">· uses {mb.toFixed(1)} MB of your storage</span>
+                  <Save size={13} /> Save to FileZ <span className="text-white/60">· uses {bounceMb.toFixed(1)} MB of your storage</span>
                 </button>
               )}
               {upload && (
@@ -1544,7 +1544,7 @@ export default function Workspace({ workflow }) {
                 <p className="text-emerald-300">Saved to FileZ.</p>
                 <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} noPost />
                 <CoachMix url={upload.url} uploadId={upload.id} title={session.name} />
-                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={mb} />
+                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={bounceMb} />
               </>
             )}
           </div>
