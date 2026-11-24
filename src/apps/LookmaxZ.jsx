@@ -137,8 +137,14 @@ function Sector({ k, meta, data, shop, affiliate }) {
         </div>
       )}
       {k === "body" && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p className="text-[11px] text-white/60">{data?.sessions_28d ?? 0} session{data?.sessions_28d === 1 ? "" : "s"} logged in the last 28 days — shown, never scored: turning up is not the same as getting stronger.</p>
+          {(data?.doors || []).map((dr) => (
+            <button key={dr.factor} type="button" className="re-btn !w-auto mr-1.5 px-3 text-[12px]"
+              onClick={() => { try { sessionStorage.setItem("bodiez.prefillMuscle", dr.open_in.muscle); } catch { /* blocked */ } goToTab("bodiez"); }}>
+              {dr.open_in.label} · {dr.score}/10
+            </button>
+          ))}
           <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("bodiez")}>
             {data?.open_in?.label || "Open BodieZ"}
           </button>
