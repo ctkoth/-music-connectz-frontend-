@@ -212,6 +212,12 @@ export default function Workspace({ workflow }) {
       restartIfPlaying();
     } catch (e) { setErr(`Couldn't commit: ${e.message}`); } finally { setBusy(""); }
   };
+  // Pre-roll and post-roll (Pro Tools): hear the song before the take starts, and keep hearing it after you stop.
+  const rollPref = (key) => { try { const v = Number(localStorage.getItem(key)); return [0, 2, 4, 8].includes(v) ? v : 0; } catch { return 0; } };
+  const [preRoll, setPreRollRaw] = useState(() => rollPref("mcz_daw_preroll"));
+  const [postRoll, setPostRollRaw] = useState(() => rollPref("mcz_daw_postroll"));
+  const setPreRoll = (v) => { setPreRollRaw(v); try { localStorage.setItem("mcz_daw_preroll", String(v)); } catch { /* per-visit */ } };
+  const setPostRoll = (v) => { setPostRollRaw(v); try { localStorage.setItem("mcz_daw_postroll", String(v)); } catch { /* per-visit */ } };
   const [repeatN, setRepeatN] = useState(4);
   const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
   const [stretching, setStretching] = useState(false);
@@ -746,6 +752,7 @@ export default function Workspace({ workflow }) {
           const db = peak > 0 ? 20 * Math.log10(peak) : -120;
           if (db < -24) setErr(`That take is very quiet — the loudest moment is ${db < -90 ? "silence" : `${Math.round(db)} dB`}. That's the microphone level, not you: raise it in Windows (Settings → Sound → Input → your mic) or your interface's gain, record again, or press 📏 Normalize on the track to bring it up (free).`);
         } catch { /* the check is a courtesy; the take is already kept */ }
+        if (postRoll > 0) { startPlay(longest || headRef.current); setTimeout(() => stopPlay(), postRoll * 1000); }        // keep hearing the song for a moment after the take
         for (const take of good) {
           try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
         }
@@ -783,16 +790,19 @@ export default function Workspace({ workflow }) {
       setBusy("Starting playback and recording…");
       const lp = sRef.current.loop;
       const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take
-      const plan = cyc ? null : punchPlan(sRef.current, punchOn);
-      punchRef.current = plan;
+      let plan = cyc ? null : punchPlan(sRef.current, punchOn);
       // A region the member selected is the part they mean to record over: start THERE, not wherever the playhead was left.
       const selR = !plan && !cyc && selected ? sRef.current.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected) : null;
+      // Pre-roll: the song plays for a few seconds BEFORE the take starts (you hear what you come in on); what the mic hears
+      // during it is not kept, and the take begins at the start point. It never ends the take by itself (out is far away).
+      if (!plan && !cyc && preRoll > 0) { const base = selR ? selR.at : playhead; plan = { from: Math.max(0, base - preRoll), in: base, out: 1e9, preroll: true }; }
+      punchRef.current = plan;
       const startAt = plan ? plan.from : cyc ? cyc.start : selR ? selR.at : playhead;
       if (plan || cyc || selR) setPlayhead(startAt);
       await daw.startRecording(sRef.current, startAt, { click, boostDb: recBoost, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
-      setRecFrom(startAt);
+      setRecFrom(plan?.preroll ? plan.in : startAt);
       setRecording(true); setPlaying(true);
     } catch (e) {
       // Whatever stopped the take must not leave the app half-way: playback running with nothing recording, and the
@@ -1376,6 +1386,7 @@ export default function Workspace({ workflow }) {
                : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
           {err ? <><span>⚠ {err}</span> <button type="button" className="ml-2 underline" onClick={() => setErr("")}>OK</button></>
             : busy ? <>⏳ {busy}</>
+            : recording && playhead < recFrom - 0.05 ? <>▶ PRE-ROLL — recording starts at {minSec(recFrom)}<span className="block text-[11px] font-semibold text-white/90">what you hear now is the lead-in; it is not kept</span></>
             : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"} · from {minSec(recFrom)}</span><span className="block text-[11px] font-semibold text-white/90">{silentFor > 1.5 ? "Beat/mix is silent in the app" : outDb != null ? `beat/mix going out: ${outDb < -60 ? "—" : Math.round(outDb)} dB` : ""}</span></>
             : <>
                 {playing ? "▶ PLAYING — not recording" : "⏺ Armed — not recording yet"}
@@ -1400,7 +1411,7 @@ export default function Workspace({ workflow }) {
           <p className="mt-1 text-white/85">
             <span className="text-white/60">Path:</span>{" "}
             {armedAll.map((t) => `🎤 ${t.input?.device ? "chosen input" : "default mic"}${t.input?.channel && t.input.channel !== "both" ? ` (${t.input.channel})` : ""} → ${t.name}`).join("  ·  ")}
-            {" → "}{cyclePass > 0 ? "one take per pass" : punchRef.current ? "punch in/out (only inside the loop is kept)" : `a new take starting at ${barsBeats(session, recFrom)}`}
+            {" → "}{cyclePass > 0 ? "one take per pass" : punchRef.current?.preroll ? `a new take from ${minSec(punchRef.current.in)} (you hear ${Math.round(punchRef.current.in - punchRef.current.from)} s of lead-in first)` : punchRef.current ? "punch in/out (only inside the loop is kept)" : `a new take starting at ${barsBeats(session, recFrom)}`}
           </p>
           <p className="mt-1 text-white/60">
             Stop recording adds it to the track{armedAll.length > 1 ? "s" : ""} and keeps the sound on this device as a 24-bit WAV. Nothing is uploaded until you press Save to FileZ.
@@ -1424,6 +1435,18 @@ export default function Workspace({ workflow }) {
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
           <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
+        <label className="flex items-center gap-1 text-white/70" title="You hear the song for this long BEFORE the take starts, so you come in on what is playing. What the mic hears during it is not kept. Free.">
+          Pre-roll
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={preRoll} disabled={recording} onChange={(e) => setPreRoll(Number(e.target.value))} aria-label="Pre-roll seconds">
+            {[0, 2, 4, 8].map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} s`}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-white/70" title="After you press Stop, the song keeps playing for this long so you can hear how the take sits. Free.">
+          Post-roll
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={postRoll} disabled={recording} onChange={(e) => setPostRoll(Number(e.target.value))} aria-label="Post-roll seconds">
+            {[0, 2, 4, 8].map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} s`}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-1 text-white/70" title="Clicks this many bars before recording starts, so you can come in on the beat. Nothing is recorded during the count-in.">
           Count-in
           <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={countBars} disabled={recording} onChange={(e) => setCountBars(Number(e.target.value))} aria-label="Count-in bars">
