@@ -454,3 +454,18 @@ test2("cycle passes: each lands in its own take lane, the last is active, and th
   assert2.equal(t.active, 2);
   assert2.equal(t.recMode, "overdub");
 });
+
+test("repeating a clip lays copies end to end", async () => {
+  const { newSession, addTrack, addSource, addRegion, repeatRegion, regionsOf, endOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "src1", name: "beat", duration: 2, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "src1", at: 1, name: "beat" });
+  const first = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = repeatRegion(x, first.id, 3);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.equal(rs.length, 4);
+  assert.deepEqual(rs.map((r) => r.at), [1, 3, 5, 7]);
+  assert.equal(endOf(rs[3]), 9);
+  assert.equal(repeatRegion(x, first.id, 0), x);
+});

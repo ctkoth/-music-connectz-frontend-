@@ -457,6 +457,19 @@ export function duplicateRegion(s, id) {
   return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, copy]) })));
 }
 
+/** Lay `times` more copies of a clip end to end after it (Mixcraft's "# Loops"): a bar of beat becomes a verse's worth. */
+export function repeatRegion(s, id, times) {
+  const hit = findRegion(s, id);
+  const n = Math.max(0, Math.min(64, Math.floor(Number(times) || 0)));
+  if (!hit || !n) return s;
+  const len = endOf(hit.region) - hit.region.at;
+  if (!(len > 0)) return s;
+  const room = Math.max(0, MAX_REGIONS - regionCount(s));
+  const copies = Array.from({ length: Math.min(n, room) }, (_, k) => ({ ...hit.region, id: uid("r"), at: hit.region.at + len * (k + 1) }));
+  if (!copies.length) return s;
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, ...copies]) })));
+}
+
 /** Nudge by grid steps (negative is earlier), whatever the edit mode. */
 export function nudgeRegion(s, id, steps) {
   const hit = findRegion(s, id);

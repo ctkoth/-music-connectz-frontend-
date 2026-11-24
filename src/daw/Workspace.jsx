@@ -45,7 +45,7 @@ import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
-  beatSeconds, duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
+  beatSeconds, duplicateRegion, repeatRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
@@ -151,6 +151,7 @@ export default function Workspace({ workflow }) {
   const setRecBoost = (v) => { setRecBoostRaw(v); try { localStorage.setItem("mcz_daw_recboost", String(v)); } catch { /* per-visit */ } };
   useEffect(() => { setProjectBpm(session.bpm); }, [session.bpm]);        // MetZ beside the DAW plays the project's tempo
   useEffect(() => () => setProjectBpm(null), []);
+  const [repeatN, setRepeatN] = useState(4);
   const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
@@ -1374,6 +1375,12 @@ export default function Workspace({ workflow }) {
                 title="Listens to the instrumental, tells you the key and the BPM, and sets both on the project. Free, on your device.">
           {keyBusy ? "Listening…" : "🎹 Detect key & BPM"}
         </button>
+        <span className="flex items-center gap-0.5 text-white/70" title="Master volume: everything you hear and bounce. Arrows move it 1 dB; double-click the number to reset.">
+          Master
+          <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Turn the master down" onClick={() => commit((s) => setSession(s, { master: Math.max(-60, Math.round((s.master || 0) - 1)) }))}>▼</button>
+          <button type="button" className="min-w-[3.6rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label="Master volume, double-click to reset" onDoubleClick={() => commit((s) => setSession(s, { master: 0 }))}>{(session.master || 0) > 0 ? "+" : ""}{(session.master || 0).toFixed(1)} dB</button>
+          <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Turn the master up" onClick={() => commit((s) => setSession(s, { master: Math.min(12, Math.round((s.master || 0) + 1)) }))}>▲</button>
+        </span>
         <label className="flex items-center gap-1 text-white/60">BPM
           <input type="number" className="neon-input !w-16 !py-1" min={BPM.min} max={BPM.max} value={session.bpm} disabled={recording}
                  onChange={(e) => commit((s) => setSession(s, { bpm: e.target.value }))} />
@@ -1577,6 +1584,10 @@ export default function Workspace({ workflow }) {
           <button type="button" className="re-btn !w-auto px-2" onClick={saveTakeToFileZ} disabled={!!busy} title="Keep this clip in FileZ">Save to FileZ · {(takeBytes() / 1048576).toFixed(1)} MB of your storage</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={split} title="Split at the playhead (B)"><Scissors size={13} /> Split</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => duplicateRegion(s, sel.region.id))}><Copy size={13} /> Duplicate</button>
+          <span className="flex items-center gap-1" title="Lays this many more copies end to end after the clip — a bar of beat becomes a whole verse. Free; Undo takes them away.">
+            <input type="number" min={1} max={64} value={repeatN} className="neon-input !w-14 !py-0.5" aria-label="Times to repeat the clip" onChange={(e) => setRepeatN(Math.max(1, Math.min(64, Number(e.target.value) || 1)))} />
+            <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => repeatRegion(s, sel.region.id, repeatN))}>Repeat ×{repeatN}</button>
+          </span>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge earlier" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, -1))}><ChevronLeft size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge later" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, 1))}><ChevronRight size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2 text-mcz-ember" onClick={del}><Trash2 size={13} /> Delete</button>

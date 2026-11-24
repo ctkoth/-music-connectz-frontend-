@@ -298,6 +298,7 @@ export default function EditWindow({
                 <span className="h-3 w-1.5 rounded" style={{ background: t.color }} />{t.emoji && <span className="text-xs">{t.emoji}</span>}
               </button>
               {recording && t.armed && <span className="shrink-0 animate-pulse rounded bg-red-600 px-1 text-[9px] font-extrabold text-white" role="status">● REC</span>}
+              <span className="shrink-0 font-mono text-[10px] text-white/40" aria-hidden>{session.tracks.indexOf(t) + 1}</span>
               <input className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-white outline-none" value={t.name}
                      aria-label="Track name" onChange={(e) => onTrack(t.id, { name: e.target.value })} />
               {onMeasure && regionsOf(t).length > 0 && (
