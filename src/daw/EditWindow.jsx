@@ -382,7 +382,7 @@ export default function EditWindow({
                         title="Comping: open the takes as rows and swipe across the best parts to build one finished take" onClick={() => toggleComp(t.id)}>✂ Comp</button>
               )}
             </div>}
-            {!dense && onInserts && (
+            {onInserts && (
               <div className="relative flex items-start gap-1 text-[10px]">
                 {t.armed && onMonitor && (
                   <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
@@ -394,7 +394,7 @@ export default function EditWindow({
                         className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
                   FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
                 </button>
-                <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>
+                {!dense && <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>}
                 {fx?.id === t.id && (
                   <Popover rect={fx.rect} onClose={() => setFx(null)} label={`${t.name} effects`}>
                     <p className="font-semibold text-white/80">{t.emoji} {t.name} effects</p>
