@@ -60,6 +60,7 @@ import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
 import AutotunePanel from "./AutotunePanel.jsx";
+import DawTuner from "./DawTuner.jsx";
 import { setProjectBpm } from "../dawTempo.js";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
@@ -1285,6 +1286,12 @@ export default function Workspace({ workflow }) {
           </p>
         </div>
       )}
+      <DawTuner daw={daw} track={armed} cap={tierCap === undefined ? 3 : tierCap} disabled={!!busy && !recording} beatBusy={keyBusy}
+                onKeyFromBeat={detectProjectKey}
+                onSetKey={(found) => {
+                  const named = sessionKeyFor(found);
+                  if (named) { commit((x) => setSession(x, { key: named })); setMsg(`Project key set to ${named}. ${keySentence(found, [armed?.name || "your input"], false)}`); }
+                }} />
       {/* Transport */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/40 p-2 text-xs">
         <button type="button" className="re-btn !w-auto px-2" aria-label="Back to the start" onClick={() => seek(0)} disabled={recording}><SkipBack size={14} /></button>
