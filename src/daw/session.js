@@ -511,6 +511,21 @@ export function repeatRegion(s, id, times) {
   return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, ...copies]) })));
 }
 
+/** Replace one clip with the pieces of it worth keeping (Strip Silence). `segments` are {from, to} in seconds of the SOURCE;
+ *  each piece stays exactly where it was on the timeline, so the gaps between them are real gaps. */
+export function stripRegion(s, id, segments) {
+  const hit = findRegion(s, id);
+  if (!hit) return s;
+  const r = hit.region;
+  const pieces = (segments || []).map((g) => ({ from: Math.max(r.in, g.from), to: Math.min(r.out, g.to) })).filter((g) => g.to - g.from >= MIN_LEN);
+  if (!pieces.length || regionCount(s) - 1 + pieces.length > MAX_REGIONS) return s;
+  const made = pieces.map((g, i) => ({
+    ...r, id: i === 0 ? r.id : uid("r"), at: r.at + (g.from - r.in), in: g.from, out: g.to,
+    fadeIn: g.from > r.in ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeIn, fadeOut: g.to < r.out ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeOut,
+  }));
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions.filter((x) => x.id !== id), ...made]) })));
+}
+
 /** Nudge by grid steps (negative is earlier), whatever the edit mode. */
 export function nudgeRegion(s, id, steps) {
   const hit = findRegion(s, id);

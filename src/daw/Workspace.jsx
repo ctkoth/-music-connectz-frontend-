@@ -45,7 +45,7 @@ import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
-  beatSeconds, duplicateRegion, repeatRegion, setTrackGrouped, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
+  beatSeconds, duplicateRegion, repeatRegion, stripRegion, setTrackGrouped, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
@@ -62,6 +62,7 @@ import TimingPanel from "./TimingPanel.jsx";
 import AutotunePanel from "./AutotunePanel.jsx";
 import DawTuner from "./DawTuner.jsx";
 import { setProjectBpm } from "../dawTempo.js";
+import { keepSegments } from "./stripSilence.js";
 import { foldTempo, stretchChannels, stretchFor } from "./tempoMatch.js";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
@@ -170,6 +171,23 @@ export default function Workspace({ workflow }) {
   });
   const removeBus = (id) => commit((s) => ({ ...setSession(s, { buses: (s.buses || []).filter((b) => b.id !== id) }), tracks: s.tracks.map((t) => { const { [id]: _gone, ...rest } = t.sends || {}; return { ...t, sends: rest }; }) }));
   const busLevel = (id, db) => commit((s) => setSession(s, { buses: (s.buses || []).map((b) => (b.id === id ? { ...b, level: Math.max(-60, Math.min(12, db)) } : b)) }));
+  const [stripDb, setStripDb] = useState(-40);
+  // Strip Silence: split the selected clip where it is quiet for long enough and drop the dead air. Free, on this device;
+  // the sound itself is untouched (the pieces point into it), so Undo and trimming back out both work.
+  const stripSilenceNow = () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const buf = daw.buffer(hit.region.src);
+    if (!buf) { setErr("That clip's sound isn't loaded — reopen the session and try again."); return; }
+    const rate = buf.sampleRate, a = Math.round(hit.region.in * rate), b = Math.round(hit.region.out * rate);
+    const chans = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c).subarray(a, b));
+    const segs = keepSegments(chans, rate, { thresholdDb: stripDb }).map((g) => ({ from: g.from + hit.region.in, to: g.to + hit.region.in }));
+    if (!segs.length) { setMsg(`Nothing in that clip is louder than ${stripDb} dB, so nothing was changed. Try a lower number.`); return; }
+    const kept = segs.reduce((n, g) => n + (g.to - g.from), 0), total = hit.region.out - hit.region.in;
+    if (segs.length === 1 && total - kept < 0.2) { setMsg(`No silence of 0.4 s or more at ${stripDb} dB in that clip. Try a higher number.`); return; }
+    commit((x) => stripRegion(x, hit.region.id, segs));
+    setMsg(`Stripped ${minSec(total - kept)} of silence: the clip is now ${segs.length} piece${segs.length === 1 ? "" : "s"} (${stripDb} dB threshold, gaps of 0.4 s or more). Undo puts it back.`);
+  };
   const [repeatN, setRepeatN] = useState(4);
   const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
   const [stretching, setStretching] = useState(false);
@@ -1645,6 +1663,12 @@ export default function Workspace({ workflow }) {
           <span className="flex items-center gap-1" title="Stretches this clip so its tempo matches the project's (pitch kept). Leave the box blank to detect the clip's tempo, or type it. Free, on this device; Undo puts the original back.">
             <input type="number" min={30} max={300} placeholder="clip BPM" value={clipBpm} className="neon-input !w-20 !py-0.5" aria-label="The clip's BPM (blank to detect)" onChange={(e) => setClipBpm(e.target.value)} />
             <button type="button" className="re-btn !w-auto px-2" disabled={stretching || recording || !!busy} onClick={matchClipTempo}>⏱ Match project tempo ({session.bpm})</button>
+          </span>
+          <span className="flex items-center gap-1" title="Splits this clip wherever it is quieter than the threshold for 0.4 s or more and removes the dead air — a long take becomes clean phrases. Free; Undo puts it back.">
+            <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={stripDb} aria-label="Silence threshold" onChange={(e) => setStripDb(Number(e.target.value))}>
+              {[-30, -40, -50, -60].map((d) => <option key={d} value={d}>{d} dB</option>)}
+            </select>
+            <button type="button" className="re-btn !w-auto px-2" onClick={stripSilenceNow}>✂ Strip silence</button>
           </span>
           <span className="flex items-center gap-1" title="Lays this many more copies end to end after the clip — a bar of beat becomes a whole verse. Free; Undo takes them away.">
             <input type="number" min={1} max={64} value={repeatN} className="neon-input !w-14 !py-0.5" aria-label="Times to repeat the clip" onChange={(e) => setRepeatN(Math.max(1, Math.min(64, Number(e.target.value) || 1)))} />

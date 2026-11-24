@@ -484,3 +484,16 @@ test("a track group moves volume by the same dB, and mute and solo together; ung
   assert.equal(alone.tracks[3].gain, -2); assert.equal(alone.tracks[0].gain, -6);
   assert.equal(setTrack(x, a, { group: "Z" }).tracks[0].group, "");
 });
+
+test("stripping a clip leaves the pieces where they were on the timeline", async () => {
+  const { newSession, addTrack, addSource, addRegion, stripRegion, regionsOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "s1", name: "take", duration: 10, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "s1", at: 2, name: "take" });
+  const r = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = stripRegion(x, r.id, [{ from: 1, to: 3 }, { from: 6, to: 8 }]);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.deepEqual(rs.map((q) => [q.at, q.in, q.out]), [[3, 1, 3], [8, 6, 8]]);   // timeline = 2 + (source - 0)
+  assert.equal(stripRegion(x, r.id, []), x);
+});
