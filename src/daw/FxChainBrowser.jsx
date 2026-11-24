@@ -29,17 +29,17 @@ export default function FxChainBrowser({ track, onInserts, statzOk = true }) {
     <div className="space-y-1" data-testid="fx-chain-browser">
       <input className="neon-input w-full" type="search" value={q} placeholder={`Search ${STARTERS.length} FX chains — "drum bus", "vocal", "warm"…`}
              aria-label="Search FX chains" onChange={(e) => { setQ(e.target.value); setShown(PAGE); setMsg(""); }} />
-      <div className="flex flex-wrap gap-1" role="group" aria-label="Chain types">
-        <button type="button" aria-pressed={!group} className={`re-btn !w-auto px-2 py-0.5 ${!group ? "ring-1 ring-mcz-gold" : ""}`} onClick={() => { setGroup(""); setShown(PAGE); }}>All ({found.length})</button>
+      <div className="flex gap-1 overflow-x-auto pb-1" role="group" aria-label="Chain types">
+        <button type="button" aria-pressed={!group} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs ${!group ? "border-mcz-gold text-mcz-gold" : "border-white/20 text-white/70"}`} onClick={() => { setGroup(""); setShown(PAGE); }}>All ({found.length})</button>
         {groups.map(([g, n]) => (
-          <button key={g} type="button" aria-pressed={group === g} className={`re-btn !w-auto px-2 py-0.5 ${group === g ? "ring-1 ring-mcz-gold" : ""}`} onClick={() => { setGroup(g); setShown(PAGE); }}>{g} ({n})</button>
+          <button key={g} type="button" aria-pressed={group === g} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs ${group === g ? "border-mcz-gold text-mcz-gold" : "border-white/20 text-white/70"}`} onClick={() => { setGroup(g); setShown(PAGE); }}>{g} ({n})</button>
         ))}
       </div>
-      <ul className="max-h-56 space-y-1 overflow-y-auto" aria-label="FX chains">
+      <ul className="max-h-48 space-y-1 overflow-y-auto" aria-label="FX chains">
         {list.slice(0, shown).map((s, i, a) => (
           <li key={s.key}>
             {(i === 0 || a[i - 1].group !== s.group) && <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-mcz-gold">{s.group}</p>}
-            <button type="button" className="re-btn !w-full !justify-start text-left" onClick={() => apply(s)}>
+            <button type="button" className="w-full rounded border border-white/10 px-2 py-1 text-left hover:border-mcz-gold" onClick={() => apply(s)}>
               <span className="min-w-0">
                 <span className="font-semibold">{s.name}{s.statz && !statzOk ? " 🔒" : ""}</span>
                 {suitsRole(s, role) && <span className="ml-1 text-emerald-300">suits this track</span>}
