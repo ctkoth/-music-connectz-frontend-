@@ -145,6 +145,8 @@ export default function Workspace({ workflow }) {
     const was = document.title; document.title = `● REC — ${was.replace(/^● REC — /, "")}`;
     return () => { document.title = was; };
   }, [recording]);
+  const [recBoost, setRecBoostRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_recboost")); return [0, 6, 12, 18].includes(v) ? v : 0; } catch { return 0; } });
+  const setRecBoost = (v) => { setRecBoostRaw(v); try { localStorage.setItem("mcz_daw_recboost", String(v)); } catch { /* per-visit */ } };
   const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
@@ -682,7 +684,7 @@ export default function Workspace({ workflow }) {
       const selR = !plan && !cyc && selected ? sRef.current.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected) : null;
       const startAt = plan ? plan.from : cyc ? cyc.start : selR ? selR.at : playhead;
       if (plan || cyc || selR) setPlayhead(startAt);
-      await daw.startRecording(sRef.current, startAt, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
+      await daw.startRecording(sRef.current, startAt, { click, boostDb: recBoost, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
       setRecFrom(startAt);
@@ -1295,6 +1297,12 @@ export default function Workspace({ workflow }) {
           Count-in
           <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={countBars} disabled={recording} onChange={(e) => setCountBars(Number(e.target.value))} aria-label="Count-in bars">
             {COUNT_INS.map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} bar${n === 1 ? "" : "s"}`}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-white/70" title="Windows can turn the beat down while a mic is open. This lifts the beat by this much ONLY while you record (a limiter keeps it from clipping). Free. Off leaves it exactly as it plays.">
+          Beat while recording
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={recBoost} disabled={recording} onChange={(e) => setRecBoost(Number(e.target.value))} aria-label="Beat level while recording">
+            {[0, 6, 12, 18].map((n) => <option key={n} value={n}>{n === 0 ? "Normal" : `+${n} dB`}</option>)}
           </select>
         </label>
         <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}

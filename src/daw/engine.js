@@ -177,6 +177,7 @@ export function createDaw() {
   let loopCtl = null;
   let rec = null;
   let masterMeter = null;
+  let recBoost = 0;          // dB added to the master only while a take runs (see startRecording)
   const scratch = new Float32Array(1024);
 
   const readMode = () => { try { return cleanLatencyMode(localStorage.getItem("mcz_daw_latency")); } catch { return "interactive"; } };
@@ -329,7 +330,7 @@ export function createDaw() {
     if (loopCtl) { loopCtl.session = session; loopCtl.loop = session.loop; }       // a loop edge dragged while it plays is the next pass's
     if (!graph) return;
     const heard = new Set(audible(session).map((t) => t.id));
-    graph.master.gain.setTargetAtTime(dbToGain(session.master), ctx.currentTime, 0.01);
+    graph.master.gain.setTargetAtTime(dbToGain(session.master + recBoost), ctx.currentTime, 0.01);
     for (const t of session.tracks) {
       const n = graph.tracks[t.id];
       if (!n) continue;
@@ -386,12 +387,24 @@ export function createDaw() {
    * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
    * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null }) {
+  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null, boostDb = 0 }) {
     const c = audio();
     await ensureRunning(c);
     const list = inputs || [{ key: "", stream, channel: "both" }];
     // A take never loops the transport, except a cycle: the loop plays seamlessly and the capture is cut at its pass boundaries on stop.
     const t0 = cycle ? await play({ ...session, loop: { start: cycle.start, end: cycle.end, on: true } }, cycle.start, { click }) : await play({ ...session, loop: null }, from, { click });
+    // Windows can turn everything else down by up to 80% the moment a mic opens, and no web page can switch that off.
+    // The member may lift the beat for the length of the take to make up for it; a limiter after it means a hot beat
+    // is held under 0 dB instead of clipping. Off (0) leaves the graph exactly as it was.
+    recBoost = Math.max(0, Math.min(18, Number(boostDb) || 0));
+    if (recBoost > 0 && graph) {
+      graph.master.gain.setValueAtTime(dbToGain(session.master + recBoost), c.currentTime);
+      try { graph.master.disconnect(c.destination); } catch { /* not connected there */ }
+      const lim = c.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      graph.master.connect(lim); lim.connect(c.destination);
+      graph.__recLimiter = lim;
+    }
     const startFrame = Math.round(t0 * c.sampleRate);
     const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
     if (useWorklet && !rec?.workletReady) {
@@ -502,6 +515,7 @@ export function createDaw() {
   /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
   async function stopRecording() {
     const r = rec;
+    recBoost = 0;
     stop();
     if (!r?.parts) return [];
     for (const p of r.parts) { try { p.node.disconnect(); p.sink.disconnect(); p.extra.forEach((x) => x.disconnect()); } catch { /* gone */ } }
