@@ -374,9 +374,3 @@ html[data-casino] .re-label { color: #fde68a; }
 select option, select optgroup { background-color: #12121c; color: #f4f4f8; }
 select option:disabled { color: #8a8a99; }
 
-/* A mini pane is a few hundred pixels of the tool, not the tool's hero: the full-size title and tagline filled
-   the whole pane (MetZ, TunerZ) and the controls sat below the fold. Shrink the heading, keep everything else. */
-.mini-body h1 { font-size: 1.1rem !important; margin: 0 0 4px !important; line-height: 1.2; }
-.mini-body h1 + p { font-size: 0.75rem !important; margin: 0 0 6px !important; }
-.mini-body .mb-12 { margin-bottom: 0.5rem !important; }
-.mini-body .min-h-screen { min-height: 0 !important; }

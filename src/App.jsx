@@ -1476,7 +1476,7 @@ function Home() {
                   {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
                       quarter-size tool takes quarter-size room and its
                       controls still hit where they are drawn. */}
-                  <div className="mini-body max-h-[38vh] overflow-y-auto p-2 lg:max-h-[30vh]" style={{ zoom: 0.72 }}>
+                  <div className="max-h-[60vh] overflow-y-auto p-2 lg:max-h-[52vh]" style={{ zoom: 0.72 }}>
                     <ErrorBoundary key={k} label={t?.label}>
                       <Suspense fallback={<RouteFallback />}>{t?.el}</Suspense>
                     </ErrorBoundary>
