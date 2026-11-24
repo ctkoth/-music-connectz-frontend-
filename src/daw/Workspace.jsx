@@ -140,6 +140,7 @@ export default function Workspace({ workflow }) {
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
   const [punchOn, setPunchRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_punch") === "1"; } catch { return false; } });
@@ -669,6 +670,7 @@ export default function Workspace({ workflow }) {
       await daw.startRecording(sRef.current, plan ? plan.from : cyc ? cyc.start : playhead, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
+      setRecFrom(plan ? plan.from : cyc ? cyc.start : playhead);
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
   };
@@ -1189,6 +1191,24 @@ export default function Workspace({ workflow }) {
           <span className="text-white/75">— peaks reach +{clipDb} dB over full scale. Clipping across a song sounds like static or distortion, not your tracks.</span>
           <button type="button" className="re-btn !w-auto px-3 !py-1" onClick={fixClip}>Turn every fader down {Math.ceil(clipDb + 1)} dB</button>
           <span className="text-emerald-300">Free · Undo puts it back</span>
+        </div>
+      )}
+      {/* The recording path, while a take runs: where the sound is coming from, where it is going, how long, and what
+          stopping does. A red button alone does not say which track is taking it or that nothing has left the device. */}
+      {recording && (
+        <div role="status" aria-live="polite" className="rounded-xl border-2 border-red-500/70 bg-red-500/10 p-2 text-xs text-white">
+          <p className="font-bold text-red-300">
+            <span className="animate-pulse">●</span> Recording {minSec(Math.max(0, playhead - recFrom))}
+            {cyclePass > 0 && ` · pass ${cyclePass}`}
+          </p>
+          <p className="mt-1 text-white/85">
+            <span className="text-white/60">Path:</span>{" "}
+            {armedAll.map((t) => `🎤 ${t.input?.device ? "chosen input" : "default mic"}${t.input?.channel && t.input.channel !== "both" ? ` (${t.input.channel})` : ""} → ${t.name}`).join("  ·  ")}
+            {" → "}{cyclePass > 0 ? "one take per pass" : punchRef.current ? "punch in/out (only inside the loop is kept)" : `a new take starting at ${barsBeats(session, recFrom)}`}
+          </p>
+          <p className="mt-1 text-white/60">
+            Stop recording adds it to the track{armedAll.length > 1 ? "s" : ""} and keeps the sound on this device as a 24-bit WAV. Nothing is uploaded until you press Save to FileZ.
+          </p>
         </div>
       )}
       {/* Transport */}
