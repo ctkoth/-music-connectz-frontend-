@@ -128,6 +128,9 @@ export function cleanInsert(raw) {
   const params = Object.fromEntries(Object.entries(spec.params).map(([k, p]) => [k, clamp(num(raw.params?.[k], p.default), p.min, p.max)]));
   const out = { id: String(raw.id || newInsert(raw.type).id), type: raw.type, on: raw.on !== false, params };
   if (raw.type === "eq") out.bands = cleanBands(Array.isArray(raw.bands) ? raw.bands : legacyEqBands(raw.params), { gain: EQ_GAIN });
+  // StatZ's blend for every effect that has no mix of its own: how much of it is heard against the untouched sound.
+  const amt = clamp(num(raw.amount, 100), 0, 100);
+  if (amt < 100) out.amount = amt;
   return out;
 }
 
@@ -165,7 +168,20 @@ function wetDry(ctx, input, output, wetPath, mix) {
 }
 
 /** Nodes for one insert: `{ input, output, update(params) }`. A bypassed insert is a straight wire. */
-export function buildInsert(ctx, insert, { bpm = 120 } = {}) {
+/** `amount` (0-100, StatZ) blends an effect with the untouched sound, for the effects that have no mix of their own.
+ *  50 is half as present. Effects with a mix control are blended by that control instead, so nothing is applied twice. */
+export function buildInsert(ctx, insert, opts = {}) {
+  const core = buildCore(ctx, insert, opts);
+  const a = Number.isFinite(Number(insert.amount)) ? clamp(Number(insert.amount) / 100, 0, 1) : 1;
+  if (a >= 1 || !insert.on || PLUGINS[insert.type]?.params?.mix) return core;
+  const input = ctx.createGain(), output = ctx.createGain(), dry = ctx.createGain(), wet = ctx.createGain();
+  dry.gain.value = 1 - a; wet.gain.value = a;
+  input.connect(dry); dry.connect(output);
+  input.connect(core.input); core.output.connect(wet); wet.connect(output);
+  return { ...core, input, output };
+}
+
+function buildCore(ctx, insert, { bpm = 120 } = {}) {
   const input = ctx.createGain();
   const output = ctx.createGain();
   if (!insert.on) { input.connect(output); return { input, output, update() {} }; }

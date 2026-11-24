@@ -404,14 +404,18 @@ export default function EditWindow({
                         <li key={i.id || n} className="flex items-center gap-1 text-white/80">
                           <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
                           <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
-                          {PLUGINS[i.type]?.params?.mix && (
-                            <label className="flex items-center gap-1 text-[10px] text-white/70" title="How much of this effect you hear against the dry sound">
-                              {Math.round(i.params?.mix ?? PLUGINS[i.type].params.mix.default)}%
-                              <input type="range" min={0} max={100} step={5} className="w-16" aria-label={`${PLUGINS[i.type]?.label} amount`}
-                                     value={i.params?.mix ?? PLUGINS[i.type].params.mix.default}
-                                     onChange={(e) => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, params: { ...x.params, mix: Number(e.target.value) } } : x)))} />
-                            </label>
-                          )}
+                          {(() => {
+                            const hasMix = !!PLUGINS[i.type]?.params?.mix;
+                            const val = hasMix ? (i.params?.mix ?? PLUGINS[i.type].params.mix.default) : (i.amount ?? 100);
+                            const set = (v) => onInserts(t.id, t.inserts.map((x, k) => (k !== n ? x : hasMix ? { ...x, params: { ...x.params, mix: v } } : { ...x, amount: v })));
+                            return (
+                              <label className={`flex items-center gap-1 text-[10px] ${statzOk ? "text-white/70" : "text-white/35"}`}
+                                     title={statzOk ? "How much of this effect you hear against the untouched sound: 50% is half as present" : "StatZ: set how much of any effect is heard (50% = half as present)"}>
+                                {Math.round(val)}%{!statzOk && " 🔒"}
+                                <input type="range" min={0} max={100} step={5} className="w-16" aria-label={`${PLUGINS[i.type]?.label} amount`} disabled={!statzOk} value={val} onChange={(e) => set(Number(e.target.value))} />
+                              </label>
+                            );
+                          })()}
                           <button type="button" className="rounded border border-white/20 px-1.5 text-[10px] text-white/70 hover:border-mcz-ember hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>Remove</button>
                         </li>
                       ))}
