@@ -137,6 +137,7 @@ const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
 const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const LookSample = lazy(lazyRoute(() => import("./apps/LookSample.jsx")));
 const RateInvite = lazy(lazyRoute(() => import("./apps/RateInvite.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
@@ -1747,6 +1748,7 @@ export default function App() {
       <Route path="/l/:id" element={<PublicLesson />} />
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/rate/:handle" element={<RateInvite />} />
+      <Route path="/lookmaxz/sample" element={<LookSample />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       {/* Matched BEFORE /try/:appKey — route order matters here, or the

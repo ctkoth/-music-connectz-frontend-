@@ -40,6 +40,7 @@ export default function RateInvite() {
           <div className="flex flex-wrap gap-2">
             <Link className="re-btn !w-auto px-4" to={`/register?ref=${encodeURIComponent(d.username)}`}>Join free</Link>
             <Link className="re-btn !w-auto px-4" to="/login">I have an account</Link>
+            <Link className="re-btn !w-auto px-4" to="/lookmaxz/sample">See an example first</Link>
           </div>
         </>
       )}
