@@ -140,6 +140,11 @@ export default function Workspace({ workflow }) {
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
+  useEffect(() => {                                   // the tab itself says it too, for when another window is in front
+    if (!recording) return undefined;
+    const was = document.title; document.title = `● REC — ${was.replace(/^● REC — /, "")}`;
+    return () => { document.title = was; };
+  }, [recording]);
   const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
@@ -1191,6 +1196,17 @@ export default function Workspace({ workflow }) {
           <span className="text-white/75">— peaks reach +{clipDb} dB over full scale. Clipping across a song sounds like static or distortion, not your tracks.</span>
           <button type="button" className="re-btn !w-auto px-3 !py-1" onClick={fixClip}>Turn every fader down {Math.ceil(clipDb + 1)} dB</button>
           <span className="text-emerald-300">Free · Undo puts it back</span>
+        </div>
+      )}
+      {/* Always on screen, whatever is scrolled: is this RECORDING, or only PLAYING? Two different red/blue states, and a
+          line saying what to press when a track is armed but nothing is being recorded. */}
+      {(recording || playing) && (
+        <div role="status" aria-live="assertive"
+             className={`pointer-events-none fixed bottom-24 right-3 z-50 max-w-[16rem] rounded-2xl border-2 px-4 py-2 text-sm font-bold shadow-xl ${recording
+               ? "animate-pulse border-red-400 bg-red-600 text-white shadow-[0_0_28px_rgba(239,68,68,0.7)]"
+               : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
+          {recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"}</span></>
+            : <>▶ PLAYING — not recording<span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed: press Record to capture` : "nothing is being captured"}</span></>}
         </div>
       )}
       {/* The recording path, while a take runs: where the sound is coming from, where it is going, how long, and what
