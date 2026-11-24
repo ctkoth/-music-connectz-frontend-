@@ -6,6 +6,8 @@ export const PRODUCTS = [
   { key: "bandana", label: "Bandana", emoji: "🧣", area: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
   { key: "wavecap", label: "Wave cap", emoji: "🧢", area: { x: 0.3, y: 0.32, w: 0.4, h: 0.3 } },
   { key: "durag", label: "Durag", emoji: "🎽", area: { x: 0.3, y: 0.28, w: 0.4, h: 0.32 } },
+  // Caps are embroidered, not printed: a small front panel, and thread suits bold, simple art.
+  { key: "baseballcap", label: "Baseball cap", emoji: "⚾", area: { x: 0.36, y: 0.3, w: 0.28, h: 0.16 }, note: "Embroidered, not printed: bold, simple art with a few colours stitches best. Fine detail and gradients won't." },
 ];
 export const COLORS = ["#111111", "#ffffff", "#c81d25", "#1d4ed8", "#15803d", "#7e22ce", "#f59e0b", "#ec4899"];
 export const productFor = (key) => PRODUCTS.find((p) => p.key === key) || PRODUCTS[0];

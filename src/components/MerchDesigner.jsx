@@ -21,6 +21,11 @@ function drawProduct(ctx, key, color) {
     ctx.moveTo(s * .5, s * .08); ctx.lineTo(s * .92, s * .5); ctx.lineTo(s * .5, s * .92); ctx.lineTo(s * .08, s * .5); ctx.closePath();
   } else if (key === "wavecap") {
     ctx.ellipse(s * .5, s * .55, s * .3, s * .32, 0, Math.PI, 0); ctx.lineTo(s * .8, s * .7); ctx.lineTo(s * .2, s * .7); ctx.closePath();
+  } else if (key === "baseballcap") {
+    ctx.ellipse(s * .5, s * .52, s * .26, s * .28, 0, Math.PI, 0); ctx.lineTo(s * .24, s * .52); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.beginPath();
+    ctx.ellipse(s * .5, s * .56, s * .36, s * .08, 0, 0, Math.PI); ctx.lineTo(s * .14, s * .53); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.arc(s * .5, s * .24, s * .02, 0, 2 * Math.PI);
   } else {
     ctx.ellipse(s * .5, s * .5, s * .28, s * .3, 0, Math.PI, 0); ctx.lineTo(s * .78, s * .66); ctx.lineTo(s * .22, s * .66); ctx.closePath();
     ctx.moveTo(s * .7, s * .62); ctx.lineTo(s * .85, s * .95); ctx.lineTo(s * .78, s * .95); ctx.lineTo(s * .64, s * .64);
@@ -83,7 +88,7 @@ export default function MerchDesigner() {
     <div className="re-card space-y-3" data-tour="merchz-designer">
       <div>
         <h2 className="text-lg font-semibold">👕 Design your own <span className="text-xs font-normal text-emerald-300">Free</span></h2>
-        <p className="text-sm text-white/70">A towel, T-shirt, bandana, wave cap or durag. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
+        <p className="text-sm text-white/70">A towel, T-shirt, bandana, wave cap, durag or baseball cap. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {PRODUCTS.map((p) => (
@@ -104,6 +109,7 @@ export default function MerchDesigner() {
           <label className="block text-sm text-white/70">Size <input type="range" min={0.2} max={1} step={0.05} value={scale} onChange={(e) => setScale(Number(e.target.value))} className="w-full" /></label>
           <label className="block text-sm text-white/70">Left ↔ right <input type="range" min={-1} max={1} step={0.05} value={dx} onChange={(e) => setDx(Number(e.target.value))} className="w-full" /></label>
           <label className="block text-sm text-white/70">Up ↕ down <input type="range" min={-1} max={1} step={0.05} value={dy} onChange={(e) => setDy(Number(e.target.value))} className="w-full" /></label>
+          {productFor(product).note ? <p className="text-xs text-mcz-gold">🧵 {productFor(product).note}</p> : null}
           <p className="text-xs text-white/50">The dashed box is the print area; art stays inside it. The shape is a guide, not a photo of the product.</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" className="re-btn !w-auto px-3" onClick={download}><Download size={14} /> Download mockup · free</button>
