@@ -294,7 +294,8 @@ export function setSession(s, patch) {
   if (!EDIT_MODES.includes(out.editMode)) out.editMode = "slip";
   if (!(out.grid in GRIDS)) out.grid = "1/4";
   out.master = clamp(num(out.master, 0), GAIN_DB.min, GAIN_DB.max);
-  out.masterInserts = Array.isArray(out.masterInserts) ? out.masterInserts.slice(0, 8) : [];     // the master track's own effects
+  out.masterInserts = Array.isArray(out.masterInserts) ? out.masterInserts.slice(0, 8) : [];
+  out.buses = cleanBuses(out.buses);     // the master track's own effects
   out.name = String(out.name || "Untitled session").slice(0, 60);
   out.key = SESSION_KEYS.includes(out.key) ? out.key : "";
   out.snap = out.snap !== false;
@@ -329,6 +330,21 @@ export function setAuto(s, id, param, lane) {
   return mapTrack(s, id, (t) => ({ ...t, auto: { ...(t.auto || {}), [param]: cleanLane(param, lane) } }));
 }
 
+export const MAX_BUSES = 4;
+/** A track's send amounts: { busId: 0-100 }, only for real numbers above 0. */
+export function cleanSends(raw) {
+  const out = {};
+  if (raw && typeof raw === "object") for (const [k, v] of Object.entries(raw)) { const n = clamp(Math.round(num(v, 0)), 0, 100); if (n > 0) out[String(k).slice(0, 24)] = n; }
+  return out;
+}
+/** The send buses: shared effects (a reverb, a delay) that several tracks feed by an amount. */
+export function cleanBuses(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_BUSES).map((b, i) => ({
+    id: String(b?.id || `bus${i + 1}`).slice(0, 24), name: String(b?.name || `Bus ${i + 1}`).slice(0, 24),
+    inserts: Array.isArray(b?.inserts) ? b.inserts.slice(0, 8) : [], level: clamp(num(b?.level, 0), GAIN_DB.min, GAIN_DB.max),
+  }));
+}
+
 export function setTrack(s, id, patch) {
   return mapTrack(s, id, (t) => {
     const out = { ...t, ...patch };
@@ -339,6 +355,7 @@ export function setTrack(s, id, patch) {
     out.emoji = cleanEmoji(out.emoji);
     out.recMode = cleanRecMode(out.recMode);
     out.input = cleanInput(out.input);
+    out.sends = cleanSends(out.sends);
     return out;
   });
 }

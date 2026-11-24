@@ -154,9 +154,22 @@ export default function Workspace({ workflow }) {
   useEffect(() => () => setProjectBpm(null), []);
   // Effects on a track, or on the master track (the pseudo-track id "__master").
   const setInserts = (id, list) => {
-    commit((s) => (id === "__master" ? setSession(s, { masterInserts: cleanInserts(list) }) : setTrack(s, id, { inserts: cleanInserts(list) })));
+    commit((s) => {
+      if (id === "__master") return setSession(s, { masterInserts: cleanInserts(list) });
+      if (String(id).startsWith("__bus:")) { const bid = id.slice(6); return setSession(s, { buses: (s.buses || []).map((b) => (b.id === bid ? { ...b, inserts: cleanInserts(list) } : b)) }); }
+      return setTrack(s, id, { inserts: cleanInserts(list) });
+    });
     restartIfPlaying();
   };
+  // Send buses: a shared reverb or delay many tracks can feed by an amount (the Pro Tools "aux" idea).
+  const addBus = (kind) => commit((s) => {
+    if ((s.buses || []).length >= 4) return s;
+    const ins = newInsert(kind); ins.params = { ...ins.params, mix: 100 };
+    const id = `bus${Date.now().toString(36)}`;
+    return setSession(s, { buses: [...(s.buses || []), { id, name: kind === "reverb" ? "Reverb" : "Delay", inserts: [ins], level: 0 }] });
+  });
+  const removeBus = (id) => commit((s) => ({ ...setSession(s, { buses: (s.buses || []).filter((b) => b.id !== id) }), tracks: s.tracks.map((t) => { const { [id]: _gone, ...rest } = t.sends || {}; return { ...t, sends: rest }; }) }));
+  const busLevel = (id, db) => commit((s) => setSession(s, { buses: (s.buses || []).map((b) => (b.id === id ? { ...b, level: Math.max(-60, Math.min(12, db)) } : b)) }));
   const [repeatN, setRepeatN] = useState(4);
   const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
   const [stretching, setStretching] = useState(false);
@@ -259,6 +272,7 @@ export default function Workspace({ workflow }) {
       if (asCopy) s.name = `${s.name} (from ${DAW_NAMES[row.app] || "another DAW"})`.slice(0, 60);
       s.tracks = s.tracks.map((t) => ({ ...t, inserts: cleanInserts(t.inserts) }));
       s.masterInserts = cleanInserts(s.masterInserts);
+      s.buses = (s.buses || []).map((b) => ({ ...b, inserts: cleanInserts(b.inserts) }));
       let lost = 0;
       for (const sid of Object.keys(s.sources)) {
         if (daw.buffer(sid)) continue;
@@ -1570,7 +1584,7 @@ export default function Workspace({ workflow }) {
           arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
-          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))}
+          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))} onAddBus={addBus} onRemoveBus={removeBus} onBusLevel={busLevel}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}

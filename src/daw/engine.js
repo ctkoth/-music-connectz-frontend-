@@ -92,6 +92,19 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
     out.connect(node.input); out = node.output; masterNodes.push(node.input, node.output);
   }
   out.connect(ctx.destination);
+  // Send buses: a shared effect (a reverb, a delay) that tracks feed by an amount, then back into the master fader.
+  const buses = {};
+  for (const b of session.buses || []) {
+    const input = ctx.createGain(); let tail = input;
+    for (const ins of b.inserts || []) {
+      const node = buildInsert(ctx, ins, { bpm: session.bpm });
+      if (node.dispose) disposers.push(node.dispose);
+      tail.connect(node.input); tail = node.output; masterNodes.push(node.input, node.output);
+    }
+    const lvl = ctx.createGain(); lvl.gain.value = dbToGain(b.level || 0);
+    tail.connect(lvl); lvl.connect(master);
+    buses[b.id] = input; masterNodes.push(input, lvl);
+  }
   for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
     const sum = ctx.createGain();
     sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
@@ -117,6 +130,11 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       pan.connect(meter);
     }
     pan.connect(master);
+    for (const [bid, amt] of Object.entries(t.sends || {})) {          // post-fader sends: the fader and mute move them too
+      if (!buses[bid] || !(amt > 0)) continue;
+      const sg = ctx.createGain(); sg.gain.value = amt / 100;
+      pan.connect(sg); sg.connect(buses[bid]); masterNodes.push(sg);
+    }
     tracks[t.id] = { fader, pan, meter, sum };
     for (const r of playlistOf(t).regions) {
       const buf = buffers.get(r.src);

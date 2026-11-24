@@ -143,7 +143,7 @@ export default function EditWindow({
   session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onComp = null, onStartComp = null, onClearComp = null, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onMaster, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onMaster, onAddBus, onRemoveBus, onBusLevel, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -157,7 +157,8 @@ export default function EditWindow({
   const size = trackSize(trackSizeKey);
   const dense = !size.full;
   const LANE_H = size.h;
-  const MASTER_H = 64;                // the master track's row, drawn above the tracks on both sides
+  const BUS_H = 30;
+  const MASTER_H = 64 + BUS_H * (session.buses || []).length + ((session.buses || []).length < 4 && onAddBus ? 0 : 0);     // the master track's rows (master + one per send bus), drawn above the tracks on both sides
 
   // The FX button, its panel (effects, amounts, chains, presets) for a track or for the master bus.
   const fxControls = (t) => onInserts && (
@@ -374,8 +375,26 @@ export default function EditWindow({
               </span>
             </div>
             {fxControls({ id: "__master", name: "Master", emoji: "🎚️", inserts: session.masterInserts || [], armed: false })}
+            {onAddBus && (
+              <div className="flex flex-wrap items-center gap-1 text-[10px] text-white/70">
+                {(session.buses || []).length < 4 && <button type="button" className="rounded bg-white/10 px-1.5 hover:bg-white/20" title="A shared reverb every track can feed by an amount: use the send knob on each track. Free." onClick={() => onAddBus("reverb")}>＋ Reverb send</button>}
+                {(session.buses || []).length < 4 && <button type="button" className="rounded bg-white/10 px-1.5 hover:bg-white/20" title="A shared delay every track can feed by an amount. Free." onClick={() => onAddBus("delay")}>＋ Delay send</button>}
+              </div>
+            )}
           </div>
         )}
+        {onInserts && (session.buses || []).map((b) => (
+          <div key={b.id} className="relative flex items-center gap-1 border-b border-white/10 bg-sky-500/10 px-2 text-[10px] text-white/85" style={{ height: BUS_H }} data-bus={b.id}>
+            <span className="font-semibold">↪ {b.name}</span>
+            {fxControls({ id: `__bus:${b.id}`, name: b.name, emoji: "↪", inserts: b.inserts || [], armed: false })}
+            <span className="ml-auto flex items-center gap-0.5">
+              <button type="button" className="rounded bg-white/10 px-1" aria-label={`${b.name} return down`} onClick={() => onBusLevel && onBusLevel(b.id, Math.round((b.level || 0) - 1))}>▼</button>
+              <span className="min-w-[3rem] text-center font-mono tabular-nums" title="How loud this bus comes back into the mix">{(b.level || 0) > 0 ? "+" : ""}{(b.level || 0).toFixed(0)} dB</span>
+              <button type="button" className="rounded bg-white/10 px-1" aria-label={`${b.name} return up`} onClick={() => onBusLevel && onBusLevel(b.id, Math.round((b.level || 0) + 1))}>▲</button>
+              <button type="button" className="ml-1 rounded border border-white/20 px-1 hover:border-mcz-ember hover:text-mcz-ember" aria-label={`Remove ${b.name}`} onClick={() => { if (window.confirm(`Remove the ${b.name} send bus? Every track's send to it is cleared; Undo brings it back.`)) onRemoveBus && onRemoveBus(b.id); }}>✕</button>
+            </span>
+          </div>
+        ))}
         {session.tracks.map((t) => (
           <Fragment key={t.id}>
           <div {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : recording && t.armed ? "bg-red-600/20 ring-2 ring-inset ring-red-500" : ""}`} style={{ height: LANE_H }}>
@@ -481,6 +500,13 @@ export default function EditWindow({
                 </button>
                 <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Turn ${t.name} up`} onClick={(e) => onTrack(t.id, { gain: Math.min(12, Math.round((t.gain || 0) + (e.shiftKey ? 3 : 1))) })}>▲</button>
               </span>
+              {(session.buses || []).map((b) => (
+                <label key={b.id} className="flex items-center gap-1" title={`How much of ${t.name} goes to the ${b.name} bus (after its fader). Free.`}>
+                  {b.name.slice(0, 3)} {t.sends?.[b.id] || 0}%
+                  <input type="range" min={0} max={100} step={5} className="w-12" aria-label={`${t.name} send to ${b.name}`} value={t.sends?.[b.id] || 0}
+                         onChange={(e) => onTrack(t.id, { sends: { ...(t.sends || {}), [b.id]: Number(e.target.value) } })} />
+                </label>
+              ))}
               <span className="flex items-center gap-0.5" title="Track pan. Arrows move it 10%; double-click the amount to centre it.">
                 <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Pan ${t.name} left`} onClick={() => onTrack(t.id, { pan: Math.max(-1, Math.round(((t.pan || 0) - 0.1) * 10) / 10) })}>◀</button>
                 <button type="button" className="min-w-[2.6rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label={`${t.name} pan, double-click to centre`} onDoubleClick={() => onTrack(t.id, { pan: 0 })}>
