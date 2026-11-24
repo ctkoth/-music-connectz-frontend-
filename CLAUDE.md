@@ -2825,3 +2825,12 @@ role from import or `guessRole`, mapped to chain groups). The role only ORDERS; 
 effects and says Undo brings them back; StatZ chains show 🔒 and refuse with the way to try them. The member's saved presets stay
 in the `TonePicker` beneath, labelled "Your saved presets". "Do best ft" (a cut-off message) was read as "make FX chains easy to
 find"; reversible by restoring the old picker in `EditWindow.jsx`.
+
+## MixEZ: mix-engineer ear training, scored by measurement (first slice)
+
+`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with two drills on a rendered chord loop
+through real peaking filters: **Find the frequency** (name the boosted band) and **Match the EQ** (five sliders against a hidden
+curve; score = RMS dB between the two RBJ responses, under 1.5 dB is "matched"). `src/mixez.js` is pure and tested. Free, on the
+device, no AI, nothing charged, and a wrong answer costs nothing. Progress is a practice count kept in localStorage, never a rating,
+and the screen says "no certificates" because we cannot issue one. Not built: a course library, compression/level drills,
+anything graded by opinion. Driven in headless Chromium (both drills, no console errors); not heard by ear or on a phone.

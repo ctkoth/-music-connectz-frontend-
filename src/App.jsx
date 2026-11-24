@@ -152,6 +152,7 @@ const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
 const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
 const ConnectHub = lazy(lazyRoute(() => import("./apps/Connect.jsx")));
 const ExploreFeed = lazy(lazyRoute(() => import("./apps/Discover.jsx")));
+const MixEZ = lazy(lazyRoute(() => import("./apps/MixEZ.jsx")));
 const DesignZ = lazy(lazyRoute(() => import("./apps/DesignZ.jsx")));
 const AnimeZ = lazy(lazyRoute(() => import("./apps/AnimeZ.jsx")));
 const AnimeConnectZ = lazy(lazyRoute(() => import("./apps/AnimeConnectZ.jsx")));
@@ -267,6 +268,7 @@ export const CUSTOM_ICONS = {
   "dawz.png": "/icons/dawz.png",
   "dawz_formulawon.png": "/icons/dawz_formulawon.png",
   "designz.png": "/icons/designz.png",
+  "mixez.png": "/icons/studioz.mixez.jpg",
   "developz.png": "/icons/developz.png",
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
@@ -664,6 +666,7 @@ const TABS = [
   { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
   { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
   { key: "designz", label: "DesignZ", icon: "designz.png", el: <DesignZ /> },
+  { key: "mixez", label: "MixEZ", icon: "mixez.png", el: <MixEZ /> },
   { key: "discover", label: "Explore", icon: "postz.png", el: <ExploreFeed /> },
   { key: "connect", label: "Connect", icon: "social_connectz.png", el: <ConnectHub /> },
   { key: "animez", label: "AnimeZ", icon: "animez.png", el: <AnimeZ /> },
@@ -1052,6 +1055,7 @@ const TAB_ABOUT = {
   characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
   connect: "🤝 Connect — every way to work with other people: who is here, deals, battles and shared rooms.",
   discover: "🧭 Explore — what members just posted, hot, new or top rated. Play a track, rate it and comment right here; posting is PostZ.",
+  mixez: "🎚️ MixEZ — mix-engineer ear training: name the boosted frequency, match a hidden EQ by ear. Free, on your device, scored by measurement.",
   designz: "🎨 DesignZ — designers put their work here to be rated, reacted to and commented on. Karma, Rate, Comment and Share sit under every design, and the rating is the median of what other members gave.",
   mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
   animez: "🌸 AnimeZ — put an episode together from your manga pages and anime pieces, with subtitles and camera moves, and cut it in VideoZ. Free, on your device.",
