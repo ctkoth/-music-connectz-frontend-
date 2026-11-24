@@ -294,6 +294,7 @@ export function setSession(s, patch) {
   if (!EDIT_MODES.includes(out.editMode)) out.editMode = "slip";
   if (!(out.grid in GRIDS)) out.grid = "1/4";
   out.master = clamp(num(out.master, 0), GAIN_DB.min, GAIN_DB.max);
+  out.masterInserts = Array.isArray(out.masterInserts) ? out.masterInserts.slice(0, 8) : [];     // the master track's own effects
   out.name = String(out.name || "Untitled session").slice(0, 60);
   out.key = SESSION_KEYS.includes(out.key) ? out.key : "";
   out.snap = out.snap !== false;

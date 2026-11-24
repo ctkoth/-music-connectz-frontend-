@@ -143,7 +143,7 @@ export default function EditWindow({
   session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onComp = null, onStartComp = null, onClearComp = null, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onMaster, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -157,6 +157,82 @@ export default function EditWindow({
   const size = trackSize(trackSizeKey);
   const dense = !size.full;
   const LANE_H = size.h;
+  const MASTER_H = 64;                // the master track's row, drawn above the tracks on both sides
+
+  // The FX button, its panel (effects, amounts, chains, presets) for a track or for the master bus.
+  const fxControls = (t) => onInserts && (
+              <div className="relative flex items-start gap-1 text-[10px]">
+                {t.armed && onMonitor && (
+                  <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
+                          title={monitorTrack === t.id ? `Hearing ${t.name}'s input${monitorLat ? ` (about ${monitorLat} ms of delay)` : ""}. Click to stop.` : "Hear this track's input while you record (use headphones)"}
+                          aria-label={`Monitor ${t.name}`}
+                          className={`rounded px-1.5 py-0.5 font-bold ${monitorTrack === t.id ? "bg-emerald-500 text-black" : "bg-red-600 text-white ring-1 ring-white/40"}`}>🎧</button>
+                )}
+                <button type="button" data-popover-anchor aria-expanded={fx?.id === t.id} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFx(fx?.id === t.id ? null : { id: t.id, rect: r }); }} title="Add effects or pick a preset chain"
+                        className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
+                  FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
+                </button>
+                {!dense && <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>}
+                {fx?.id === t.id && (
+                  <Popover rect={fx.rect} onClose={() => setFx(null)} label={`${t.name} effects`}>
+                    <p className="font-semibold text-white/80">{t.emoji} {t.name} effects</p>
+                    {(t.inserts || []).length === 0 && <p className="text-white/60">No effects yet. Pick a preset chain below, or add one effect at a time.</p>}
+                    <ul className="space-y-1">
+                      {(t.inserts || []).map((i, n) => (
+                        <li key={i.id || n} className="flex items-center gap-1 text-white/80">
+                          <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
+                          <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
+                          {(() => {
+                            const hasMix = !!PLUGINS[i.type]?.params?.mix;
+                            const val = hasMix ? (i.params?.mix ?? PLUGINS[i.type].params.mix.default) : (i.amount ?? 100);
+                            const set = (v) => onInserts(t.id, t.inserts.map((x, k) => (k !== n ? x : hasMix ? { ...x, params: { ...x.params, mix: v } } : { ...x, amount: v })));
+                            return (
+                              <label className={`flex items-center gap-1 text-[10px] ${statzOk ? "text-white/70" : "text-white/35"}`}
+                                     title={statzOk ? "How much of this effect you hear against the untouched sound: 50% is half as present" : "StatZ: set how much of any effect is heard (50% = half as present)"}>
+                                {Math.round(val)}%{!statzOk && " 🔒"}
+                                <input type="range" min={0} max={100} step={5} className="w-16" aria-label={`${PLUGINS[i.type]?.label} amount`} disabled={!statzOk} value={val} onChange={(e) => set(Number(e.target.value))} />
+                              </label>
+                            );
+                          })()}
+                          <button type="button" className="rounded border border-white/20 px-1.5 text-[10px] text-white/70 hover:border-mcz-ember hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>Remove</button>
+                        </li>
+                      ))}
+                    </ul>
+                    {(t.inserts || []).length > 1 && (
+                      <button type="button" className="re-btn !w-auto px-2 py-0.5 text-[10px]" onClick={() => onInserts(t.id, [])}>Remove all effects (Undo brings them back)</button>
+                    )}
+                    <label className="block text-white/60">Add an effect
+                      <select className="mt-0.5 w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value="" aria-label="Add an effect"
+                              onChange={(e) => {
+                                const type = e.target.value; if (!type) return;
+                                if (type === "__autotune") {
+                                  if (!statzOk) { setFxMsg("Auto-Tune"); return; }
+                                  setFxMsg(""); setFx(null); window.dispatchEvent(new CustomEvent("mcz-autotune", { detail: { trackId: t.id } })); return;
+                                }
+                                if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(PLUGINS[type].label); return; }
+                                setFxMsg(""); onInserts(t.id, [...(t.inserts || []), newInsert(type)]);
+                              }}>
+                        <option value="">Choose an effect…</option>
+                        <optgroup label="Free">{Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}</optgroup>
+                        <optgroup label="StatZ"><option value="__autotune">🎤 Auto-Tune (pitch correction){statzOk ? "" : " 🔒"}</option>{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
+                      </select>
+                    </label>
+                    {fxMsg && (
+                      <div className="space-y-1">
+                        <p className="text-mcz-gold">🔒 {fxMsg} is a StatZ effect. Free effects: EQ, compressor, delay, reverb, filter, gain.</p>
+                        <StatzOffer what={`${fxMsg} (a StatZ effect)`} />
+                      </div>
+                    )}
+                    <p className="text-white/60">FX chains — a whole set of effects in one pick (voice, guitar, bass, keys, drums, mix, plus your own). It replaces this track's effects; Undo brings them back.</p>
+                    <FxChainBrowser track={t} onInserts={onInserts} statzOk={statzOk} />
+                    <p className="text-white/60">Your saved presets</p>
+                    <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
+                                placeholder="🎛️ Your saved presets…" ariaLabel={`Put a saved preset on ${t.name}`} />
+                    {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
+                  </Popover>
+                )}
+              </div>
+            );
   // Drag and drop (Studio Dragon): the browser's effects, tones and loops, and audio files from the desktop. A drop is only
   // taken if it decodes to something the browser really offers; the DAW does the rest (onDropItem / onDropFiles).
   const [dropTrack, setDropTrack] = useState(null);
@@ -287,6 +363,19 @@ export default function EditWindow({
             )}
           </div>
         </div>
+        {onInserts && (
+          <div className="relative flex flex-col justify-center gap-1 border-b border-white/10 bg-violet-500/10 px-2 py-1" style={{ height: MASTER_H }} data-master-track>
+            <div className="flex items-center gap-1 text-xs font-semibold text-white">
+              <span aria-hidden>🎚️</span> Master
+              <span className="ml-auto flex items-center gap-0.5 text-[10px] font-normal text-white/80" title="Master volume. Arrows move it 1 dB; double-click the number to reset.">
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Master down" onClick={() => onMaster && onMaster(Math.max(-60, Math.round((session.master || 0) - 1)))}>▼</button>
+                <button type="button" className="min-w-[3.4rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label="Master volume, double-click to reset" onDoubleClick={() => onMaster && onMaster(0)}>{(session.master || 0) > 0 ? "+" : ""}{(session.master || 0).toFixed(1)} dB</button>
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Master up" onClick={() => onMaster && onMaster(Math.min(12, Math.round((session.master || 0) + 1)))}>▲</button>
+              </span>
+            </div>
+            {fxControls({ id: "__master", name: "Master", emoji: "🎚️", inserts: session.masterInserts || [], armed: false })}
+          </div>
+        )}
         {session.tracks.map((t) => (
           <Fragment key={t.id}>
           <div {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : recording && t.armed ? "bg-red-600/20 ring-2 ring-inset ring-red-500" : ""}`} style={{ height: LANE_H }}>
@@ -400,79 +489,7 @@ export default function EditWindow({
                 <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Pan ${t.name} right`} onClick={() => onTrack(t.id, { pan: Math.min(1, Math.round(((t.pan || 0) + 0.1) * 10) / 10) })}>▶</button>
               </span>
             </div>
-            {onInserts && (
-              <div className="relative flex items-start gap-1 text-[10px]">
-                {t.armed && onMonitor && (
-                  <button type="button" aria-pressed={monitorTrack === t.id} onClick={() => onMonitor(t.id)}
-                          title={monitorTrack === t.id ? `Hearing ${t.name}'s input${monitorLat ? ` (about ${monitorLat} ms of delay)` : ""}. Click to stop.` : "Hear this track's input while you record (use headphones)"}
-                          aria-label={`Monitor ${t.name}`}
-                          className={`rounded px-1.5 py-0.5 font-bold ${monitorTrack === t.id ? "bg-emerald-500 text-black" : "bg-red-600 text-white ring-1 ring-white/40"}`}>🎧</button>
-                )}
-                <button type="button" data-popover-anchor aria-expanded={fx?.id === t.id} onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setFx(fx?.id === t.id ? null : { id: t.id, rect: r }); }} title="Add effects or pick a preset chain"
-                        className={`rounded px-1.5 py-0.5 font-bold ${(t.inserts || []).length ? "bg-mcz-cyan/25 text-white" : "bg-white/10 text-white/60"}`}>
-                  FX{(t.inserts || []).length ? ` ${(t.inserts || []).length}` : ""}
-                </button>
-                {!dense && <div className="min-w-0 flex-1"><TonePicker compact tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk} /></div>}
-                {fx?.id === t.id && (
-                  <Popover rect={fx.rect} onClose={() => setFx(null)} label={`${t.name} effects`}>
-                    <p className="font-semibold text-white/80">{t.emoji} {t.name} effects</p>
-                    {(t.inserts || []).length === 0 && <p className="text-white/60">No effects yet. Pick a preset chain below, or add one effect at a time.</p>}
-                    <ul className="space-y-1">
-                      {(t.inserts || []).map((i, n) => (
-                        <li key={i.id || n} className="flex items-center gap-1 text-white/80">
-                          <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
-                          <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
-                          {(() => {
-                            const hasMix = !!PLUGINS[i.type]?.params?.mix;
-                            const val = hasMix ? (i.params?.mix ?? PLUGINS[i.type].params.mix.default) : (i.amount ?? 100);
-                            const set = (v) => onInserts(t.id, t.inserts.map((x, k) => (k !== n ? x : hasMix ? { ...x, params: { ...x.params, mix: v } } : { ...x, amount: v })));
-                            return (
-                              <label className={`flex items-center gap-1 text-[10px] ${statzOk ? "text-white/70" : "text-white/35"}`}
-                                     title={statzOk ? "How much of this effect you hear against the untouched sound: 50% is half as present" : "StatZ: set how much of any effect is heard (50% = half as present)"}>
-                                {Math.round(val)}%{!statzOk && " 🔒"}
-                                <input type="range" min={0} max={100} step={5} className="w-16" aria-label={`${PLUGINS[i.type]?.label} amount`} disabled={!statzOk} value={val} onChange={(e) => set(Number(e.target.value))} />
-                              </label>
-                            );
-                          })()}
-                          <button type="button" className="rounded border border-white/20 px-1.5 text-[10px] text-white/70 hover:border-mcz-ember hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>Remove</button>
-                        </li>
-                      ))}
-                    </ul>
-                    {(t.inserts || []).length > 1 && (
-                      <button type="button" className="re-btn !w-auto px-2 py-0.5 text-[10px]" onClick={() => onInserts(t.id, [])}>Remove all effects (Undo brings them back)</button>
-                    )}
-                    <label className="block text-white/60">Add an effect
-                      <select className="mt-0.5 w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value="" aria-label="Add an effect"
-                              onChange={(e) => {
-                                const type = e.target.value; if (!type) return;
-                                if (type === "__autotune") {
-                                  if (!statzOk) { setFxMsg("Auto-Tune"); return; }
-                                  setFxMsg(""); setFx(null); window.dispatchEvent(new CustomEvent("mcz-autotune", { detail: { trackId: t.id } })); return;
-                                }
-                                if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(PLUGINS[type].label); return; }
-                                setFxMsg(""); onInserts(t.id, [...(t.inserts || []), newInsert(type)]);
-                              }}>
-                        <option value="">Choose an effect…</option>
-                        <optgroup label="Free">{Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}</optgroup>
-                        <optgroup label="StatZ"><option value="__autotune">🎤 Auto-Tune (pitch correction){statzOk ? "" : " 🔒"}</option>{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
-                      </select>
-                    </label>
-                    {fxMsg && (
-                      <div className="space-y-1">
-                        <p className="text-mcz-gold">🔒 {fxMsg} is a StatZ effect. Free effects: EQ, compressor, delay, reverb, filter, gain.</p>
-                        <StatzOffer what={`${fxMsg} (a StatZ effect)`} />
-                      </div>
-                    )}
-                    <p className="text-white/60">FX chains — a whole set of effects in one pick (voice, guitar, bass, keys, drums, mix, plus your own). It replaces this track's effects; Undo brings them back.</p>
-                    <FxChainBrowser track={t} onInserts={onInserts} statzOk={statzOk} />
-                    <p className="text-white/60">Your saved presets</p>
-                    <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
-                                placeholder="🎛️ Your saved presets…" ariaLabel={`Put a saved preset on ${t.name}`} />
-                    {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
-                  </Popover>
-                )}
-              </div>
-            )}
+            {fxControls(t)}
             {t.armed && (() => {
               const lv = levels?.[t.id];
               const dev = devices.find((d) => d.deviceId === (t.input?.device || ""));
@@ -519,6 +536,11 @@ export default function EditWindow({
           {onAddMarker && <MarkerStrip session={session} zoom={zoom} width={width} onSeek={onJump || onSeek} onAdd={onAddMarker} onChange={onMarker} onRemove={onRemoveMarker} />}
           <Ruler session={session} zoom={zoom} width={width} onSeek={onSeek} showBeats={beatsRow} onLoop={onLoop} onToggleLoop={onToggleLoop} punchArmed={punchArmed} />
           <div className="relative" onPointerMove={moving} onPointerUp={end} onPointerCancel={end}>
+            {onInserts && (
+              <div className="border-b border-white/10 bg-violet-500/5 px-2 text-[10px] leading-none text-white/45" style={{ height: MASTER_H }} aria-hidden>
+                <span className="relative top-2 inline-block">Master — everything you hear passes through the effects on this track</span>
+              </div>
+            )}
             {session.tracks.map((t) => (
               <Fragment key={t.id}>
               <div data-lane={t.id} {...dropOn(t, true)}

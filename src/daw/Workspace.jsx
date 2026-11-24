@@ -152,6 +152,11 @@ export default function Workspace({ workflow }) {
   const setRecBoost = (v) => { setRecBoostRaw(v); try { localStorage.setItem("mcz_daw_recboost", String(v)); } catch { /* per-visit */ } };
   useEffect(() => { setProjectBpm(session.bpm); }, [session.bpm]);        // MetZ beside the DAW plays the project's tempo
   useEffect(() => () => setProjectBpm(null), []);
+  // Effects on a track, or on the master track (the pseudo-track id "__master").
+  const setInserts = (id, list) => {
+    commit((s) => (id === "__master" ? setSession(s, { masterInserts: cleanInserts(list) }) : setTrack(s, id, { inserts: cleanInserts(list) })));
+    restartIfPlaying();
+  };
   const [repeatN, setRepeatN] = useState(4);
   const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
   const [stretching, setStretching] = useState(false);
@@ -253,6 +258,7 @@ export default function Workspace({ workflow }) {
       const s = cleanSession(row.session);
       if (asCopy) s.name = `${s.name} (from ${DAW_NAMES[row.app] || "another DAW"})`.slice(0, 60);
       s.tracks = s.tracks.map((t) => ({ ...t, inserts: cleanInserts(t.inserts) }));
+      s.masterInserts = cleanInserts(s.masterInserts);
       let lost = 0;
       for (const sid of Object.keys(s.sources)) {
         if (daw.buffer(sid)) continue;
@@ -1130,7 +1136,7 @@ export default function Workspace({ workflow }) {
           onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
           writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
           autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onInserts={setInserts}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />
   );
@@ -1564,7 +1570,7 @@ export default function Workspace({ workflow }) {
           arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
-          onCommit={onCommit} recording={recording}
+          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
@@ -1578,7 +1584,7 @@ export default function Workspace({ workflow }) {
           onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
           onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onInserts={setInserts}
           onOpenMix={() => setView("mix")}
           monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor} levels={levels}
           onAudioSettings={() => window.dispatchEvent(new Event("mcz-audio-settings"))}

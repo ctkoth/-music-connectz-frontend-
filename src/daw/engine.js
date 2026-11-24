@@ -79,11 +79,19 @@ export function computePeaks(buffer, n = 1000) {
 export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTime, live = false } = {}) {
   const master = ctx.createGain();
   master.gain.value = dbToGain(session.master);
-  master.connect(ctx.destination);
   const heard = new Set(audible(session).map((t) => t.id));
   const tracks = {};
   const sources = [];
   const disposers = [];     // effects that need telling they are finished (the worklet ones keep running until they are)
+  // The master bus: the master fader, then the master track's own effects, then the speakers (and the bounce).
+  const masterNodes = [];
+  let out = master;
+  for (const ins of session.masterInserts || []) {
+    const node = buildInsert(ctx, ins, { bpm: session.bpm });
+    if (node.dispose) disposers.push(node.dispose);
+    out.connect(node.input); out = node.output; masterNodes.push(node.input, node.output);
+  }
+  out.connect(ctx.destination);
   for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
     const sum = ctx.createGain();
     sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
@@ -145,7 +153,7 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       sources.push(s);
     }
   }
-  return { master, tracks, sources, disposers };
+  return { master, out, masterNodes, tracks, sources, disposers };
 }
 
 /** Stop whatever a param was scheduled to do and keep it where it is now (no jump when a lane is switched off). */
@@ -205,6 +213,7 @@ export function createDaw() {
     if (!g) return;
     g.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
     try { g.master.disconnect(); } catch { /* gone */ }
+    for (const n of g.masterNodes || []) { try { n.disconnect(); } catch { /* gone */ } }
     g.disposers?.forEach((d) => d());
   }
   function stopSources() {
@@ -221,7 +230,7 @@ export function createDaw() {
       const q = L.queue.shift();
       const old = graph;
       graph = q.graph; playing = { from: q.from, t0: q.t0 }; L.endT = q.endT;
-      if (masterMeter) graph.master.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
+      if (masterMeter) graph.out.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
       setTimeout(() => disposeGraph(old), 1500);          // its effects' tails ring on over the new pass, then it is freed
     }
   }
@@ -303,7 +312,7 @@ export function createDaw() {
     graph = buildGraph(c, session, buffers, { from, t0, live: true });
     masterMeter = c.createAnalyser();
     masterMeter.fftSize = 1024;
-    graph.master.connect(masterMeter);
+    graph.out.connect(masterMeter);
     playing = { from, t0 };
     const lp = session.loop;
     const looping = !!(lp && lp.on && from < lp.end);
@@ -399,10 +408,10 @@ export function createDaw() {
     recBoost = Math.max(0, Math.min(18, Number(boostDb) || 0));
     if (recBoost > 0 && graph) {
       graph.master.gain.setValueAtTime(dbToGain(session.master + recBoost), c.currentTime);
-      try { graph.master.disconnect(c.destination); } catch { /* not connected there */ }
+      try { graph.out.disconnect(c.destination); } catch { /* not connected there */ }
       const lim = c.createDynamicsCompressor();
       lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
-      graph.master.connect(lim); lim.connect(c.destination);
+      graph.out.connect(lim); lim.connect(c.destination);
       graph.__recLimiter = lim;
     }
     const startFrame = Math.round(t0 * c.sampleRate);
