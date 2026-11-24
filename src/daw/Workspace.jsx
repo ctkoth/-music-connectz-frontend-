@@ -665,7 +665,7 @@ export default function Workspace({ workflow }) {
       }
       clearTimeout(slow);
       refreshDevices();
-      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
+      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"} (${Math.round(countBars * sRef.current.meter * 60 / sRef.current.bpm)} s at ${sRef.current.bpm} BPM), then recording…`); await daw.countIn(sRef.current, countBars); }
       setBusy("Starting playback and recording…");
       const lp = sRef.current.loop;
       const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take

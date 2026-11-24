@@ -268,11 +268,19 @@ export function createDaw() {
   }
 
   /** Click `bars` bars (accent on each downbeat), resolving when the last beat's bar is over. Nothing is recorded meanwhile. */
+  // resume() can sit unanswered for ever when the browser's audio output is held (another app, a device that is
+  // gone). A take must say so instead of waiting on it.
+  async function ensureRunning(c) {
+    if (c.state === "running") return;
+    await Promise.race([c.resume().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
+    if (c.state !== "running") throw new Error("The browser's audio output didn't start (it says \"" + c.state + "\"). Click anywhere on the page and press Record again; if it keeps happening, another app may be holding your speakers or headphones — check the 🎧 output menu.");
+  }
+
   async function countIn(session, bars) {
     const plan = countInPlan(session, bars);
     if (!plan.beats.length) return;
     const c = audio();
-    if (c.state !== "running") await c.resume();
+    await ensureRunning(c);
     const t0 = c.currentTime + 0.1;
     for (const b of plan.beats) {
       const o = c.createOscillator(); const g = c.createGain();
@@ -380,7 +388,7 @@ export function createDaw() {
    */
   async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null }) {
     const c = audio();
-    if (c.state !== "running") await c.resume();
+    await ensureRunning(c);
     const list = inputs || [{ key: "", stream, channel: "both" }];
     // A take never loops the transport, except a cycle: the loop plays seamlessly and the capture is cut at its pass boundaries on stop.
     const t0 = cycle ? await play({ ...session, loop: { start: cycle.start, end: cycle.end, on: true } }, cycle.start, { click }) : await play({ ...session, loop: null }, from, { click });
