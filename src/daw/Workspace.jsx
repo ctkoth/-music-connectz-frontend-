@@ -632,6 +632,13 @@ export default function Workspace({ workflow }) {
         const passes = good[0].pass != null ? good.filter((t) => t.key === good[0].key).length : 0;
         if (passes) { setMsg(`Cycle recorded ${passes} pass${passes === 1 ? "" : "es"} onto ${[...new Set(names)].join(", ")}, each as its own take. The last one is playing; pick another from the track's take menu to hear it.${silent.length ? " A silent pass was not added." : ""}`); }
         else setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
+        // A take far below a normal level is the mic's, not the singer's: say so, with the two fixes, while it is fresh.
+        try {
+          let peak = 0;
+          for (const take of good) { const b = daw.buffer(take.id); for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i += 7) { const v = Math.abs(d[i]); if (v > peak) peak = v; } } }
+          const db = peak > 0 ? 20 * Math.log10(peak) : -120;
+          if (db < -24) setErr(`That take is very quiet — the loudest moment is ${db < -90 ? "silence" : `${Math.round(db)} dB`}. That's the microphone level, not you: raise it in Windows (Settings → Sound → Input → your mic) or your interface's gain, record again, or press 📏 Normalize on the track to bring it up (free).`);
+        } catch { /* the check is a courtesy; the take is already kept */ }
         for (const take of good) {
           try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
         }
