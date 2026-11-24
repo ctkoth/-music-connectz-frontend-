@@ -393,6 +393,11 @@ export default function Workspace({ workflow }) {
   const autoAllowed = !!(statz?.is_statz || statz?.active);
   const [writeAuto, setWriteAuto] = useState(false);
   const writeBuf = useRef({});                    // "trackId|param" -> [{ t, v }]
+  // Latch keeps writing from your first move until Stop; Touch writes only while you hold the control and goes back to the
+  // lane the moment you let go (a pause of 0.4 s with no movement counts as letting go).
+  const [autoMode, setAutoModeRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_automode") === "touch" ? "touch" : "latch"; } catch { return "latch"; } });
+  const setAutoMode = (m) => { setAutoModeRaw(m); try { localStorage.setItem("mcz_daw_automode", m); } catch { /* per-visit */ } };
+  const touchTimers = useRef({});
   const tierCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
   const liveView = (s) => {
     const keys = Object.keys(writeBuf.current);
@@ -417,6 +422,17 @@ export default function Workspace({ workflow }) {
     }, s));
     setMsg(`Wrote ${keys.length === 1 ? "an automation pass" : `${keys.length} automation passes`}. In Tracks, set a track's lane to Volume or Pan to see the line and move its points.`);
   };
+  const flushKey = (k) => {
+    const pts = writeBuf.current[k];
+    delete writeBuf.current[k];
+    if (!pts || !pts.length) return;
+    const [id, param] = k.split("|");
+    commit((s) => {
+      const tr = s.tracks.find((t) => t.id === id);
+      return tr ? setAuto(s, id, param, writePass(param, laneOf(tr, param), pts)) : s;
+    });
+    setMsg("Wrote a touch pass: the lane takes over again where you let go. Undo takes it away.");
+  };
   const recordWrite = (id, patch) => {
     if (!writeAuto || recording || !autoAllowed) return;
     const pos = daw.position();
@@ -428,6 +444,10 @@ export default function Workspace({ workflow }) {
         writeBuf.current[k] = [];
       }
       writeBuf.current[k].push({ t: pos, v: Number(patch[key]) });
+      if (autoMode === "touch") {
+        clearTimeout(touchTimers.current[k]);
+        touchTimers.current[k] = setTimeout(() => flushKey(k), 400);
+      }
     }
   };
 
@@ -1200,7 +1220,7 @@ export default function Workspace({ workflow }) {
     <MixWindow
           session={session} daw={daw} playing={playing}
           onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrackGrouped(s, id, patch)); }}
-          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
+          autoMode={autoMode} onAutoMode={setAutoMode} writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
           autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
           onInserts={setInserts}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
