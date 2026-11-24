@@ -43,7 +43,7 @@ export default function ThoroughGroup() {
       <div className="mb-3 rounded-xl bg-black/25 p-3 text-xs text-white/70">
         {mine.rating == null
           ? <>You're not rated yet ({mine.lifts || 0} of {d.min_lifts} lifts in the last 28 days).</>
-          : <>Your Thorough rating: <b className="text-white">{mine.rating}/10</b>
+          : <>Your Thorough rating: <b className="text-white">{mine.exact ?? mine.rating}/10</b>
               {mine.wearing ? <> · wearing <ThoroughMark mark={mine.wearing} /></> : mine.tier ? " · your badge is hidden" : ""}</>}
         {mine.next && <> Next: <b>{mine.next.label}</b> at {mine.next.rating}.</>}
         {" "}
