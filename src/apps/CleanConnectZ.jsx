@@ -3,6 +3,7 @@ import { FolderOpen, HardDrive, Percent, Scale, ShieldCheck, Trash2, History as 
 import { IconImg } from "../App.jsx";
 import { loadLimits } from "../limits.js";
 import { api } from "../api.js";
+import { goToSpot } from "../goto.js";
 import { MODES, MODE_ORDER, dupeCopies, human, openModes, plan, sumBytes, targetBytes } from "../cleanPlan.js";
 
 // Clean ConnectZ — free space on your own device. Pick a folder, say how much to free (a percent of it or a size),
@@ -251,12 +252,23 @@ export default function CleanConnectZ() {
                   </button>
                 ))}
                 {bridge && (
+                  <div className="col-span-2 space-y-1.5">
                   <button onClick={() => pick("percent", { dupes: true })}
-                    className="col-span-2 rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20">
+                    className="w-full rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20">
                     <div className="mb-1.5 text-2xl">♊</div><div className="text-[14px] font-semibold">Find duplicates</div>
                     <div className="mt-0.5 text-[13px] font-semibold text-violet-200">Byte-identical copies · you keep one of each</div>
                     {dupes && <div className="mt-1 text-[12px] text-violet-200/80">{dupes.unlimited ? "Free · no limit on your plan" : `Free · ${dupes.left} of ${dupes.limit} scans left today`}</div>}
                   </button>
+                  {/* Approaching the number (the server's `near`: one left or none) is when the upgrade is offered — never
+                      before, and never on the top plan. The gain is stated beside it, from the server's next-plan number. */}
+                  {dupes?.near && dupes.upgrade && (
+                    <button onClick={() => goToSpot(dupes.upgrade.tab, dupes.upgrade.target)}
+                      className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-emerald-300/30 bg-emerald-400/10 px-3 py-2.5 text-[13px] font-semibold text-white">
+                      <span>{dupes.left === 0 ? "Out of scans today" : "1 scan left today"} — upgrade</span>
+                      <span className="text-emerald-300">+{dupes.next_limit == null ? "unlimited" : `${dupes.next_limit} a day`}</span>
+                    </button>
+                  )}
+                  </div>
                 )}
                 <div className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl">
                   <div className="mb-1.5 text-2xl">📊</div><div className="text-[14px] font-semibold">This browser</div>
