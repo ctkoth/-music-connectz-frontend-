@@ -289,7 +289,7 @@ export default function EditWindow({
         </div>
         {session.tracks.map((t) => (
           <Fragment key={t.id}>
-          <div {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : ""}`} style={{ height: LANE_H }}>
+          <div {...dropOn(t, false)} className={`relative flex flex-col justify-between gap-1 border-b border-white/10 px-2 py-1.5 ${dropTrack === t.id ? "bg-mcz-cyan/15 ring-1 ring-inset ring-mcz-cyan" : recording && t.armed ? "bg-red-600/20 ring-2 ring-inset ring-red-500" : ""}`} style={{ height: LANE_H }}>
             <div className="flex items-center gap-1">
               {onPick && <input type="checkbox" className="shrink-0" aria-label={`Select ${t.name}`} checked={picked.includes(t.id)}
                                 onChange={(e) => onPick(e.target.checked ? [...picked, t.id] : picked.filter((x) => x !== t.id))} />}
