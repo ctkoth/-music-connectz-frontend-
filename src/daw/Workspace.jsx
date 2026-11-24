@@ -671,11 +671,14 @@ export default function Workspace({ workflow }) {
       const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take
       const plan = cyc ? null : punchPlan(sRef.current, punchOn);
       punchRef.current = plan;
-      if (plan) setPlayhead(plan.from); else if (cyc) setPlayhead(cyc.start);
-      await daw.startRecording(sRef.current, plan ? plan.from : cyc ? cyc.start : playhead, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
+      // A region the member selected is the part they mean to record over: start THERE, not wherever the playhead was left.
+      const selR = !plan && !cyc && selected ? sRef.current.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected) : null;
+      const startAt = plan ? plan.from : cyc ? cyc.start : selR ? selR.at : playhead;
+      if (plan || cyc || selR) setPlayhead(startAt);
+      await daw.startRecording(sRef.current, startAt, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
-      setRecFrom(plan ? plan.from : cyc ? cyc.start : playhead);
+      setRecFrom(startAt);
       setRecording(true); setPlaying(true);
     } catch (e) {
       // Whatever stopped the take must not leave the app half-way: playback running with nothing recording, and the
@@ -892,7 +895,7 @@ export default function Workspace({ workflow }) {
       if (e.target.closest?.("input, select, textarea")) return;
       const act = actionFor(keymap, e);
       if (!act) return;
-      if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else startPlay(); }
+      if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else if (armedTracks(sRef.current).length) record(); else startPlay(); }
       else if (act === "record") { e.preventDefault(); record(); }
       else if (act === "undo") { e.preventDefault(); undo(); }
       else if (act === "redo") { e.preventDefault(); redo(); }
@@ -1216,10 +1219,10 @@ export default function Workspace({ workflow }) {
                : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
           {err ? <><span>⚠ {err}</span> <button type="button" className="ml-2 underline" onClick={() => setErr("")}>OK</button></>
             : busy ? <>⏳ {busy}</>
-            : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"}</span></>
+            : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"} · from {minSec(recFrom)}</span><span className="block text-[11px] font-semibold text-white/90">{silentFor > 1.5 ? "Beat/mix is silent in the app" : outDb != null ? `beat/mix going out: ${outDb < -60 ? "—" : Math.round(outDb)} dB` : ""}</span></>
             : <>
                 {playing ? "▶ PLAYING — not recording" : "⏺ Armed — not recording yet"}
-                <span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed. Space only plays.` : "nothing is being captured"}</span>
+                <span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed. Space records when a track is armed.` : "nothing is being captured"}</span>
                 {armedAll.length > 0 && (
                   <button type="button" onClick={record} disabled={!!busy}
                           className="mt-1 w-full rounded-full bg-red-600 px-3 py-1.5 text-sm font-extrabold text-white shadow-[0_0_14px_rgba(239,68,68,0.6)] active:scale-95">
