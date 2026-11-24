@@ -1207,17 +1207,26 @@ export default function Workspace({ workflow }) {
       )}
       {/* Always on screen, whatever is scrolled: is this RECORDING, or only PLAYING? Two different red/blue states, and a
           line saying what to press when a track is armed but nothing is being recorded. */}
-      {(recording || playing || busy || err) && (
+      {(recording || playing || busy || err || armedAll.length > 0) && (
         <div role="status" aria-live="assertive"
              className={`fixed bottom-24 right-3 z-50 max-w-[18rem] rounded-2xl border-2 px-4 py-2 text-sm font-bold shadow-xl ${err
                ? "border-red-400 bg-red-950/95 text-red-100"
                : busy ? "border-amber-300 bg-slate-900/95 text-amber-200"
                : recording ? "pointer-events-none animate-pulse border-red-400 bg-red-600 text-white shadow-[0_0_28px_rgba(239,68,68,0.7)]"
-               : "pointer-events-none border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
+               : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
           {err ? <><span>⚠ {err}</span> <button type="button" className="ml-2 underline" onClick={() => setErr("")}>OK</button></>
             : busy ? <>⏳ {busy}</>
             : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"}</span></>
-            : <>▶ PLAYING — not recording<span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed: press Record to capture` : "nothing is being captured"}</span></>}
+            : <>
+                {playing ? "▶ PLAYING — not recording" : "⏺ Armed — not recording yet"}
+                <span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed. Space only plays.` : "nothing is being captured"}</span>
+                {armedAll.length > 0 && (
+                  <button type="button" onClick={record} disabled={!!busy}
+                          className="mt-1 w-full rounded-full bg-red-600 px-3 py-1.5 text-sm font-extrabold text-white shadow-[0_0_14px_rgba(239,68,68,0.6)] active:scale-95">
+                    ● Record now <span className="font-semibold opacity-80">(or press R)</span>
+                  </button>
+                )}
+              </>}
         </div>
       )}
       {/* The recording path, while a take runs: where the sound is coming from, where it is going, how long, and what
