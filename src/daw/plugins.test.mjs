@@ -1,3 +1,5 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
 
 test("an effect's blend amount survives cleaning, and 100 is not stored", async () => {
   const { cleanInsert, newInsert } = await import("./plugins.js");

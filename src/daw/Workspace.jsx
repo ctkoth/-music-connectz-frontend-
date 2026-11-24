@@ -60,6 +60,7 @@ import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
 import AutotunePanel from "./AutotunePanel.jsx";
+import { setProjectBpm } from "../dawTempo.js";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
 import { envelopeOf, sameAudioGroups } from "./dupes.js";
@@ -147,6 +148,8 @@ export default function Workspace({ workflow }) {
   }, [recording]);
   const [recBoost, setRecBoostRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_recboost")); return [0, 6, 12, 18].includes(v) ? v : 0; } catch { return 0; } });
   const setRecBoost = (v) => { setRecBoostRaw(v); try { localStorage.setItem("mcz_daw_recboost", String(v)); } catch { /* per-visit */ } };
+  useEffect(() => { setProjectBpm(session.bpm); }, [session.bpm]);        // MetZ beside the DAW plays the project's tempo
+  useEffect(() => () => setProjectBpm(null), []);
   const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
