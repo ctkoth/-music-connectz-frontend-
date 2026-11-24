@@ -62,6 +62,7 @@ import TimingPanel from "./TimingPanel.jsx";
 import AutotunePanel from "./AutotunePanel.jsx";
 import DawTuner from "./DawTuner.jsx";
 import { setProjectBpm } from "../dawTempo.js";
+import { foldTempo, stretchChannels, stretchFor } from "./tempoMatch.js";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
 import { envelopeOf, sameAudioGroups } from "./dupes.js";
@@ -152,6 +153,43 @@ export default function Workspace({ workflow }) {
   useEffect(() => { setProjectBpm(session.bpm); }, [session.bpm]);        // MetZ beside the DAW plays the project's tempo
   useEffect(() => () => setProjectBpm(null), []);
   const [repeatN, setRepeatN] = useState(4);
+  const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
+  const [stretching, setStretching] = useState(false);
+  // Time-stretch the selected clip so its tempo is the project's, pitch kept. The original sound stays on the device
+  // (Undo puts the clip back on it); the stretched copy is a new sound and replaces the clip in place.
+  const matchClipTempo = async () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const r = hit.region, proj = sRef.current.bpm;
+    setErr(""); setMsg(""); setStretching(true);
+    try {
+      const buf = daw.buffer(r.src);
+      if (!buf) throw new Error("That clip's sound isn't loaded — reopen the session and try again.");
+      const channels = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
+      let from = Number(clipBpm), how = "you said";
+      if (!(from > 0)) {
+        await new Promise((res) => setTimeout(res, 0));
+        const a = Math.round(r.in * buf.sampleRate), b = Math.round(r.out * buf.sampleRate);
+        const found = detectTempoFromChannels({ channels: channels.map((c) => c.subarray(a, b)), rate: buf.sampleRate });
+        if (!found?.bpm) throw new Error("I couldn't find a steady beat in that clip. Type its BPM in the box and press again.");
+        from = foldTempo(found.bpm, proj); how = "heard";
+      }
+      const ratio = stretchFor(from, proj);
+      if (!ratio) throw new Error(`A ${Math.round(from)} BPM clip can't be stretched to ${proj} BPM without sounding like a different recording (the limit is half to double). Change the project tempo or the clip's BPM.`);
+      if (Math.abs(ratio - 1) < 0.005) { setMsg(`That clip is already at ${proj} BPM.`); return; }
+      setBusy("Stretching the clip…"); await new Promise((res) => setTimeout(res, 0));
+      const out = stretchChannels(channels, buf.sampleRate, r.in, r.out, ratio);
+      const nb = new AudioBuffer({ numberOfChannels: out.length, length: out[0].length, sampleRate: buf.sampleRate });
+      out.forEach((c, i) => nb.copyToChannel(c, i));
+      const name = `${r.name} @ ${proj} BPM`.slice(0, 80);
+      const wav = daw.toWav(nb, 24);
+      const meta = await daw.decode(await wav.arrayBuffer(), name);
+      commit((x) => updateRegion(addSource(x, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate }), r.id, { src: meta.id, in: 0, out: meta.duration, name }));
+      try { await putSource(meta.id, wav); } catch { setStoreErr("The stretched clip is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`Stretched “${r.name}” from ${Math.round(from * 10) / 10} BPM (${how}) to the project's ${proj} BPM — ${ratio > 1 ? "slowed" : "sped up"} ${Math.round(Math.abs(ratio - 1) * 100)}%, pitch kept. Undo puts the original back.`);
+    } catch (e) { setErr(e.message); } finally { setStretching(false); setBusy(""); }
+  };
+  const [dummyRepeat] = useState(0);
   const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
@@ -1584,6 +1622,10 @@ export default function Workspace({ workflow }) {
           <button type="button" className="re-btn !w-auto px-2" onClick={saveTakeToFileZ} disabled={!!busy} title="Keep this clip in FileZ">Save to FileZ · {(takeBytes() / 1048576).toFixed(1)} MB of your storage</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={split} title="Split at the playhead (B)"><Scissors size={13} /> Split</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => duplicateRegion(s, sel.region.id))}><Copy size={13} /> Duplicate</button>
+          <span className="flex items-center gap-1" title="Stretches this clip so its tempo matches the project's (pitch kept). Leave the box blank to detect the clip's tempo, or type it. Free, on this device; Undo puts the original back.">
+            <input type="number" min={30} max={300} placeholder="clip BPM" value={clipBpm} className="neon-input !w-20 !py-0.5" aria-label="The clip's BPM (blank to detect)" onChange={(e) => setClipBpm(e.target.value)} />
+            <button type="button" className="re-btn !w-auto px-2" disabled={stretching || recording || !!busy} onClick={matchClipTempo}>⏱ Match project tempo ({session.bpm})</button>
+          </span>
           <span className="flex items-center gap-1" title="Lays this many more copies end to end after the clip — a bar of beat becomes a whole verse. Free; Undo takes them away.">
             <input type="number" min={1} max={64} value={repeatN} className="neon-input !w-14 !py-0.5" aria-label="Times to repeat the clip" onChange={(e) => setRepeatN(Math.max(1, Math.min(64, Number(e.target.value) || 1)))} />
             <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => repeatRegion(s, sel.region.id, repeatN))}>Repeat ×{repeatN}</button>
