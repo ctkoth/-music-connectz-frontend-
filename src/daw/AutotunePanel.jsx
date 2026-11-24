@@ -2,7 +2,7 @@
 // as a NEW TAKE on that track — the original is the previous take in the playlist menu, so nothing is lost. It
 // costs no credits (nothing leaves the device); it is StatZ's because it is a pro effect, the same line as the
 // plugin-grade inserts. Best on one voice at a time, and the panel says so before it is pressed.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import { NOTE_NAMES, SCALES, autotune } from "./autotune.js";
 
@@ -14,6 +14,14 @@ export default function AutotunePanel({ tracks, measure, onRendered, toWav, busy
   const [key, setKey] = useState(0);
   const [scale, setScale] = useState("major");
   const [speed, setSpeed] = useState(20);
+  const [amount, setAmount] = useState(100);     // how much of the correction is applied: 100 = fully on the note, 0 = untouched
+  const box = useRef(null);
+  // A track's FX menu has an Auto-Tune entry: it opens this panel on that track.
+  useEffect(() => {
+    const on = (e) => { setOpen(true); if (e.detail?.trackId) setTrackId(e.detail.trackId); setTimeout(() => box.current?.scrollIntoView?.({ behavior: "smooth", block: "center" }), 50); };
+    window.addEventListener("mcz-autotune", on);
+    return () => window.removeEventListener("mcz-autotune", on);
+  }, []);
   const [working, setWorking] = useState(false);
   const [err, setErr] = useState("");
   const tr = tracks.find((t) => t.id === trackId) || tracks.find((t) => /vo|vox|lead|sing|rap/i.test(t.name)) || tracks[0];
@@ -24,7 +32,7 @@ export default function AutotunePanel({ tracks, measure, onRendered, toWav, busy
     try {
       const { channels, rate } = await measure(tr);
       await new Promise((r) => setTimeout(r, 0));
-      const res = autotune(channels, rate, { key, scale, speedMs: speed });
+      const res = autotune(channels, rate, { key, scale, speedMs: speed, amount });
       if (res.voicedShare < 0.05) { setErr(`No singing found on ${tr.name} — autotune needs a voice (or one instrument) holding notes.`); return; }
       const buf = new AudioBuffer({ numberOfChannels: res.channels.length, length: res.channels[0].length, sampleRate: rate });
       res.channels.forEach((c, i) => buf.copyToChannel(c, i));
@@ -33,7 +41,7 @@ export default function AutotunePanel({ tracks, measure, onRendered, toWav, busy
   };
 
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs" data-tour="daw-autotune">
+    <div ref={box} className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs" data-tour="daw-autotune">
       <button type="button" className="font-semibold text-white" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         🎤 Autotune {open ? "▴" : "▾"} <span className="font-normal text-white/55">— pitch correction to a key · StatZ</span>
       </button>
@@ -59,6 +67,8 @@ export default function AutotunePanel({ tracks, measure, onRendered, toWav, busy
               </select></label>
             <label className="flex items-center gap-1 text-white/70">Speed {speed === 0 ? "instant (robotic)" : `${speed} ms`}
               <input type="range" min={0} max={200} step={5} value={speed} onChange={(e) => setSpeed(Number(e.target.value))} aria-label="Retune speed" /></label>
+            <label className="flex items-center gap-1 text-white/70">Amount {amount}%
+              <input type="range" min={0} max={100} step={5} value={amount} onChange={(e) => setAmount(Number(e.target.value))} aria-label="Correction amount" /></label>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" className="neon-btn-primary !w-auto px-3 !py-1.5" disabled={busy || working || !tr} onClick={run}>{working ? "Tuning…" : `Tune ${tr?.name || "a track"}`}</button>

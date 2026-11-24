@@ -404,20 +404,35 @@ export default function EditWindow({
                         <li key={i.id || n} className="flex items-center gap-1 text-white/80">
                           <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
                           <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
-                          <button type="button" className="text-white/40 hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>✕</button>
+                          {PLUGINS[i.type]?.params?.mix && (
+                            <label className="flex items-center gap-1 text-[10px] text-white/70" title="How much of this effect you hear against the dry sound">
+                              {Math.round(i.params?.mix ?? PLUGINS[i.type].params.mix.default)}%
+                              <input type="range" min={0} max={100} step={5} className="w-16" aria-label={`${PLUGINS[i.type]?.label} amount`}
+                                     value={i.params?.mix ?? PLUGINS[i.type].params.mix.default}
+                                     onChange={(e) => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, params: { ...x.params, mix: Number(e.target.value) } } : x)))} />
+                            </label>
+                          )}
+                          <button type="button" className="rounded border border-white/20 px-1.5 text-[10px] text-white/70 hover:border-mcz-ember hover:text-mcz-ember" aria-label={`Remove ${PLUGINS[i.type]?.label}`} onClick={() => onInserts(t.id, t.inserts.filter((_, k) => k !== n))}>Remove</button>
                         </li>
                       ))}
                     </ul>
+                    {(t.inserts || []).length > 1 && (
+                      <button type="button" className="re-btn !w-auto px-2 py-0.5 text-[10px]" onClick={() => onInserts(t.id, [])}>Remove all effects (Undo brings them back)</button>
+                    )}
                     <label className="block text-white/60">Add an effect
                       <select className="mt-0.5 w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value="" aria-label="Add an effect"
                               onChange={(e) => {
                                 const type = e.target.value; if (!type) return;
+                                if (type === "__autotune") {
+                                  if (!statzOk) { setFxMsg("Auto-Tune"); return; }
+                                  setFxMsg(""); setFx(null); window.dispatchEvent(new CustomEvent("mcz-autotune", { detail: { trackId: t.id } })); return;
+                                }
                                 if (PLUGINS[type]?.statz && !statzOk) { setFxMsg(PLUGINS[type].label); return; }
                                 setFxMsg(""); onInserts(t.id, [...(t.inserts || []), newInsert(type)]);
                               }}>
                         <option value="">Choose an effect…</option>
                         <optgroup label="Free">{Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}</optgroup>
-                        <optgroup label="StatZ">{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
+                        <optgroup label="StatZ"><option value="__autotune">🎤 Auto-Tune (pitch correction){statzOk ? "" : " 🔒"}</option>{Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{statzOk ? "" : " 🔒"}</option>)}</optgroup>
                       </select>
                     </label>
                     {fxMsg && (
