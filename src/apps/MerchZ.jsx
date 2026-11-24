@@ -1,4 +1,5 @@
 import Doors from "../components/Doors.jsx";
+import MerchDesigner from "../components/MerchDesigner.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
@@ -82,6 +83,7 @@ export default function MerchZ() {
           <p className="text-sm text-white/60">Sell and buy from other creators — apparel, art, beats, packs, routines. Legal goods only.</p>
         </div>
       </header>
+      <MerchDesigner />
       {money != null && <p className="text-xs text-white/50">Your balance: {usd(money)} {MONEY}</p>}
       {msg && <p className="text-sm text-emerald-300">{msg}</p>}
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}

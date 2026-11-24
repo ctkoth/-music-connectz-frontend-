@@ -311,7 +311,7 @@ const TOOLZ_MENU = {
     { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
   ],
   'MercheZ': [
-    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — legal goods only' },
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — and design your own towels, shirts, bandanas, wave caps and durags' },
   ],
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },

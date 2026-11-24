@@ -1,0 +1,117 @@
+import { useEffect, useRef, useState } from "react";
+import { Download, Upload } from "lucide-react";
+import { api } from "../api.js";
+import { COLORS, PRODUCTS, isLight, placeArt, productFor } from "../merchz.js";
+
+const SIZE = 900;
+
+// Simple silhouettes, drawn in the product colour. Good enough to judge placement; not a photo mockup.
+function drawProduct(ctx, key, color) {
+  const s = SIZE, line = isLight(color) ? "#333" : "#bbb";
+  ctx.fillStyle = color; ctx.strokeStyle = line; ctx.lineWidth = 4;
+  ctx.beginPath();
+  if (key === "shirt") {
+    ctx.moveTo(s * .35, s * .12); ctx.quadraticCurveTo(s * .5, s * .2, s * .65, s * .12);
+    ctx.lineTo(s * .9, s * .25); ctx.lineTo(s * .8, s * .4); ctx.lineTo(s * .72, s * .35);
+    ctx.lineTo(s * .72, s * .9); ctx.lineTo(s * .28, s * .9); ctx.lineTo(s * .28, s * .35);
+    ctx.lineTo(s * .2, s * .4); ctx.lineTo(s * .1, s * .25); ctx.closePath();
+  } else if (key === "towel") {
+    ctx.roundRect(s * .1, s * .15, s * .8, s * .7, 18);
+  } else if (key === "bandana") {
+    ctx.moveTo(s * .5, s * .08); ctx.lineTo(s * .92, s * .5); ctx.lineTo(s * .5, s * .92); ctx.lineTo(s * .08, s * .5); ctx.closePath();
+  } else if (key === "wavecap") {
+    ctx.ellipse(s * .5, s * .55, s * .3, s * .32, 0, Math.PI, 0); ctx.lineTo(s * .8, s * .7); ctx.lineTo(s * .2, s * .7); ctx.closePath();
+  } else {
+    ctx.ellipse(s * .5, s * .5, s * .28, s * .3, 0, Math.PI, 0); ctx.lineTo(s * .78, s * .66); ctx.lineTo(s * .22, s * .66); ctx.closePath();
+    ctx.moveTo(s * .7, s * .62); ctx.lineTo(s * .85, s * .95); ctx.lineTo(s * .78, s * .95); ctx.lineTo(s * .64, s * .64);
+  }
+  ctx.fill(); ctx.stroke();
+}
+
+export default function MerchDesigner() {
+  const [product, setProduct] = useState("shirt");
+  const [color, setColor] = useState(COLORS[0]);
+  const [img, setImg] = useState(null);
+  const [text, setText] = useState("");
+  const [scale, setScale] = useState(1);
+  const [dx, setDx] = useState(0);
+  const [dy, setDy] = useState(0);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const canvas = useRef(null);
+
+  useEffect(() => {
+    const c = canvas.current; if (!c) return;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#1a1025"; ctx.fillRect(0, 0, SIZE, SIZE);
+    drawProduct(ctx, product, color);
+    const a = productFor(product).area;
+    ctx.setLineDash([8, 8]); ctx.strokeStyle = "rgba(0,229,255,.55)"; ctx.lineWidth = 2;
+    ctx.strokeRect(a.x * SIZE, a.y * SIZE, a.w * SIZE, a.h * SIZE); ctx.setLineDash([]);
+    if (img) { const r = placeArt(product, img.width, img.height, SIZE, scale, dx, dy); ctx.drawImage(img, r.x, r.y, r.w, r.h); }
+    if (text.trim()) {
+      const fs = Math.round(a.h * SIZE * 0.22 * scale);
+      ctx.font = `bold ${fs}px Poppins, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = isLight(color) ? "#111" : "#fff";
+      const cx = (a.x + a.w / 2) * SIZE + (a.w * SIZE / 3) * dx, cy = (a.y + a.h / 2) * SIZE + (a.h * SIZE / 3) * dy + (img ? a.h * SIZE * 0.35 : 0);
+      ctx.fillText(text.trim().slice(0, 40), cx, Math.min(cy, (a.y + a.h) * SIZE - fs / 2), a.w * SIZE);
+    }
+  }, [product, color, img, text, scale, dx, dy]);
+
+  const pick = (f) => {
+    if (!f) return;
+    if (!f.type.startsWith("image/")) { setMsg("That isn't a picture — pick a PNG or JPG."); return; }
+    const url = URL.createObjectURL(f); const i = new Image();
+    i.onload = () => { setImg(i); setMsg(""); }; i.onerror = () => setMsg("That picture couldn't be opened."); i.src = url;
+  };
+  const blob = () => new Promise((res) => canvas.current.toBlob(res, "image/png"));
+  const download = async () => {
+    const b = await blob(); const a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = `merchz-${product}.png`; a.click();
+  };
+  const save = async () => {
+    setBusy(true); setMsg("");
+    try {
+      const b = await blob(); const form = new FormData();
+      form.append("file", b, `merchz-${product}.png`);
+      await api("/api/economy/uploads/", { method: "POST", body: form });
+      setMsg(`Saved to FileZ (${(b.size / 1048576).toFixed(1)} MB).`);
+    } catch (e) { setMsg(e.message || "Couldn't save to FileZ."); } finally { setBusy(false); }
+  };
+
+  return (
+    <div className="re-card space-y-3" data-tour="merchz-designer">
+      <div>
+        <h2 className="text-lg font-semibold">👕 Design your own <span className="text-xs font-normal text-emerald-300">Free</span></h2>
+        <p className="text-sm text-white/70">A towel, T-shirt, bandana, wave cap or durag. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {PRODUCTS.map((p) => (
+          <button key={p.key} type="button" onClick={() => setProduct(p.key)} className={`pill ${product === p.key ? "!border-mcz-cyan !text-mcz-cyan" : ""}`}>{p.emoji} {p.label}</button>
+        ))}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <canvas ref={canvas} width={SIZE} height={SIZE} className="w-full max-w-[480px] rounded-xl border border-white/10" aria-label={`Mockup of your ${productFor(product).label}`} />
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-1.5"><span className="text-sm text-white/70">Colour</span>
+            {COLORS.map((c) => <button key={c} type="button" aria-label={`Colour ${c}`} onClick={() => setColor(c)} style={{ background: c }} className={`h-7 w-7 rounded-full border-2 ${color === c ? "border-mcz-cyan" : "border-white/20"}`} />)}
+          </div>
+          <label className="re-btn !w-auto cursor-pointer px-3"><Upload size={14} /> Your art (PNG or JPG)
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
+          </label>
+          {img ? <button type="button" className="pill text-xs" onClick={() => setImg(null)}>Remove art</button> : null}
+          <input className="neon-input" maxLength={40} placeholder="Text (optional, 40 characters)" value={text} onChange={(e) => setText(e.target.value)} />
+          <label className="block text-sm text-white/70">Size <input type="range" min={0.2} max={1} step={0.05} value={scale} onChange={(e) => setScale(Number(e.target.value))} className="w-full" /></label>
+          <label className="block text-sm text-white/70">Left ↔ right <input type="range" min={-1} max={1} step={0.05} value={dx} onChange={(e) => setDx(Number(e.target.value))} className="w-full" /></label>
+          <label className="block text-sm text-white/70">Up ↕ down <input type="range" min={-1} max={1} step={0.05} value={dy} onChange={(e) => setDy(Number(e.target.value))} className="w-full" /></label>
+          <p className="text-xs text-white/50">The dashed box is the print area; art stays inside it. The shape is a guide, not a photo of the product.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3" onClick={download}><Download size={14} /> Download mockup · free</button>
+            <button type="button" className="re-btn !w-auto px-3" disabled={busy} onClick={save}>Save to FileZ · uses your storage</button>
+          </div>
+          {msg ? <p className="text-sm text-white/80" role="status">{msg}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
