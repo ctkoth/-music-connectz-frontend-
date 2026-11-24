@@ -2,13 +2,23 @@
 // and not reversible, so the cost and the gain are on the button before it is pressed, and the server's note says what
 // it changes (they receive that much less at release; a refund returns only what is still held). Who may be paid and
 // the most for each is the server's (`deal.advance`) — nothing is worked out here.
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 import { MONEY } from "../resources.js";
 
 const usd = (c) => `$${((c || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export default function AdvancePay({ deal, onAction, busy }) {
-  const adv = deal.advance;
+  const listed = deal.advance;                               // names and caps, from the list (no per-card queries)
+  const [detail, setDetail] = useState(null);               // + skill prices and the label link, asked for per deal
+  const has = !!(listed && Array.isArray(listed.to) && listed.to.length);
+  useEffect(() => {
+    if (!has) return undefined;
+    let on = true;
+    api(`/api/economy/collab/${deal.id}/advance/`).then((d) => on && setDetail(d)).catch(() => {});
+    return () => { on = false; };
+  }, [has, deal.id, deal.held_cents]);
+  const adv = detail?.to?.length ? { ...listed, ...detail } : listed;
   const [to, setTo] = useState("");
   const [typed, setTyped] = useState(null);                  // null = nothing typed yet, so the suggestion shows
   const [inLabel, setInLabel] = useState(true);
