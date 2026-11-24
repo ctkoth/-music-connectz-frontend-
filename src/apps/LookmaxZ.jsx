@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import SelectAllBar from "../components/SelectAllBar.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
@@ -470,7 +471,10 @@ export default function LookmaxZ() {
         <section className="neon-frame space-y-2 border-mcz-ember/30 p-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-mcz-ember"><Lock size={14} /> 18+ only</p>
           <p className="text-[12px] text-white/70">{d.locked}</p>
-          <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+            <Link className="re-btn !w-auto px-3 text-[12px]" to="/lookmaxz/sample">See an example reading first</Link>
+          </div>
         </section>
       ) : (
         <>

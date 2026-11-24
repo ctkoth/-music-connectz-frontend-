@@ -775,6 +775,9 @@ function TrialOrApp({ tabKey, children }) {
     return () => { on = false; };
   }, [loading, user, wantsDoors]);
   if (user) return children;
+  // LookZMaxZ opens for anybody, no account and no ID check: what a logged-out visitor gets is the EXAMPLE reading (it
+  // scores nobody). The real reading still needs a verified adult, and says so once they are in.
+  if (tabKey === "lookmaxz" && !loading) return <LookSample />;
   if (loading || (wantsDoors && doors === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-white/50">
