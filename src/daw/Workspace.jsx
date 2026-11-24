@@ -188,6 +188,30 @@ export default function Workspace({ workflow }) {
     commit((x) => stripRegion(x, hit.region.id, segs));
     setMsg(`Stripped ${minSec(total - kept)} of silence: the clip is now ${segs.length} piece${segs.length === 1 ? "" : "s"} (${stripDb} dB threshold, gaps of 0.4 s or more). Undo puts it back.`);
   };
+  // Commit (Pro Tools): bake a track's effects into audio. The track is rendered on its own with its effects (not its fader, pan,
+  // sends, the master's effects or a send bus's), laid down as a NEW take, and its effects are cleared so they are not applied twice.
+  // The original take is the previous one in the track's take menu and Undo puts the effects back, so nothing is lost.
+  const commitFx = async (trackId) => {
+    const cur = sRef.current;
+    const t = cur.tracks.find((x) => x.id === trackId);
+    if (!t || !(t.inserts || []).length) { setMsg("That track has no effects to commit."); return; }
+    if (!playlistOf(t).regions.length) { setMsg("That track has no audio yet — there is nothing to commit."); return; }
+    setErr(""); setMsg(""); setBusy(`Committing ${t.name}'s effects…`);
+    try {
+      const solo = { ...cur, master: 0, masterInserts: [], buses: [], tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {}, sends: {} } : {}) })) };
+      const buf = await daw.bounce(solo, { tail: 2 });
+      const name = `${t.name} (effects committed)`.slice(0, 80);
+      const wav = daw.toWav(buf, 24);
+      const meta = await daw.decode(await wav.arrayBuffer(), name);
+      commit((x) => {
+        const out = recordInto(addSource(x, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate }), t.id, { src: meta.id, at: 0, name });
+        return setTrack(out.session, t.id, { inserts: [] });
+      });
+      try { await putSource(meta.id, wav); } catch { setStoreErr("The committed take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`Committed ${t.name}'s ${t.inserts.length} effect${t.inserts.length === 1 ? "" : "s"} into audio: it is a new take now, with the effects cleared so they aren't applied twice. The original is the previous take in the track's take menu. Undo puts the effects back.`);
+      restartIfPlaying();
+    } catch (e) { setErr(`Couldn't commit: ${e.message}`); } finally { setBusy(""); }
+  };
   const [repeatN, setRepeatN] = useState(4);
   const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
   const [stretching, setStretching] = useState(false);
@@ -1101,7 +1125,7 @@ export default function Workspace({ workflow }) {
   };
   const measureTrackAudio = async (t) => {
     const cur = sRef.current;
-    const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
+    const solo = { ...cur, master: 0, masterInserts: [], buses: [], tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {}, sends: {} } : {}) })) };
     const buf = await daw.bounce(solo, { tail: 0 });
     return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
   };
@@ -1602,7 +1626,7 @@ export default function Workspace({ workflow }) {
           arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
-          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))} onAddBus={addBus} onRemoveBus={removeBus} onBusLevel={busLevel}
+          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))} onCommitFx={commitFx} onAddBus={addBus} onRemoveBus={removeBus} onBusLevel={busLevel}
           onTrack={(id, patch) => commit((s) => setTrackGrouped(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}

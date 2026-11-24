@@ -143,7 +143,7 @@ export default function EditWindow({
   session, daw, zoom, onZoom, trackSizeKey = "normal", punchArmed = false, onComp = null, onStartComp = null, onClearComp = null, arranger = null, onDropItem = null, onDropFiles = null, savedToneIds = [], onLoop, onToggleLoop, selected, onSelect, onSeek, playhead, onCommit, onDraft,
   onTrack, onArm, onPlaylist, onAddTrack, onRemoveTrack, recording, devices = [], onInput, keyRange = 12, onTranspose,
   onAuto, autoAllowed = false, trackLabel = "", picked = [], onPick, onMeasure,
-  onAddMarker, onMarker, onRemoveMarker, onInserts, onMaster, onAddBus, onRemoveBus, onBusLevel, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
+  onAddMarker, onMarker, onRemoveMarker, onInserts, onMaster, onCommitFx, onAddBus, onRemoveBus, onBusLevel, onOpenMix, onJump, monitorTrack, monitorLat, onMonitor, levels, onAudioSettings, atTrackCap = false, onUpgrade,
 }) {
   const tones = useTonePresets();
   const { s: trial } = useStatzTrial();
@@ -230,6 +230,12 @@ export default function EditWindow({
                     <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
                                 placeholder="🎛️ Your saved presets…" ariaLabel={`Put a saved preset on ${t.name}`} />
                     {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
+                    {onCommitFx && !String(t.id).startsWith("__") && (t.inserts || []).length > 0 && (
+                      <div>
+                        <button type="button" className="re-btn !w-auto px-2 py-0.5" disabled={recording} onClick={() => { setFx(null); onCommitFx(t.id); }}>🧊 Commit effects to audio</button>
+                        <p className="mt-0.5 text-white/55">Bakes this track's effects into a new take and clears them, so the track plays lighter. Free, on your device. The original stays as the previous take; Undo restores the effects.</p>
+                      </div>
+                    )}
                   </Popover>
                 )}
               </div>
