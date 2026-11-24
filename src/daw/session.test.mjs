@@ -366,3 +366,91 @@ test("record modes: Takes keeps the old take on a new playlist, Replace cuts it 
   assert.deepEqual(Object.keys(REC_MODES), ["takes", "replace", "overdub"]);
   assert.equal(_st(_new(), _new().tracks[0].id, {}).tracks[0].recMode, "takes");
 });
+
+import { rulerTicks, clockLabel } from "./session.js";
+import test2 from "node:test";
+import assert2 from "node:assert/strict";
+test2("ruler: bars, beats and clock ticks", () => {
+  const s = { bpm: 120, meter: 4 };           // beat 0.5s, bar 2s
+  const r = rulerTicks(s, 40, 400);            // 10s wide
+  assert2.equal(r.bars[1].t, 2); assert2.equal(r.bars[1].label, "2");
+  assert2.ok(r.beats.length > 0 && r.beats.every((b) => b.t % 2 !== 0));
+  assert2.equal(r.clock[1].t, 2);              // 60px / 40 = 1.5s -> first nice step is 2s
+  assert2.equal(clockLabel(65), "1:05");
+});
+
+import { setLoop, toggleLoop, loopJump, cleanLoop } from "./session.js";
+test2("loop region: set, order, too short, toggle, wrap", () => {
+  let s = setLoop({ tracks: [] }, 8, 2);
+  assert2.deepEqual(s.loop, { start: 2, end: 8, on: true });
+  assert2.equal(loopJump(s, 7.9), null);
+  assert2.equal(loopJump(s, 8), 2);
+  s = toggleLoop(s); assert2.equal(loopJump(s, 9), null);
+  assert2.equal(setLoop(s, 3, 3.01).loop, null);
+  assert2.equal(setLoop(s, null).loop, null);
+  assert2.equal(cleanLoop({ start: "x", end: 4 }), null);
+  assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
+});
+
+import { emptyTakeCount, removeEmptyTakes, dropIfEmptied, countInPlan, punchPlan } from "./session.js";
+test2("empty take lanes are removed, populated ones and the active take are kept", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
+  assert2.equal(emptyTakeCount(s), 2);                            // a track keeps one
+  const c = removeEmptyTakes(s);
+  assert2.equal(c.tracks[0].playlists.length, 1);
+  assert2.equal(emptyTakeCount(c), 0);
+  assert2.equal(removeEmptyTakes(s, "nope").tracks[0].playlists.length, 3);
+});
+
+test2("dropIfEmptied removes only the lane just emptied, never a merely-new one", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id);                                          // lane 2 is new and empty (an overdub's)
+  const lane1 = s.tracks[0].playlists[0].id; const lane2 = s.tracks[0].playlists[1].id;
+  const dropped = dropIfEmptied(s, id, lane1);                     // lane 1 "emptied": goes
+  assert2.deepEqual(dropped.tracks[0].playlists.map((p) => p.id), [lane2]);
+  assert2.equal(dropIfEmptied(dropped, id, lane2).tracks[0].playlists.length, 1);   // never the last lane
+  assert2.equal(dropIfEmptied(s, id, "nope"), s);
+});
+
+test2("count-in: a click per beat, the downbeat accented, the right length", () => {
+  const p = countInPlan({ bpm: 120, meter: 4 }, 2);
+  assert2.equal(p.beats.length, 8); assert2.equal(p.seconds, 4);
+  assert2.deepEqual(p.beats.filter((b) => b.accent).map((b) => b.at), [0, 2]);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 0).beats.length, 0);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 9).seconds, 0);   // junk means off
+});
+
+test2("a ruler stays sane when zoomed far out over a long beat", () => {
+  const r = rulerTicks({ bpm: 90, meter: 4 }, 0.2, 800);            // 4000 s across 800 px
+  assert2.ok(r.bars.length > 1 && r.bars.length <= 2000);
+  assert2.ok(r.clock.length > 1 && r.clock[1].t >= 300);             // clock ticks thin out to minutes, not a wall of marks
+  assert2.equal(r.beats.length, 0);
+});
+
+test2("punch plan: the loop region, a bar of pre-roll, nothing without a region", () => {
+  const s = { bpm: 120, meter: 4, loop: { start: 10, end: 14, on: false } };          // a bar is 2 s; the loop need not be ON to punch
+  assert2.deepEqual(punchPlan(s, true), { from: 8, in: 10, out: 14 });
+  assert2.equal(punchPlan(s, false), null);
+  assert2.equal(punchPlan({ ...s, loop: null }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 1, end: 1.05, on: true } }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 0.5, end: 4, on: true } }, true).from, 0);   // never before the start of the song
+  assert2.equal(punchPlan({ bpm: 300, meter: 1, loop: { start: 5, end: 9, on: true } }, true).from, 4);   // at least a second of pre-roll
+});
+
+import { addSource as addSrc, setTrack as setTr, newSession as newSes } from "./session.js";
+test2("cycle passes: each lands in its own take lane, the last is active, and the track's own mode comes back", () => {
+  let s = newSes("t"); const id = s.tracks[0].id;
+  s = setTr(s, id, { recMode: "overdub" });                                   // the member's own mode, which a cycle must not keep
+  for (let k = 1; k <= 3; k++) {
+    s = addSrc(s, { id: `src${k}`, name: `t${k}`, duration: 4, channels: 2, rate: 48000 });
+    s = setTr(s, id, { recMode: "takes" });
+    s = recordInto(s, id, { src: `src${k}`, at: 8, name: `take ${k}` }).session;
+    s = setTr(s, id, { recMode: "overdub" });
+  }
+  const t = s.tracks[0];
+  assert2.equal(t.playlists.length, 3);
+  assert2.deepEqual(t.playlists.map((p) => p.regions.map((r) => r.src)), [["src1"], ["src2"], ["src3"]]);   // one region per lane: nothing stacked
+  assert2.equal(t.active, 2);
+  assert2.equal(t.recMode, "overdub");
+});

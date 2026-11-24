@@ -12,7 +12,7 @@
 // is how takes land a few tens of milliseconds late and flam against the beat. What the device itself
 // adds — the time playback takes to reach the speaker and the mic to reach the page — is measured
 // where the browser reports it and taken off, and the screen says by how much.
-import { audible, beatSeconds, lengthOf, playlistOf } from "./session.js";
+import { audible, beatSeconds, countInPlan, lengthOf, playlistOf } from "./session.js";
 import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
@@ -171,7 +171,10 @@ export function createDaw() {
   const peaks = new Map();
   let graph = null;
   let playing = null;               // { from, t0 }
-  let clickTimer = null;
+  let clickTimers = [];
+  // Seamless looping: while a loop is on, the NEXT pass is built and scheduled ahead on the audio clock, so the wrap is sample-
+  // accurate and there is no gap. { session, loop, click, endT: when the current pass ends (context time), queue: [passes], timer }
+  let loopCtl = null;
   let rec = null;
   let masterMeter = null;
   const scratch = new Float32Array(1024);
@@ -197,23 +200,55 @@ export function createDaw() {
     peaks.set(id, computePeaks(buf, peakCount(buf)));
   }
 
+  function disposeGraph(g) {
+    if (!g) return;
+    g.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
+    try { g.master.disconnect(); } catch { /* gone */ }
+    g.disposers?.forEach((d) => d());
+  }
   function stopSources() {
-    if (clickTimer) { clearInterval(clickTimer); clickTimer = null; }
-    if (graph) {
-      graph.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
-      try { graph.master.disconnect(); } catch { /* gone */ }
-      graph.disposers?.forEach((d) => d());
-      graph = null;
+    clickTimers.forEach((t) => clearInterval(t)); clickTimers = [];
+    if (loopCtl) { clearInterval(loopCtl.timer); loopCtl.queue.forEach((q) => disposeGraph(q.graph)); loopCtl = null; }
+    if (graph) { disposeGraph(graph); graph = null; }
+  }
+
+  /** A scheduled pass has begun sounding: it becomes the current one, and the pass before it is freed a moment later. */
+  function promote(now) {
+    const L = loopCtl;
+    if (!L) return;
+    while (L.queue.length && now >= L.queue[0].t0) {
+      const q = L.queue.shift();
+      const old = graph;
+      graph = q.graph; playing = { from: q.from, t0: q.t0 }; L.endT = q.endT;
+      if (masterMeter) graph.master.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
+      setTimeout(() => disposeGraph(old), 1500);          // its effects' tails ring on over the new pass, then it is freed
+    }
+  }
+  function loopTick() {
+    const L = loopCtl;
+    if (!L || !playing) return;
+    const now = ctx.currentTime;
+    promote(now);
+    while (L.loop?.on && L.queue.length < 8 && (L.queue.at(-1)?.endT ?? L.endT) < now + 0.6) {
+      const lp = L.loop;
+      const prevEnd = L.queue.at(-1)?.endT ?? L.endT;
+      const prev = L.queue.at(-1)?.graph ?? graph;
+      const g = buildGraph(ctx, L.session, buffers, { from: lp.start, t0: prevEnd, live: true });
+      prev.sources.forEach((s) => { try { s.stop(prevEnd); } catch { /* already ended */ } });     // the old pass ends exactly where the new one begins
+      L.queue.push({ from: lp.start, t0: prevEnd, endT: prevEnd + (lp.end - lp.start), graph: g });
+      if (L.click) startClick(L.session, lp.start, prevEnd, lp.end);
     }
   }
 
-  function startClick(session, from, t0) {
+  function startClick(session, from, t0, until = Infinity) {
     const c = audio();
     const beat = beatSeconds(session);
     let next = Math.ceil(from / beat - 1e-6);
+    let timer = null;
     const schedule = () => {
       const horizon = c.currentTime + 0.3;
       for (;;) {
+        if (next * beat >= until - 1e-6) { clearInterval(timer); return; }   // a loop's click stops at its end; the next pass has its own
         const when = t0 + (next * beat - from);
         if (when > horizon) break;
         if (when >= c.currentTime - 0.01) {
@@ -228,7 +263,26 @@ export function createDaw() {
       }
     };
     schedule();
-    clickTimer = setInterval(schedule, 100);
+    timer = setInterval(schedule, 100);
+    clickTimers.push(timer);
+  }
+
+  /** Click `bars` bars (accent on each downbeat), resolving when the last beat's bar is over. Nothing is recorded meanwhile. */
+  async function countIn(session, bars) {
+    const plan = countInPlan(session, bars);
+    if (!plan.beats.length) return;
+    const c = audio();
+    if (c.state !== "running") await c.resume();
+    const t0 = c.currentTime + 0.1;
+    for (const b of plan.beats) {
+      const o = c.createOscillator(); const g = c.createGain();
+      o.frequency.value = b.accent ? 1600 : 1000;
+      g.gain.setValueAtTime(0.4, t0 + b.at);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + b.at + 0.05);
+      o.connect(g).connect(c.destination);
+      o.start(t0 + b.at); o.stop(t0 + b.at + 0.06);
+    }
+    await new Promise((done) => setTimeout(done, (0.1 + plan.seconds) * 1000));
   }
 
   async function play(session, from = 0, { click = false } = {}) {
@@ -242,7 +296,10 @@ export function createDaw() {
     masterMeter.fftSize = 1024;
     graph.master.connect(masterMeter);
     playing = { from, t0 };
-    if (click) startClick(session, from, t0);
+    const lp = session.loop;
+    const looping = !!(lp && lp.on && from < lp.end);
+    if (looping) loopCtl = { session, loop: lp, click: !!click, endT: t0 + (lp.end - from), queue: [], timer: setInterval(loopTick, 40) };
+    if (click) startClick(session, from, t0, looping ? lp.end : Infinity);
     return t0;
   }
 
@@ -255,11 +312,13 @@ export function createDaw() {
 
   function position() {
     if (!playing || !ctx) return null;
+    promote(ctx.currentTime);
     return playing.from + Math.max(0, ctx.currentTime - playing.t0);
   }
 
   /** Move faders and pans of a playing session without restarting it. */
   function setLive(session) {
+    if (loopCtl) { loopCtl.session = session; loopCtl.loop = session.loop; }       // a loop edge dragged while it plays is the next pass's
     if (!graph) return;
     const heard = new Set(audible(session).map((t) => t.id));
     graph.master.gain.setTargetAtTime(dbToGain(session.master), ctx.currentTime, 0.01);
@@ -319,11 +378,12 @@ export function createDaw() {
    * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
    * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream, inputs }) {
+  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null }) {
     const c = audio();
     if (c.state !== "running") await c.resume();
     const list = inputs || [{ key: "", stream, channel: "both" }];
-    const t0 = await play(session, from, { click });
+    // A take never loops the transport, except a cycle: the loop plays seamlessly and the capture is cut at its pass boundaries on stop.
+    const t0 = cycle ? await play({ ...session, loop: { start: cycle.start, end: cycle.end, on: true } }, cycle.start, { click }) : await play({ ...session, loop: null }, from, { click });
     const startFrame = Math.round(t0 * c.sampleRate);
     const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
     if (useWorklet && !rec?.workletReady) {
@@ -371,33 +431,64 @@ export function createDaw() {
       return { key: inp.key, node, sink, extra, chunks, inLatency };
     });
     const outLatency = (Number(c.outputLatency) || 0) + (Number(c.baseLatency) || 0);
-    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from };
+    rec = { parts, sources: [...sources.values()], streams: [...sources.keys()], workletReady: useWorklet || rec?.workletReady, outLatency, from: cycle ? cycle.start : from, punch, cycle };
     return t0;
   }
 
-  function assemble(c, chunks, offset, from) {
+  function assemble(c, chunks, offset, from, punch = null, keep = true) {
     const total = chunks.reduce((n, ch) => n + ch[0].length, 0);
     if (!total) return null;
     // Drop the samples the device's own delay put in front of the performance.
     const drop = Math.min(total - 1, Math.round(offset * c.sampleRate));
-    const n = total - drop;
+    let n = total - drop;
+    // Punch: keep only [in, out]. The take then starts at the punch-in, not at the pre-roll.
+    let cutFrom = 0;
+    if (punch) {
+      cutFrom = Math.max(0, Math.round((punch.in - from) * c.sampleRate));
+      n = Math.min(n, Math.round((punch.out - from) * c.sampleRate)) - cutFrom;
+      if (n < 1) return null;                                  // nothing was captured inside the window
+    }
     const chans = Math.max(...chunks.map((ch) => ch.length));
     const buf = c.createBuffer(Math.min(2, chans), n, c.sampleRate);
     for (let ci = 0; ci < buf.numberOfChannels; ci++) {
       const out = buf.getChannelData(ci);
-      let w = -drop;
+      let w = -drop - cutFrom;
       for (const ch of chunks) {
         const d = ch[ci] || ch[0];
-        for (let i = 0; i < d.length; i++, w++) if (w >= 0) out[w] = d[i];
+        for (let i = 0; i < d.length; i++, w++) if (w >= 0 && w < n) out[w] = d[i];
       }
     }
     let peak = 0;
     const d0 = buf.getChannelData(0);
     for (let i = 0; i < d0.length; i += 8) peak = Math.max(peak, Math.abs(d0[i]));
+    if (!keep) return { buf, from: punch ? punch.in : from, offset };         // the caller cuts it up and registers the pieces
     const id = srcId();
     buffers.set(id, buf);
     peaks.set(id, computePeaks(buf, peakCount(buf)));
-    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from, silent: peak < 1e-4 };
+    return { id, duration: buf.duration, channels: buf.numberOfChannels, rate: buf.sampleRate, offsetMs: Math.round(offset * 1000), from: punch ? punch.in : from, silent: peak < 1e-4 };
+  }
+
+  /** A cycle recording, one part: the capture cut at the loop's pass boundaries, each pass registered as its own take. */
+  const MAX_PASSES = 32, MIN_PASS_SECONDS = 0.25;
+  function cutPasses(c, p, r) {
+    const whole = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from, null, false);
+    if (!whole) return [{ key: p.key, empty: true }];
+    const rate = c.sampleRate, buf = whole.buf;
+    const per = Math.max(1, Math.round((r.cycle.end - r.cycle.start) * rate));
+    const out = [];
+    for (let k = 0; k * per < buf.length && out.length < MAX_PASSES; k++) {
+      const a = k * per, b = Math.min(buf.length, a + per);
+      if ((b - a) / rate < MIN_PASS_SECONDS && k > 0) break;                  // a sliver left over when stop was pressed is not a take
+      const piece = c.createBuffer(buf.numberOfChannels, b - a, rate);
+      let peak = 0;
+      for (let ci = 0; ci < buf.numberOfChannels; ci++) { const d = buf.getChannelData(ci).subarray(a, b); piece.copyToChannel(d, ci); if (ci === 0) for (let i = 0; i < d.length; i += 8) peak = Math.max(peak, Math.abs(d[i])); }
+      const id = srcId();
+      buffers.set(id, piece);
+      peaks.set(id, computePeaks(piece, peakCount(piece)));
+      out.push({ key: p.key, id, duration: piece.duration, channels: piece.numberOfChannels, rate, offsetMs: Math.round(whole.offset * 1000), from: r.cycle.start, silent: peak < 1e-4, pass: k + 1 });
+    }
+    const n = out.length;
+    return out.length ? out.map((t) => ({ ...t, passes: n })) : [{ key: p.key, empty: true }];
   }
 
   /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
@@ -410,8 +501,9 @@ export function createDaw() {
     r.streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
     rec = { workletReady: r.workletReady };
     const c = audio();
+    if (r.cycle) return r.parts.flatMap((p) => cutPasses(c, p, r));
     return r.parts.map((p) => {
-      const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from);
+      const t = assemble(c, p.chunks, p.inLatency + r.outLatency, r.from, r.punch);
       return t ? { key: p.key, ...t } : { key: p.key, empty: true };
     });
   }
@@ -500,7 +592,7 @@ export function createDaw() {
   const outputCanChange = () => typeof (typeof AudioContext !== "undefined" ? AudioContext.prototype.setSinkId : undefined) === "function";
   return {
     inputMeter, monitorOn, monitorOff, setOutput, setLatencyMode, latencyMode, outputCanChange, audioInfo, testTone, context: () => audio(),
-    decode, adopt, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
+    decode, adopt, countIn, play, stop, position, setLive, meters, peak, resetPeak, openMic, startRecording, stopRecording, bounce, toWav, destroy,
     buffer: (id) => buffers.get(id), peaks: (id) => peaks.get(id), isPlaying: () => !!playing, isRecording: () => !!rec?.parts,
     sampleRate: () => ctx?.sampleRate || 48000,
   };

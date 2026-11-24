@@ -93,6 +93,7 @@ const FruityMobius = lazy(lazyRoute(() => import("./apps/FruityMobius.jsx")));
 const Witchcraft = lazy(lazyRoute(() => import("./apps/Witchcraft.jsx")));
 const Azrael = lazy(lazyRoute(() => import("./apps/Azrael.jsx")));
 const TrumpToupee = lazy(lazyRoute(() => import("./apps/TrumpToupee.jsx")));
+const StudioDragon = lazy(lazyRoute(() => import("./apps/StudioDragon.jsx")));
 const CleanConnectZ = lazy(lazyRoute(() => import("./apps/CleanConnectZ.jsx")));
 const SettingsHub = lazy(lazyRoute(() => import("./apps/SettingsHub.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
@@ -214,6 +215,8 @@ export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
   "trump_toupee.png": "/icons/trump_toupee.png",
+  // Studio Dragon has no art of its own yet; it wears the DawZ mark rather than falling back to the app logo, until Corey draws one.
+  "studiodragon.png": "/icons/dawz.png",
   "background.png": "/icons/background.png",
   "battlez.1v1.png": "/icons/battlez.1v1-neon.svg",
   "battlez.cypher.png": "/icons/battlez.cypher-neon.svg",
@@ -710,6 +713,7 @@ const TABS = [
   { key: "witchcraft", label: "Witchcraft", icon: "witchcraft.png", el: <Witchcraft /> },
   { key: "azrael", label: "Azrael", icon: "azrael.png", el: <Azrael /> },
   { key: "trumptoupee", label: "Trump Toupee", icon: "trump_toupee.png", el: <TrumpToupee /> },
+  { key: "studiodragon", label: "Studio Dragon", icon: "studiodragon.png", el: <StudioDragon /> },
   { key: "settingz", label: "Settings", icon: "profilez.png", el: <SettingsHub /> },
   { key: "cleanconnectz", label: "Clean ConnectZ", icon: "cleanconnectz.png", el: <CleanConnectZ /> },
   { key: "formulawon", label: "FormulaWon", icon: "dawz_formulawon.png", el: <FormulaWon /> },
@@ -1077,6 +1081,7 @@ const TAB_ABOUT = {
   intuition: "💭 Intuition — a songwriter's DAW on your own device, Logic-style: pick a key and a chord progression, stack pad, keys, bass and arp on it, set the tempo by tapping, add the Smart Drummer, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   formulawon: "🚦 FormulaWon — the beginner's DAW on your own device, GarageBand-style: a Smart Drummer plays in six styles (you set how busy and how hard), you send it to a track, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   witchcraft: "🔮 Witchcraft — a loop-first DAW on your own device, Mixcraft-style: pick drums, chords, keys, bass and arps in your key and tempo, stack them on tracks, open MIDI, record over it, mix and bounce a WAV. Free — nothing is uploaded until you save.",
+  studiodragon: "🐉 Studio Dragon — a one-window DAW on your own device, Studio One-style: the arrangement and the mixer together, a browser of effects, tones and loops you drag onto tracks, and a song map of sections you drag into a new order with the music inside them. Free — nothing is uploaded until you save a bounce.",
   trumptoupee: "🤵🏼‍♂️ Trump Toupee — a modern DAW on your own device, Bitwig-style: record, edit, MIDI, mix and bounce, with automation drawn on any track.",
   cleanconnectz: "🧹 Clean ConnectZ — free space on your device by a target percent or size from a folder you pick; you see and untick every file before anything is deleted. Every plan; your plan sets how many ways of choosing what goes are open.",
   settingz: "⚙️ Settings — one door to every control that sets how the app behaves: who sees what, sound, 18+ verification, your plan and your profile.",
@@ -1413,7 +1418,7 @@ function Home() {
       {/* pb leaves room for the fixed PickConnectZ dock */}
       {/* A playing track adds its bar (and a compact bar is smaller) above the dock, so the bottom of whatever is
           open — an editor's last tools, a form's save button — stays reachable instead of sitting under it. */}
-      <main className={`mx-auto max-w-4xl px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
+      <main className={`${DAW_TABS.has(tab) ? "max-w-none" : "mx-auto max-w-4xl"} px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
         <p className="mb-4 text-xs text-white/60">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
@@ -1713,6 +1718,10 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
     </div>
   );
 }
+
+// The DAWs get the whole width of the screen: a 6-minute song and its tracks do not fit in a 896px column, and Mixcraft,
+// Reaper and Pro Tools all use every pixel. Everything else keeps the readable column.
+const DAW_TABS = new Set(["arsenal", "fruitymobius", "witchcraft", "azrael", "trumptoupee", "formulawon", "intuition", "studiodragon"]);
 
 export default function App() {
   const { user } = useAuth();

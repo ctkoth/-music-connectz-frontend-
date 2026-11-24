@@ -20,6 +20,17 @@ import { useRecordingHold, useTabActive } from "../useRecordingHold.js";
 import { createDaw } from "./engine.js";
 import ChannelRack from "./ChannelRack.jsx";
 import EditWindow from "./EditWindow.jsx";
+import { PCT_MAX, PCT_MIN, TRACK_SIZES, ZOOM_MAX, ZOOM_MIN, clampZoom, zoomFromPct, zoomPct } from "./view.js";
+import SynthEditor from "./synth/SynthEditor.jsx";
+import PostBounce from "../components/PostBounce.jsx";
+import { swipeComp, startComp, clearComp } from "./comp.js";
+import DragonBrowser from "./DragonBrowser.jsx";
+import { moveSection, duplicateSection, deleteSectionWithMusic, appendSection, addSection, updateSection, removeSection, sectionProblem } from "./arranger.js";
+import { loopById, renderLoop, loopFileName } from "./loopRender.js";
+import { STARTERS, chainNeedsStatz, chainToInserts } from "./tonePresets.js";
+import { PLUGINS } from "./plugins.js";
+import CoachMix from "../components/CoachMix.jsx";
+import { registerTemp } from "./synth/userPatches.js";
 import MixWindow from "./MixWindow.jsx";
 import { bandCap, nextBandCap } from "../eqbands.js";
 import MidiImport from "./MidiImport.jsx";
@@ -28,14 +39,15 @@ import KeyActions from "./KeyActions.jsx";
 import VstRack from "./VstRack.jsx";
 import { pitchShift, rangeFor } from "./pitch.js";
 import { loadLimits } from "../limits.js";
+import { normalizeGain, NORMALIZE_TARGET_DB } from "./normalize.js";
 import { actionFor, loadKeymap, loadSkin, saveKeymap, saveSkin, skinFilter } from "./keymap.js";
 import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
-  BPM, EDIT_MODES, GRIDS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
+  BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
   duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
-  addMarker, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
+  addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
 import { sliceChannels, takeFileName, wavBytes } from "./takeFile.js";
 import { cleanInserts } from "./plugins.js";
@@ -43,7 +55,7 @@ import { laneOf, writePass } from "./automation.js";
 import { useStatzTrial } from "../components/StatzSample.jsx";
 import { goToSpot } from "../goto.js";
 import { isLimitMessage } from "../limitHint.js";
-const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft", trumptoupee: "🤵🏼‍♂️ Trump Toupee" };
+const DAW_NAMES = { arsenal: "⚔️ Arsenal", azrael: "☠️ Azrael", intuition: "💭 Intuition", formulawon: "🚦 FormulaWon", fruitymobius: "Fruity Möbius", witchcraft: "🔮 Witchcraft", trumptoupee: "🤵🏼‍♂️ Trump Toupee", studiodragon: "🐉 Studio Dragon" };
 import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
@@ -66,7 +78,7 @@ const MODE_LABEL = {
   grid: { label: "Grid", what: "region starts snap to the grid" },
   shuffle: { label: "Shuffle", what: "regions on a track butt up against each other; deleting one closes the gap" },
 };
-const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI", loops: "Loops", actions: "Actions", vst: "VST" };
+const WINDOW_NAME = { edit: "Edit", mix: "Mix", rack: "Channel Rack", drummer: "Drummer", song: "Songwriter", midi: "MIDI", loops: "Loops", actions: "Actions", vst: "VST", synth: "Synth" };
 const isMedia = (u) => /^(audio|video)\//i.test(u?.content_type || "") || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|mp4|mov)$/i.test(u?.name || "");
 
 function Library({ onPick, onClose }) {
@@ -98,6 +110,7 @@ function Library({ onPick, onClose }) {
   );
 }
 
+
 export default function Workspace({ workflow }) {
   const daw = useMemo(() => createDaw(), []);
   const [session, setRaw] = useState(() => setSession(newSession(), { editMode: workflow.editMode || "slip" }));
@@ -112,11 +125,25 @@ export default function Workspace({ workflow }) {
   const [storeErr, setStoreErr] = useState("");
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
-  const [zoom, setZoom] = useState(40);           // pixels per second
+  const [zoom, setZoomRaw] = useState(40);        // pixels per second
+  const [trackSizeKey, setTrackSizeRaw] = useState(() => { try { const v = localStorage.getItem("mcz_daw_tracksize"); return TRACK_SIZES.some((x) => x.key === v) ? v : localStorage.getItem("mcz_daw_compact") === "1" ? "compact" : "normal"; } catch { return "normal"; } });
+  const setTrackSize = (k) => { setTrackSizeRaw(k); try { localStorage.setItem("mcz_daw_tracksize", k); } catch { /* not remembered */ } };
+  const zoomedByHand = useRef(false);             // once the member zooms, we stop fitting for them
+  const setZoom = (v) => { zoomedByHand.current = true; setZoomRaw(v); };
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
   const [click, setClick] = useState(false);
+  const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
+  const [punchOn, setPunchRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_punch") === "1"; } catch { return false; } });
+  const setPunch = (v) => { setPunchRaw(v); try { localStorage.setItem("mcz_daw_punch", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const [cycleOn, setCycleRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_cycle") === "1"; } catch { return false; } });
+  const setCycle = (v) => { setCycleRaw(v); try { localStorage.setItem("mcz_daw_cycle", v ? "1" : "0"); } catch { /* not remembered */ } };
+  const cycleInfo = useRef(null);                 // { t0, len } of the cycle being recorded, for the pass counter
+  const [cyclePass, setCyclePass] = useState(0);
+  const punchRef = useRef(null);                  // the plan of the take being recorded, if it is a punch
+  const recordRef = useRef(null);                 // always the latest record(), for the auto punch-out
+  const setCountBars = (v) => { setCountBarsRaw(v); try { localStorage.setItem("mcz_daw_countin", String(v)); } catch { /* not remembered */ } };
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -252,14 +279,47 @@ export default function Workspace({ workflow }) {
   // Faders and pans reach a playing session without a restart (automation included).
   useEffect(() => { daw.setLive(liveView(session)); }, [daw, session]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fit the whole session on screen. Automatic when a session opens or first gets audio (until the member zooms by hand);
+  // the Fit button does it on demand. Free at every tier: seeing your own session is not a feature.
+  const fitZoom = (byHand = false) => {
+    const len = lengthOf(sRef.current);
+    const w = (document.querySelector("[data-timeline]")?.clientWidth || 0) - 24;
+    if (len <= 0 || w <= 0) return;
+    setZoomRaw(clampZoom(w / (len * 1.05)));
+    zoomedByHand.current = byHand;
+  };
+  const sessionLen = lengthOf(session);
+  useEffect(() => {
+    zoomedByHand.current = false;
+  }, [sessionId]);                                 // a different session: fit again
+  useEffect(() => {
+    if (zoomedByHand.current || !sessionLen || recording) return undefined;   // never rescale under a take being recorded
+    const id = requestAnimationFrame(() => fitZoom(false));
+    return () => cancelAnimationFrame(id);
+  }, [sessionLen, sessionId, view]);               // eslint-disable-line react-hooks/exhaustive-deps
+  // Rotating a phone or resizing the window re-fits too, until the member has zoomed by hand.
+  useEffect(() => {
+    const on = () => { if (!zoomedByHand.current && !recording) fitZoom(false); };
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, [recording]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Loop exactly the selected region (its start to its end), on. No selection says so rather than guessing.
+  const loopSelected = () => {
+    const r = selected && session.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected);
+    if (!r) { setMsg("Select a region first (click it), then press Shift+L — or drag in the loop lane above the ruler."); return; }
+    commit((s) => setLoop(s, r.at, endOf(r)));
+    setMsg(`Looping ${minSec(r.at)} to ${minSec(endOf(r))}. Press L to turn it off, Space to hear it.`);
+  };
   // The playhead while playing.
   useEffect(() => {
     if (!playing) return undefined;
     let raf = 0; let last = 0;
     const tick = (now) => {
       const p = daw.position();
+      if (p != null && punchRef.current && p >= punchRef.current.out) { punchRef.current = null; recordRef.current?.(); return; }       // punch out: the take stops itself
+      if (cycleInfo.current) { const c = cycleInfo.current; setCyclePass(Math.floor((performance.now() - c.t0) / 1000 / c.len) + 1); }
       if (p != null) { headRef.current = p; if (now - last > 50) { setPlayhead(p); last = now; } }
-      if (!recording && p != null && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
+      if (!recording && p != null && !(sRef.current.loop?.on && p <= sRef.current.loop.end + 0.05) && p > lengthOf(sRef.current) + 2 && lengthOf(sRef.current) > 0) { stopPlay(); return; }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -492,6 +552,7 @@ export default function Workspace({ workflow }) {
   const record = async () => {
     setErr(""); setMsg("");
     if (recording) {
+      punchRef.current = null; cycleInfo.current = null; setCyclePass(0);
       setBusy("Finishing the take…");
       try {
         const takes = await daw.stopRecording();
@@ -506,11 +567,14 @@ export default function Workspace({ workflow }) {
           for (const take of good) {
             const tr = byId[take.key];
             if (!tr) continue;
-            const name = `${tr.name} take`;
+            const cyc = take.pass != null;                          // a pass of a cycle: always its own take lane, whatever the track's mode
+            const name = cyc ? `${tr.name} take ${take.pass}` : `${tr.name} take`;
             cur = addSource(cur, { id: take.id, name, duration: take.duration, channels: take.channels, rate: take.rate });
+            if (cyc) cur = setTrack(cur, tr.id, { recMode: "takes" });
             const out = recordInto(cur, tr.id, { src: take.id, at: take.from, name });
             if (out.keptPrevious) kept++;
             cur = out.session;
+            if (cyc) cur = setTrack(cur, tr.id, { recMode: tr.recMode });
             longest = Math.max(longest, take.from + take.duration);
           }
           return cur;
@@ -518,7 +582,9 @@ export default function Workspace({ workflow }) {
         setPlayhead(longest || playhead);
         const names = good.map((t) => byId[t.key]?.name).filter(Boolean);
         const lined = good[0].offsetMs > 0 ? ` Lined up ${good[0].offsetMs} ms earlier for this device's own audio delay.` : "";
-        setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
+        const passes = good[0].pass != null ? good.filter((t) => t.key === good[0].key).length : 0;
+        if (passes) { setMsg(`Cycle recorded ${passes} pass${passes === 1 ? "" : "es"} onto ${[...new Set(names)].join(", ")}, each as its own take. The last one is playing; pick another from the track's take menu to hear it.${silent.length ? " A silent pass was not added." : ""}`); }
+        else setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
         for (const take of good) {
           try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
         }
@@ -551,10 +617,17 @@ export default function Workspace({ workflow }) {
         streams.set(dev, stream);
       }
       clearTimeout(slow);
-      setBusy("Starting playback and recording…");
       refreshDevices();
-      await daw.startRecording(sRef.current, playhead, { click,
+      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
+      setBusy("Starting playback and recording…");
+      const lp = sRef.current.loop;
+      const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take
+      const plan = cyc ? null : punchPlan(sRef.current, punchOn);
+      punchRef.current = plan;
+      if (plan) setPlayhead(plan.from); else if (cyc) setPlayhead(cyc.start);
+      await daw.startRecording(sRef.current, plan ? plan.from : cyc ? cyc.start : playhead, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
+      if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
       setRecording(true); setPlaying(true);
     } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
   };
@@ -574,20 +647,20 @@ export default function Workspace({ workflow }) {
     const empty = s.tracks.find((t) => !regionsOf(t).length);
     return empty?.id || null;
   };
-  const bring = async (items, { own = false, stems = false } = {}) => {
+  const bring = async (items, { own = false, stems = false, at: atGiven, mix = null, trackId = null } = {}) => {
     setErr(""); setMsg("");
     for (const it of items) {
       setBusy(`Reading ${it.name}…`);
       try {
         const meta = await daw.decode(await it.blob.arrayBuffer(), it.name);
         try { await putSource(meta.id, it.blob); } catch { setStoreErr("This audio couldn't be kept on the device — it plays now but won't be here after the tab closes."); }
-        const at = stems ? 0 : playhead;   // stems line up from the top of the song
+        const at = stems ? 0 : atGiven ?? playhead;   // stems line up from the top of the song; a take recorded alongside goes where it started
         commit((s) => {
           let next = addSource(s, meta);
-          let track = items.length === 1 && !own && !stems ? targetTrack(next) : null;
+          let track = trackId && next.tracks.some((t) => t.id === trackId) ? trackId : items.length === 1 && !own && !stems ? targetTrack(next) : null;
           if (!track) {
             const more = addTrack(next, it.name.replace(/\.[a-z0-9]+$/i, "").slice(0, 40), tierCap);
-            if (more !== next) { next = more; track = next.tracks.at(-1).id; if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
+            if (more !== next) { next = more; track = next.tracks.at(-1).id; if (mix) next = setTrack(next, track, mix); if (stems) next = setTrack(next, track, { role: guessRole(it.name) }); }
             else {
               // At the tier's track count: it goes on an empty track if there is one, else the last track.
               track = next.tracks.find((t) => !regionsOf(t).length)?.id || next.tracks.at(-1).id;
@@ -603,6 +676,63 @@ export default function Workspace({ workflow }) {
     }
     setBusy("");
   };
+  // ---- Studio Dragon: drag and drop, and the arranger ----
+  const [dragonTones, setDragonTones] = useState(null);
+  const savedToneIds = (dragonTones?.presets || []).filter((p) => p.kind === "tone").map((p) => p.id);
+  const dragonEffect = (trackId, type) => {
+    const spec = PLUGINS[type]; const tr = sRef.current.tracks.find((t) => t.id === trackId);
+    if (!spec || !tr) return;
+    if (spec.statz && !autoAllowed) { setErr(`${spec.label} is a StatZ effect. Try StatZ free from MembershipZ — it was not added.`); return; }
+    const before = tr.inserts || [];
+    const list = cleanInserts([...before, newInsert(type)]);
+    if (list.length === before.length) { setMsg(`${tr.name} already holds the most effects a track can.`); return; }
+    commit((s) => setTrack(s, trackId, { inserts: list })); restartIfPlaying();
+    setErr(""); setMsg(`${spec.label} is on ${tr.name}. Undo takes it off.`);
+  };
+  const dragonTone = (trackId, ref) => {
+    const tr = sRef.current.tracks.find((t) => t.id === trackId); if (!tr) return;
+    let chain = null, name = "";
+    if (ref.source === "starter") { const st = STARTERS.find((x) => x.key === ref.key); if (st) { chain = st.chain(); name = st.name; } }
+    else { const p = (dragonTones?.presets || []).find((x) => x.kind === "tone" && String(x.id) === String(ref.id)); if (p) { chain = p.chain; name = p.name; } }
+    const inserts = chainToInserts(chain);
+    if (!inserts.length) { setErr("That tone has nothing in it, so nothing changed."); return; }
+    if (chainNeedsStatz(inserts) && !autoAllowed) { setErr(`${name} uses StatZ effects. Try StatZ free from MembershipZ — nothing changed.`); return; }
+    commit((s) => setTrack(s, trackId, { inserts })); restartIfPlaying();
+    setErr(""); setMsg(`${name} is on ${tr.name}, in place of its effects. Undo brings them back.`);
+  };
+  const dragonLoop = async (loopId, trackId, at) => {
+    const loop = loopById(loopId); if (!loop) return;
+    setErr(""); setBusy(`Making ${loop.label}…`);
+    try {
+      const bars = 8;
+      const buf = await renderLoop(loop, { bpm: sRef.current.bpm, sessionKey: sRef.current.key, bars, rate: daw.sampleRate() });
+      const whereAt = at == null ? playhead : snapIf(sRef.current, at);
+      await bring([{ name: loopFileName(loop, sRef.current.key, bars), blob: daw.toWav(buf, 24) }], { own: true, at: whereAt, trackId });
+      setMsg(`${loop.label} is on ${trackId ? "that track" : "a new track"} at ${minSec(whereAt)}, ${bars} bars at ${sRef.current.bpm} BPM. Undo takes it off.`);
+    } catch (e) { setErr(e.message || "Couldn't make that loop."); } finally { setBusy(""); }
+  };
+  const dragonDrop = (trackId, item, at) => {
+    if (item.kind === "effect") dragonEffect(trackId, item.type);
+    else if (item.kind === "tone") dragonTone(trackId, item);
+    else if (item.kind === "loop") dragonLoop(item.id, trackId, at);
+  };
+  const dragonFiles = async (files, trackId, at, skipped) => {
+    if (!files.length) { setErr(skipped ? "Only audio and video files can be dropped on a track." : ""); return; }
+    justImported.current = Date.now();
+    await bring(files.map((f) => ({ name: f.name, blob: f })), { own: true, at: at == null ? playhead : snapIf(sRef.current, at), trackId });
+    if (skipped) setMsg(`${skipped} file${skipped === 1 ? " was" : "s were"} not audio or video and was left out.`);
+    setTimeout(() => { justImported.current = 0; }, 1500);
+  };
+  const arranger = workflow.arranger ? {
+    add: () => { const before = sRef.current; const name = ["Intro", "Verse", "Chorus", "Bridge", "Outro"][(before.sections || []).length % 5]; const next = appendSection(before, name, 8); if (next === before) setErr("The song map is full."); else commit(() => next); },
+    fromLoop: () => { const lp = sRef.current.loop; if (!lp) return; const why = sectionProblem(sRef.current, lp.start, lp.end); if (why) { setErr(why); return; } commit((s) => addSection(s, { name: `Section ${(s.sections || []).length + 1}`, start: lp.start, end: lp.end })); },
+    move: (id, to) => { commit((s) => moveSection(s, id, to)); restartIfPlaying(); setMsg("Section moved, with the music inside it. Undo puts it back."); },
+    duplicate: (id) => { commit((s) => duplicateSection(s, id)); restartIfPlaying(); setMsg("Copied straight after the original; everything after it moved along. Undo removes the copy."); },
+    cut: (id) => { commit((s) => deleteSectionWithMusic(s, id)); restartIfPlaying(); setMsg("Cut, and the gap closed. Undo brings it back."); },
+    unlabel: (id) => commit((s) => removeSection(s, id)),
+    update: (id, patch) => commit((s) => updateSection(s, id, patch)),
+  } : null;
+
   const fromDevice = async (files) => {
     justImported.current = Date.now();
     await bring([...files].map((f) => ({ name: f.name, blob: f })));
@@ -632,7 +762,7 @@ export default function Workspace({ workflow }) {
   // A MIDI file handed over (Instrumental ConnectZ's .mid) opens in the MIDI window; anything else is audio.
   const [midiIn, setMidiIn] = useState(null);
   useEffect(() => onHandoff(workflow.app, (p) => {
-    if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid" }); setView("midi"); return; }
+    if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid", sounds: p.sounds }); setView("midi"); return; }
     if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" });
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -681,7 +811,18 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
   const split = () => sel && commit((s) => splitRegion(s, sel.region.id, headRef.current || playhead));
-  const del = () => { if (sel) { commit((s) => removeRegion(s, sel.region.id)); setSelected(null); } };
+  // StatZ (or the sample): deleting the last region of a take lane removes that lane too — only the lane just emptied,
+  // never one that is merely new. Everyone else keeps the free "Remove empty takes" button.
+  const del = () => {
+    if (!sel) return;
+    const { track, playlist, region } = { track: sel.track, playlist: sel.playlist, region: sel.region };
+    const gone = autoAllowed && playlist.regions.length === 1 && track.playlists.length > 1;
+    commit((s) => { const out = removeRegion(s, region.id); return gone ? dropIfEmptied(out, track.id, playlist.id) : out; });
+    if (gone) setMsg(`Deleted the region, and the empty take lane "${playlist.name}" with it (StatZ). Undo brings both back.`);
+    setSelected(null);
+  };
+
+  recordRef.current = record;
 
   // ---- keys ----
   // The shortcuts are a map every DAW reads (defaults unless changed); Azrael is where it is edited.
@@ -705,6 +846,8 @@ export default function Workspace({ workflow }) {
       else if (act === "home") seek(0);
       else if (act === "addtrack") addOneTrack();
       else if (act === "bounce") { e.preventDefault(); bounce(); }
+      else if (act === "loop") { e.preventDefault(); if (session.loop) commit((s) => toggleLoop(s)); else loopSelected(); }
+      else if (act === "loopsel") { e.preventDefault(); loopSelected(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -776,6 +919,23 @@ export default function Workspace({ workflow }) {
     const buf = await daw.bounce(solo, { tail: 0 });
     return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
   };
+  // Normalize: each ticked track (or all of them when none is ticked) gets the fader that puts its peak at -1 dBFS.
+  const normalizeTracks = async () => {
+    setErr("");
+    const ids = pickedLive.length ? pickedLive : session.tracks.map((t) => t.id);
+    const targets = session.tracks.filter((t) => ids.includes(t.id) && playlistOf(t).regions.length);
+    if (!targets.length) { setMsg("Nothing to normalize yet: no track has audio on it."); return; }
+    const moves = []; const quiet = []; const maxed = [];
+    try {
+      for (const [i, t] of targets.entries()) {
+        setBusy(`Measuring ${i + 1} of ${targets.length}: ${t.name}…`);
+        const r = normalizeGain((await measureTrackAudio(t)).channels);
+        if (!r) quiet.push(t.name); else { moves.push({ id: t.id, gain: r.gain }); if (r.clamped) maxed.push(t.name); }
+      }
+      if (moves.length) commit((s) => moves.reduce((acc, m) => setTrack(acc, m.id, { gain: m.gain }), s));
+      setMsg(`${moves.length ? `Normalized ${moves.length} track${moves.length === 1 ? "" : "s"} so each one's loudest moment sits at ${NORMALIZE_TARGET_DB} dBFS (peak, not loudness — two tracks can still sound different in level). Undo puts the faders back.` : "Nothing changed."}${maxed.length ? ` ${maxed.join(", ")} hit the top of the fader and are still quiet.` : ""}${quiet.length ? ` Silent, left alone: ${quiet.join(", ")}.` : ""} Stacked tracks can add up past 0 dB on the master, so check the meter.`);
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  };
   const sendStems = async () => {
     setErr("");
     const list = stemCap == null ? stemTracks : stemTracks.slice(0, stemCap);
@@ -815,6 +975,17 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
   const mb = bounced ? bounced.blob.size / 1048576 : 0;
+
+  const mixEl = (
+    <MixWindow
+          session={session} daw={daw} playing={playing}
+          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
+          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
+          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
+          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onMaster={(g) => commit((s) => setSession(s, { master: g }))}
+        />
+  );
 
   const newOne = () => {
     if (playing) stopPlay();
@@ -960,6 +1131,21 @@ export default function Workspace({ workflow }) {
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
           <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
+        <label className="flex items-center gap-1 text-white/70" title="Clicks this many bars before recording starts, so you can come in on the beat. Nothing is recorded during the count-in.">
+          Count-in
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={countBars} disabled={recording} onChange={(e) => setCountBars(Number(e.target.value))} aria-label="Count-in bars">
+            {COUNT_INS.map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} bar${n === 1 ? "" : "s"}`}</option>)}
+          </select>
+        </label>
+        <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
+               title={session.loop ? "Records only inside the loop region: you hear a bar before it, the take is kept from its start to its end, and recording stops itself at the end. Whatever was there outside it is untouched." : "Draw a loop region first (drag in the loop lane above the ruler): that is the stretch a punch replaces."}>
+          <input type="checkbox" checked={punchOn && !!session.loop && !cycleOn} disabled={!session.loop || recording || cycleOn} onChange={(e) => setPunch(e.target.checked)} /> Punch in/out
+        </label>
+        <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
+               title={session.loop ? "Loop recording: the loop plays over and over while you record, and every pass is kept as its own take on the track. Pick the best from the track's take menu. Needs a loop region at least half a second long." : "Draw a loop region first (drag in the loop lane above the ruler): each trip around it becomes a take."}>
+          <input type="checkbox" checked={cycleOn && !!session.loop} disabled={!session.loop || recording} onChange={(e) => setCycle(e.target.checked)} /> Cycle record
+        </label>
+        {recording && cyclePass > 0 && <span className="rounded-full border border-red-400/60 bg-red-500/15 px-2 py-0.5 font-mono text-xs text-red-300" role="status">● pass {cyclePass}</span>}
         <label className="flex items-center gap-1 text-white/70"><input type="checkbox" checked={click} onChange={(e) => setClick(e.target.checked)} disabled={playing} /> Click</label>
         <span className="rounded-lg border border-white/15 bg-black/50 px-2 py-1 text-sm font-semibold text-white" title="This project">
           🎼 {session.name} <span className="font-mono text-mcz-cyan">· {session.bpm} BPM</span> <span className="text-emerald-300">· {session.key || "key not set"}</span>
@@ -1005,7 +1191,7 @@ export default function Workspace({ workflow }) {
       {/* Edit tools */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <div className="flex overflow-hidden rounded-lg border border-white/15" role="tablist" aria-label="Window">
-          {[...(workflow.windows || ["edit", "mix"]), "midi", "vst"].map((w) => (
+          {[...(workflow.windows || ["edit", "mix"]), "midi", "synth", "vst"].map((w) => (
             <button key={w} type="button" role="tab" aria-selected={view === w} onClick={() => setView(w)}
                     className={`px-3 py-1.5 ${view === w ? "bg-mcz-cyan/25 text-white" : "text-white/60"}`}>{workflow.windowNames?.[w] || WINDOW_NAME[w] || w}</button>
           ))}
@@ -1027,8 +1213,6 @@ export default function Workspace({ workflow }) {
                 {Object.keys(GRIDS).map((g) => <option key={g} value={g}>{g === "1" ? "1 bar" : `${g} note`}</option>)}
               </select>
             </label>
-            <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(5, z / 1.5))}><Minus size={13} /></button>
-            <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(400, z * 1.5))}><Plus size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Undo" onClick={undo} disabled={!past.current.length}><Undo2 size={13} /></button>
             <button type="button" className="re-btn !w-auto px-2" aria-label="Redo" onClick={redo} disabled={!future.current.length}><Redo2 size={13} /></button>
             <span className="text-white/55">{MODE_LABEL[session.editMode].what}</span>
@@ -1056,10 +1240,18 @@ export default function Workspace({ workflow }) {
                  }} />
       ) : view === "actions" ? (
         <KeyActions keymap={keymap} onKeymap={setKeymap} skin={skin} onSkin={setSkin} />
+      ) : view === "synth" ? (
+        <SynthEditor studio={{
+          bpm: session.bpm, playhead, busy: !!busy || recording, hasAudio: lengthOf(session) > 0, name: session.name,
+          position: () => daw.position(), start: (from) => startPlay(from), stop: () => stopPlay(),
+          sampleRate: () => daw.sampleRate(), toWav: (buf) => daw.toWav(buf, 24),
+          place: async (blob, name, at) => { await bring([{ name, blob }], { own: true, at }); },
+          editNotes: (k) => { seek(k.from); setMidiIn({ take: { name: k.name, bpm: k.bpm, notes: k.notes, soundKey: registerTemp(k.patch), soundLabel: `🎛️ ${k.patch.name || "This take's patch"} (this take)` }, n: Date.now() }); setView("midi"); },
+        }} />
       ) : view === "midi" ? (
         <MidiImport daw={daw} bpm={session.bpm} busy={busy} initial={midiIn}
                     onBpm={(v) => { if (!recording) commit((s) => setSession(s, { bpm: v })); }}
-                    onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead.`); }} />
+                    onSend={async (blob, name, mix) => { await bring([{ name, blob }], { own: true, mix }); setMsg(`${name.replace(/\.wav$/, "")} is on its own track at the playhead${mix && (mix.gain !== 0 || mix.pan !== 0) ? `, with its gain and pan set on the track's fader and pan` : ""}.`); }} />
       ) : view === "rack" ? (
         <ChannelRack app={workflow.app} daw={daw} bpm={session.bpm} busy={busy}
                      onSend={async (blob, name) => { await bring([{ name, blob }], { own: true }); setMsg(`${name.replace(/\.wav$/, "")} is on the Playlist at the playhead, on its own track.`); }} />
@@ -1073,6 +1265,37 @@ export default function Workspace({ workflow }) {
       ) : view === "edit" ? (<>
         <div className="flex flex-wrap items-center gap-2 text-xs" data-tour="daw-select-tracks">
           <SelectAllBar all={session.tracks.map((t) => t.id)} picked={pickedLive} onChange={setPicked} disabled={recording} allLabel="Select all tracks" />
+          <button type="button" className="pill" disabled={!!busy || recording} onClick={normalizeTracks}
+                  title={`Raise or lower each track's fader so its loudest moment sits at ${NORMALIZE_TARGET_DB} dBFS. Free, on this device; Undo puts it back.`}>
+            📏 Normalize {pickedLive.length ? `${pickedLive.length} selected` : "all"}
+          </button>
+          <span className="flex items-center gap-1" data-tour="daw-zoom" title="Zoom the timeline. Ctrl + scroll over it zooms at the pointer.">
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom out" onClick={() => setZoom((z) => clampZoom(z / 1.5))}><Minus size={13} /></button>
+              <input type="range" className="w-24 accent-cyan-400" min={0} max={1000} aria-label="Timeline zoom"
+                     value={Math.round(1000 * Math.log(zoom / ZOOM_MIN) / Math.log(ZOOM_MAX / ZOOM_MIN))}
+                     onChange={(e) => setZoom(ZOOM_MIN * Math.pow(ZOOM_MAX / ZOOM_MIN, Number(e.target.value) / 1000))} />
+              <button type="button" className="re-btn !w-auto px-2" aria-label="Zoom in" onClick={() => setZoom((z) => clampZoom(z * 1.5))}><Plus size={13} /></button>
+              <button type="button" className="re-btn !w-auto px-2 text-xs" aria-label="Fit the whole session on screen" title="Fit the whole session on screen"
+                      onClick={() => fitZoom(true)}>Fit</button>
+              <label className="flex items-center gap-0.5 text-[11px] text-white/60" title="Zoom as a percentage. 100% is the DAW's classic view; type a number to set it.">
+                <input type="number" className="neon-input !w-[4.5rem] !py-0.5 text-right text-xs" aria-label="Zoom percentage" min={PCT_MIN} max={PCT_MAX} step="any"
+                       key={Math.round(zoom * 1000)} defaultValue={Number(zoomPct(zoom).toPrecision(3))}
+                       onBlur={(e) => { const z = zoomFromPct(e.target.value); if (z != null) setZoom(z); else e.target.value = Number(zoomPct(zoom).toPrecision(3)); }}
+                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }} />%
+              </label>
+            </span>
+          <span className="flex items-center gap-1" data-tour="daw-trackheight" role="radiogroup" aria-label="Track height">
+            <span className="text-white/55">Track height</span>
+            {TRACK_SIZES.map((x) => (
+              <button key={x.key} type="button" role="radio" aria-checked={trackSizeKey === x.key} onClick={() => setTrackSize(x.key)}
+                      className={`rounded-full border px-2 py-0.5 text-[11px] ${trackSizeKey === x.key ? "border-mcz-cyan/60 bg-mcz-cyan/15 text-mcz-cyan" : "border-white/15 text-white/55"} hover:text-white`}
+                      title={x.full ? `${x.label}: every control on the track` : "Compact: name, record, solo and mute only, so more tracks fit"}>{x.label}</button>
+            ))}
+          </span>
+          {emptyTakeCount(session) > 0 && (
+            <button type="button" className="pill" disabled={recording} onClick={() => { const n = emptyTakeCount(session); commit((s) => removeEmptyTakes(s)); setMsg(`Removed ${n} empty take lane${n === 1 ? "" : "s"}. Takes with audio are untouched. Undo puts them back.`); }}
+                    title="Delete take lanes that have nothing in them (overdubbing and New take leave these behind)">🧹 Remove {emptyTakeCount(session)} empty take{emptyTakeCount(session) === 1 ? "" : "s"}</button>
+          )}
           {pickedLive.length > 0 && (<>
             <span className="text-white/60">{pickedLive.length} selected:</span>
             <button type="button" className="pill" onClick={() => toPicked({ mute: true }, "Muted")}>Mute</button>
@@ -1090,9 +1313,14 @@ export default function Workspace({ workflow }) {
             try { await putSource(meta.id, wav); } catch { setStoreErr("The tuned take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
             setMsg(`${name} is a new take — moved about ${cents} cents on average${kept ? "; the original is the previous take in the playlist menu" : ""}.`);
           }} />
+        <div className={workflow.browser ? "grid gap-3 lg:grid-cols-[15rem_minmax(0,1fr)]" : ""}>
+          {workflow.browser && <DragonBrowser tracks={session.tracks} statzOk={autoAllowed} onTones={setDragonTones}
+                                              onEffect={dragonEffect} onTone={dragonTone} onLoop={(id) => dragonLoop(id, null, null)} />}
+          <div className="min-w-0 space-y-3">
         <EditWindow
+          arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
-          session={session} daw={daw} zoom={zoom} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
+          session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording}
           onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
@@ -1100,6 +1328,10 @@ export default function Workspace({ workflow }) {
           keyRange={keyRange} onTranspose={transposeTrack}
           onAuto={(id, param, lane) => commit((s) => setAuto(s, id, param, lane))} autoAllowed={autoAllowed}
           onAddTrack={addOneTrack}
+          onComp={(id, lane, a, b) => { const before = sRef.current; commit((s) => swipeComp(s, id, lane, snapIf(s, a), snapIf(s, b))); restartIfPlaying(); const t = before.tracks.find((x) => x.id === id); if (t && t.playlists.length >= MAX_PLAYLISTS && !t.playlists.some((p) => p.comp)) setErr("This track already holds the most takes it can, so there is no room for a comp lane. Delete a take first."); else setMsg("That stretch is in the comp. Swipe more, or press Undo."); }}
+          onStartComp={(id, lane) => { commit((s) => startComp(s, id, lane)); restartIfPlaying(); setMsg("The comp is now a copy of that take. Swipe the better bits in from the others."); }}
+          onClearComp={(id) => { commit((s) => clearComp(s, id)); restartIfPlaying(); setMsg("Comp cleared. Your takes are untouched."); }}
+          onLoop={(a, b) => commit((s) => (a == null ? setLoop(s, null) : setLoop(s, snapIf(s, a), snapIf(s, b))))} onToggleLoop={() => commit((s) => toggleLoop(s))}
           onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
           onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
@@ -1116,16 +1348,12 @@ export default function Workspace({ workflow }) {
             if (op.type === "copy") commit((s) => newPlaylist(s, id, { copy: true }));
             restartIfPlaying();
           }}
-        /></>
-      ) : (
-        <MixWindow
-          session={session} daw={daw} playing={playing}
-          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
-          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
-          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
-          onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />
+            {workflow.oneWindow && mixEl}
+          </div>
+        </div></>
+      ) : (
+        mixEl
       )}
 
       {/* Region (spot) editor */}
@@ -1243,7 +1471,9 @@ export default function Workspace({ workflow }) {
             {upload && (
               <>
                 <p className="text-emerald-300">Saved to FileZ.</p>
-                <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} />
+                <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} noPost />
+                <CoachMix url={upload.url} uploadId={upload.id} title={session.name} />
+                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={mb} />
               </>
             )}
           </div>

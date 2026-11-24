@@ -331,7 +331,7 @@ export function presetRoom(state, kind = "tone") {
   return { ok: count < limit, line: `${count} of ${limit} saved` };
 }
 
-export const KIND_LABEL = { tone: "Track tone", fx: "Track FX", master: "Mastering", strip: "Channel strip", vst: "Plugin" };
+export const KIND_LABEL = { tone: "Track tone", fx: "Track FX", master: "Mastering", strip: "Channel strip", vst: "Plugin", synth: "Synth patch" };
 
 /** A plugin's own room: its saved states are counted per plugin (a member's compressor and EQ each get the tier's number). */
 export function pluginRoom(state, uid) {

@@ -10,6 +10,14 @@ export const INSTRUMENTS = [
   ["pad", "Warm pad"], ["organ", "Organ"], ["pluck", "Pluck"], ["bell", "Bell"],
   ["brass", "Brass"], ["sub808", "808"],
 ];
+import { PRESETS, PRESET_IDS, presetPatch } from "./synth/patch.js";
+import { renderSynth } from "./synth/engine.js";
+import { isUserSound, userPatch } from "./synth/userPatches.js";
+
+// The synth engine's patches, after the original twelve, so the tier ladder (the first N) never moves what a member
+// already had: Free 3 and Premium 6 are unchanged, StatZ's "all" now includes these.
+const SYNTHS = PRESET_IDS.map((id) => [`synth:${id}`, `🎛️ ${PRESETS[id].name} (synth)`]);
+INSTRUMENTS.push(...SYNTHS);
 const KEYS = new Set(INSTRUMENTS.map(([k]) => k));
 
 /** Pick a sensible instrument for a MIDI track from its General MIDI program (0-127). */
@@ -102,6 +110,16 @@ function note(ctx, out, inst, pitch, t, len, vel) {
   }
 }
 
+/** Render notes through a synth patch (any patch, saved or not) to a stereo AudioBuffer at `rate`. */
+export async function renderPatchNotes(notes, patch, { bpm, rate = 44100 }) {
+  const Off = globalThis.OfflineAudioContext || globalThis.webkitOfflineAudioContext;
+  if (!Off) throw new Error("This browser can't render audio.");
+  const out = await renderSynth(notes, patch, { bpm, rate, tick: () => new Promise((r) => setTimeout(r, 0)) });
+  const buf = new Off(2, 1, rate).createBuffer(2, out.length, rate);
+  buf.copyToChannel(out.left, 0); buf.copyToChannel(out.right, 1);
+  return buf;
+}
+
 /**
  * Render one MIDI part through an instrument to an AudioBuffer: notes are [pitch, startBeat,
  * lengthBeats, velocity], played at `bpm`. Stereo, at the DAW's sample rate.
@@ -113,7 +131,11 @@ export async function renderNotes(notes, instrument, { bpm, rate = 44100 }) {
   const lastEnd = notes.reduce((m, n) => Math.max(m, (n[1] + n[2]) * spb), 0);
   const ctx = new Off(2, Math.ceil((lastEnd + 2.5) * rate), rate);
   const master = ctx.createGain(); master.gain.value = 0.8; master.connect(ctx.destination);
-  const inst = cleanInstrument(instrument);
+  const inst = isUserSound(instrument) && userPatch(instrument) ? instrument : cleanInstrument(instrument);
+  if (inst.startsWith("synth:")) {
+    const patch = isUserSound(inst) ? userPatch(inst) : presetPatch(inst.slice(6));
+    return renderPatchNotes(notes, patch, { bpm, rate });
+  }
   for (const [pitch, start, length, vel] of notes) {
     const t = start * spb, v = Math.max(0.05, vel / 127);
     if (inst === "drums") drumHit(ctx, master, pitch, t, v);

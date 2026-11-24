@@ -84,8 +84,46 @@ export function cleanInput(i) {
 
 export function newSession(name = "Untitled session") {
   const t = newTrack(1);
-  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], key: "", snap: true, genre: "", skills: [] };
+  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], sections: [], key: "", snap: true, genre: "", skills: [] };
 }
+
+// ---- count-in ----------------------------------------------------------------------------------
+export const COUNT_INS = [0, 1, 2];                  // bars of click before a recording starts
+/** The clicks of a count-in: one per beat, the first of each bar accented, and how long it all lasts. Pure, so it is tested. */
+export function countInPlan(s, bars) {
+  const n = COUNT_INS.includes(bars) ? bars : 0;
+  const beat = beatSeconds(s);
+  const beats = Array.from({ length: n * s.meter }, (_, i) => ({ at: i * beat, accent: i % s.meter === 0 }));
+  return { beats, seconds: n * s.meter * beat };
+}
+
+// ---- punch in / out ----------------------------------------------------------------------------
+export const PREROLL_MIN = 1;                        // seconds of the session heard before a punch-in, at least
+/** Recording only inside the loop region. The transport starts a bar early so you hear what you are coming in on; the take is
+ *  trimmed to [in, out] and the take stops itself at `out`. Null when there is no region to punch (or the flag is off). */
+export function punchPlan(s, on) {
+  const lp = s.loop;
+  if (!on || !lp || !(lp.end - lp.start >= 0.1)) return null;
+  const preroll = Math.max(PREROLL_MIN, beatSeconds(s) * s.meter);
+  return { from: Math.max(0, lp.start - preroll), in: lp.start, out: lp.end };
+}
+
+// ---- loop region -------------------------------------------------------------------------------
+// One region on the session: { start, end, on }. Playback wraps from `end` back to `start` while `on`.
+export const MIN_LOOP = 0.1;
+export function cleanLoop(raw) {
+  const start = Math.max(0, num(raw?.start, NaN)); const end = num(raw?.end, NaN);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < MIN_LOOP) return null;
+  return { start, end, on: raw?.on !== false };
+}
+/** Set the region (start/end in seconds, either order) or clear it with null. Too short to be a loop = cleared. */
+export function setLoop(s, a, b, on = true) {
+  if (a == null) return { ...s, loop: null };
+  return { ...s, loop: cleanLoop({ start: Math.min(a, b), end: Math.max(a, b), on }) };
+}
+export const toggleLoop = (s) => (s.loop ? { ...s, loop: { ...s.loop, on: !s.loop.on } } : s);
+/** Where playback goes next: the loop's start once the position reaches its end, else null (carry on). */
+export const loopJump = (s, pos) => (s.loop && s.loop.on && pos >= s.loop.end ? s.loop.start : null);
 
 // ---- markers ----------------------------------------------------------------------------------
 // A marker is a named, coloured, optionally emoji'd point on the timeline ("Verse 2", "🔥 Drop"). It belongs to the
@@ -128,6 +166,22 @@ export function cleanMarkers(raw) {
     id: String(m.id || uid("m")), t: Math.max(0, num(m.t, 0)), name: String(m.name || `Marker ${i + 1}`).slice(0, 40),
     emoji: cleanEmoji(m.emoji), color: cleanColor(m.color, MARKER_COLORS[i % MARKER_COLORS.length]),
   }));
+}
+
+// ---- song sections (the arranger) ---------------------------------------------------------------
+// Named stretches of the song: { id, name, start, end, color }, sorted, never overlapping. Moving them is arranger.js's job; the
+// stored shape and its repair are here so every DAW opens a session that has them.
+export const MAX_SECTIONS = 64;
+export function cleanSections(raw) {
+  const rows = (Array.isArray(raw) ? raw : []).slice(0, MAX_SECTIONS)
+    .filter((x) => x && Number.isFinite(Number(x.start)) && Number.isFinite(Number(x.end)))
+    .map((x, i) => ({ id: String(x.id || uid("sec")), name: String(x.name || `Section ${i + 1}`).slice(0, 40),
+      start: Math.max(0, num(x.start, 0)), end: Math.max(0, num(x.end, 0)), color: cleanColor(x.color, COLORS[i % COLORS.length]) }))
+    .filter((x) => x.end - x.start >= 0.1)
+    .sort((a, b) => a.start - b.start);
+  const out = [];
+  for (const x of rows) { if (out.length && x.start < out.at(-1).end - 1e-6) continue; out.push(x); }           // an overlapping one is dropped, not guessed at
+  return out;
 }
 
 // ---- reading ----------------------------------------------------------------------------------
@@ -173,6 +227,36 @@ export const minSec = (sec, tenths = true) => {
   const rest = s - m * 60;
   return `${m}:${(tenths ? rest.toFixed(2) : Math.floor(rest).toString()).padStart(tenths ? 5 : 2, "0")}`;
 };
+
+/** Clock label for a ruler tick: 0:05, 1:30, 12:00 (sub-second steps get a tenth). */
+export const clockLabel = (sec, tenths = false) => {
+  const t = Math.max(0, sec);
+  const m = Math.floor(t / 60);
+  const r = t - m * 60;
+  return `${m}:${tenths ? r.toFixed(1).padStart(4, "0") : String(Math.floor(r + 1e-6)).padStart(2, "0")}`;
+};
+
+/** The ruler's marks for a view `width` px wide at `zoom` px/s: bars (always), beats (once they are 14px apart),
+ *  and clock ticks at the first "nice" step at least 60px apart. Pure, so it is tested. */
+export function rulerTicks(s, zoom, width) {
+  const beat = beatSeconds(s);
+  const bar = beat * s.meter;
+  const end = width / zoom;
+  const barEvery = Math.max(1, Math.ceil(44 / (bar * zoom)));
+  const bars = [];
+  for (let i = 0; i * bar <= end && bars.length < 2000; i += barEvery) bars.push({ t: i * bar, label: String(i + 1) });
+  const beats = [];
+  if (beat * zoom >= 14 && barEvery === 1) {
+    for (let i = 0; i * beat <= end && beats.length < 8000; i++) {
+      if (i % s.meter) beats.push({ t: i * beat, label: beat * zoom >= 30 ? `${Math.floor(i / s.meter) + 1}.${(i % s.meter) + 1}` : "" });
+    }
+  }
+  const NICE = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600];
+  const every = NICE.find((n) => n * zoom >= 60) || 3600;
+  const clock = [];
+  for (let i = 0; i * every <= end && clock.length < 2000; i++) clock.push({ t: i * every, label: clockLabel(i * every, every < 1) });
+  return { bars, beats, clock };
+}
 
 export function snapTime(s, sec) {
   const g = gridSeconds(s);
@@ -440,6 +524,40 @@ export function deletePlaylist(s, trackId) {
   }));
 }
 
+/** Take lanes (playlists) with nothing in them, beyond the one every track must keep. Overdubbing and "new take" leave these behind. */
+export function emptyTakeCount(s, trackId) {
+  return s.tracks.reduce((n, t) => {
+    if (trackId && t.id !== trackId) return n;
+    const empties = t.playlists.filter((p) => !p.regions.length).length;
+    return n + (empties === t.playlists.length ? empties - 1 : empties);   // an all-empty track keeps one
+  }, 0);
+}
+/** Delete the empty take lanes (one track, or all). The active take stays the same take; a track left with only empties keeps its first. */
+export function removeEmptyTakes(s, trackId) {
+  return pruneSources({
+    ...s,
+    tracks: s.tracks.map((t) => {
+      if (trackId && t.id !== trackId) return t;
+      const keepIdx = t.playlists.map((p, i) => (p.regions.length || i === (t.playlists.every((q) => !q.regions.length) ? t.active : -1) ? i : -1)).filter((i) => i >= 0);
+      if (keepIdx.length === t.playlists.length) return t;
+      const playlists = keepIdx.map((i) => t.playlists[i]);
+      const at = keepIdx.indexOf(t.active);
+      return { ...t, playlists, active: at >= 0 ? at : Math.min(t.active, playlists.length - 1) };
+    }),
+  });
+}
+
+/** Remove a take lane only if it is empty AND there is another lane on the track. For StatZ's automatic clean-up after a
+ *  deletion: it targets the one lane the member just emptied, never a lane that is merely new (an overdub's). */
+export function dropIfEmptied(s, trackId, playlistId) {
+  const t = s.tracks.find((x) => x.id === trackId);
+  const i = t ? t.playlists.findIndex((p) => p.id === playlistId) : -1;
+  if (i < 0 || t.playlists[i].regions.length || t.playlists.length < 2) return s;
+  const playlists = t.playlists.filter((_, k) => k !== i);
+  const active = t.active === i ? Math.min(i, playlists.length - 1) : t.active > i ? t.active - 1 : t.active;
+  return pruneSources({ ...s, tracks: s.tracks.map((x) => (x.id === trackId ? { ...x, playlists, active } : x)) });
+}
+
 // ---- loading ----------------------------------------------------------------------------------
 
 /** Repair a stored session: anything missing gets its default, anything out of range is clamped, regions pointing at a missing source are dropped. */
@@ -449,13 +567,14 @@ export function cleanSession(raw) {
   const tracks = raw.tracks.slice(0, MAX_TRACKS).map((t, i) => {
     const d = newTrack(i + 1);
     const playlists = (Array.isArray(t?.playlists) && t.playlists.length ? t.playlists : d.playlists).slice(0, MAX_PLAYLISTS).map((p) => ({
-      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40),
+      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40), ...(p?.comp ? { comp: true } : {}),
       regions: (Array.isArray(p?.regions) ? p.regions : []).filter((r) => r && base.sources[r.src]).map((r) => ({
         id: String(r.id || uid("r")), src: r.src, name: String(r.name || "").slice(0, 80),
         at: Math.max(0, num(r.at, 0)), in: Math.max(0, num(r.in, 0)), out: Math.max(num(r.in, 0) + MIN_LEN, num(r.out, MIN_LEN)),
         gain: clamp(num(r.gain, 0), GAIN_DB.min, GAIN_DB.max), fadeIn: clamp(num(r.fadeIn, 0), 0, FADE_MAX), fadeOut: clamp(num(r.fadeOut, 0), 0, FADE_MAX),
         // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
         // new key is always made from the original and 0 gives the original back exactly.
+        ...(r.from ? { from: String(r.from).slice(0, 60) } : {}),
         ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
       })),
     }));
@@ -468,5 +587,5 @@ export function cleanSession(raw) {
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });
-  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers) };
+  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers), sections: cleanSections(raw.sections), loop: cleanLoop(raw.loop) };
 }

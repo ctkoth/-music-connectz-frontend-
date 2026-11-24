@@ -2772,3 +2772,56 @@ was centred in the taller row and slid out of the track's visible height — so 
 after 7 s. Driven in a browser: FX and the Tone menu stay at the same y before and after picking, and the message is gone after 7.5 s.
 The FX panel's chain menu is now labelled **FX chains** ("🎛️ Pick an FX chain…", with a sentence saying it replaces the track's effects and Undo brings them back);
 it lists all 130 chains (voice, guitar, bass, keys, drums, mix, StatZ and the member's own) and applying one fills the panel's effect list ("FX 2").
+
+## Studio Dragon 🐉: one window, drag and drop, and a song map that moves the music
+
+`src/apps/StudioDragon.jsx` is a workflow on the shared DAW engine, not a codebase: `oneWindow` puts the mixer under the arrangement
+instead of behind a tab, `browser` shows `DragonBrowser.jsx`, `arranger` shows the section track. The three flags are the whole of
+what makes it Studio Dragon; any other DAW can switch them on. It has no art of its own yet and wears the DawZ mark (`studiodragon.png`
+is mapped to `dawz.png` in `App.jsx`) until Corey draws one.
+
+- **The arranger is a map, and moving a section moves its music** (`arranger.js`, pure, 9 tests). Sections are named spans on the
+  session; a gap between two belongs to the one before, so nothing is left behind. `arrange(session, plan)` lays the song out as a list
+  of section ids: audio is split at the edges, markers and automation points go along, and **every take lane moves together** so takes
+  stay lined up. A section id twice is a copy, left out is a cut. Fades stay at the true start and end of a take, not at the cuts.
+  Audio before the first section stays; audio after the last follows the new end. "Remove label" and "Cut with its music" are different
+  buttons and the cut says so (and confirms) because it deletes music.
+- **A drop is only taken if it decodes to something the browser offers** (`dragPayload.js`): a known effect, a known loop, a tone by
+  key, or a saved tone the member really has. Anything else, including text dragged from another page, is not a drop.
+  Audio and video files from the desktop can be dropped on a track too; other files are counted and said.
+- **Every drag also has a button** (the + beside each item) for a phone or a keyboard: HTML5 drag and drop does not work on touch.
+- **Tiers stay where they were**: StatZ effects and loops past the plan's count show locked in the browser and refuse on a drop, with
+  the same sentence the track menus use. Nothing here is charged; loops are made on the device.
+- **Driven in a real browser** (Playwright): sections added and dragged into a new order, an effect dragged from the browser onto a
+  track, a stray text drop ignored. **Not checked:** dropping a real audio file from the desktop (the file path is the same `bring()`
+  the Import button uses), loops dropped on a lane at a time, touch, or Safari.
+
+## Comping: the takes are never touched, and the comp remembers where every piece came from
+
+Cycle and punch recording leave a take lane per pass; comping is how they become one finished take. `✂ Comp` on a track with more
+than one take opens its takes as rows under it. Dragging across a take's row takes that stretch into the **comp**, one more lane
+(`comp: true`) that is the one that plays. `comp.js` is pure and tested (9 tests); the screen only draws it.
+
+- **The take lanes are never edited**, so any swipe can be redone from the originals, and "Use all" restarts the comp as a copy of
+  one whole take. Clearing the comp takes the one lane away and leaves every take.
+- **Every piece in the comp carries `from`** (the lane it came from), which is how each take row lights up green where it is being
+  used (`compSpans`). `cleanSession` keeps both `comp` and `from`; a session saved and reopened still shows what came from where.
+- **A join is a true crossfade** (`XFADE`, 20 ms): the incoming piece starts half a fade early and the outgoing one keeps playing half a
+  fade late, so both sound while one rises and the other falls. The engine plays every region on its own with its own fades, so overlapping
+  regions in the comp lane ARE the crossfade; no engine change. It replaced a fade-out then fade-in that dipped about 5 dB over the join
+  (measured by bouncing two identical sine takes through the real engine: 0.1189 against a nominal 0.2099; with the crossfade every join
+  reads 0.2099, level to four places). A piece only reaches as far past a cut as its own take has audio, and the very start of a take is
+  never faded. Overlap in the comp lane is therefore normal and bounded by `XFADE`; `compSpans` reads overlapping same-lane pieces as one stretch.
+- **A track holding the most lanes has no room for a comp** and the swipe is refused with a sentence, rather than overwriting a take.
+- Swipes snap to the grid when Snap is on. Driven in a real browser: three takes, a swipe across take 2, the comp row reading
+  take 1 | take 2 | take 1, the green markers, Clear. **Not checked:** by ear (the audio is assembled from the same regions the
+  engine already plays), on a phone, or with a swipe that crosses a take's own fades.
+
+## FX chains are searchable, and the ones that suit the track come first
+
+The FX panel's chain picker was a 130-option dropdown. `FxChainBrowser.jsx` replaces it with a search box (every word must
+match a chain's name, group or what it does) and a list that puts chains written for the track's role first (`chainSearch.js`:
+role from import or `guessRole`, mapped to chain groups). The role only ORDERS; nothing is hidden. Applying replaces the track's
+effects and says Undo brings them back; StatZ chains show 🔒 and refuse with the way to try them. The member's saved presets stay
+in the `TonePicker` beneath, labelled "Your saved presets". "Do best ft" (a cut-off message) was read as "make FX chains easy to
+find"; reversible by restoring the old picker in `EditWindow.jsx`.
