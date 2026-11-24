@@ -480,11 +480,13 @@ export const CUSTOM_ICONS = {
   "badge_brass_blastz.png": "/icons/badge_brass_blastz-neon.svg",
   "badge_royal_ratingz.png": "/icons/badge_royal_ratingz-neon.svg",
   "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
-  "badge_thorough.png": "/icons/badge_thorough-neon.svg",
-  "badge_decent.png": "/icons/badge_decent-neon.svg",
+  "badge_thorough.png": "/icons/badge_thorough.jpg",
+  "badge_decent.png": "/icons/badge_decent.jpg",
+  // Legendary keeps the drawn neon medal: its sign came with "≤" (8.9 or LOWER) where the rule is "≥". Swap it for
+  // /icons/badge_legendary.jpg once the corrected sign exists.
   "badge_legendary.png": "/icons/badge_legendary-neon.svg",
-  "badge_supreme.png": "/icons/badge_supreme-neon.svg",
-  "badge_perfect.png": "/icons/badge_perfect-neon.svg",
+  "badge_supreme.png": "/icons/badge_supreme.jpg",
+  "badge_perfect.png": "/icons/badge_perfect.jpg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
