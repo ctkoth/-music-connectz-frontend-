@@ -5,7 +5,7 @@
 // and each sound goes up as an ordinary upload under their storage quota (so the cost is MB they already
 // have, said before the switch). The other device lists those sessions and pulls one in when it is opened.
 // The server decides what fits; nothing here invents a size limit.
-import { api } from "../api.js";
+import { api, apiBlob } from "../api.js";
 import { getSource, loadSession, putSource, saveSession } from "./store.js";
 import { sourcesToSend } from "./cloudList.js";
 
@@ -46,6 +46,19 @@ export async function syncSession(id) {
   return row.updated;
 }
 
+/**
+ * One sound: the direct media address first (no bytes through our servers), and — when the browser refuses to
+ * read it, which is what a bucket without our domain in its CORS rules does — the same sound through the API.
+ */
+async function fetchSound(a) {
+  try {
+    const r = await fetch(a.url);
+    if (r.ok) return await r.blob();
+  } catch { /* blocked cross-origin or offline: try the API */ }
+  if (!a.via_api) return null;
+  try { return await apiBlob(a.via_api); } catch { return null; }
+}
+
 /** Brings the account's copy onto this device: the arrangement and every sound, then it is an ordinary local session. */
 export async function pullSession(id) {
   const d = await api(`${BASE}${enc(id)}/`);
@@ -55,9 +68,9 @@ export async function pullSession(id) {
     if (!a?.url || a.missing) { lost += 1; continue; }
     const have = await getSource(sid).catch(() => null);
     if (have) { audio[sid] = a.id; continue; }
-    const r = await fetch(a.url);
-    if (!r.ok) { lost += 1; continue; }
-    await putSource(sid, await r.blob());
+    const blob = await fetchSound(a);
+    if (!blob) { lost += 1; continue; }
+    await putSource(sid, blob);
     audio[sid] = a.id;
   }
   await saveSession(id, d.app, d.session, { on: true, audio, syncedAt: Date.now() });
