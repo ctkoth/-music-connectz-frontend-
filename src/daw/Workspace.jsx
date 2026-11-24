@@ -833,6 +833,7 @@ export default function Workspace({ workflow }) {
   // A MIDI file handed over (Instrumental ConnectZ's .mid) opens in the MIDI window; anything else is audio.
   const [midiIn, setMidiIn] = useState(null);
   useEffect(() => onHandoff(workflow.app, (p) => {
+    if (p?.sessionId) { refreshList().then(() => open(p.sessionId)); return; }       // a saved session opened from FileZ
     if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid", sounds: p.sounds }); setView("midi"); return; }
     if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" });
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -960,6 +961,10 @@ export default function Workspace({ workflow }) {
   // panels measure, so their answers are about the audio itself rather than the current settings.
   // ---- name & save: the session is kept on this device as it changes; this makes that visible and lets a member name it on purpose ----
   const [savedAt, setSavedAt] = useState(0);
+  // A saved session is kept on the member's account (FileZ) by default, so it opens on any device they sign in on.
+  // The sounds count against their storage, which the line beside Save says BEFORE it is pressed; they can turn it off.
+  const [keepOnAccount, setKeepOnAccountRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_keep_account") !== "0"; } catch { return true; } });
+  const setKeepOnAccount = (v) => { setKeepOnAccountRaw(v); try { localStorage.setItem("mcz_daw_keep_account", v ? "1" : "0"); } catch { /* per-visit */ } };
   const nameAndSave = async () => {
     let name = session.name;
     if (!name || name === "Untitled session") {
@@ -970,7 +975,17 @@ export default function Workspace({ workflow }) {
     const next = { ...sRef.current, name };
     commit((x) => ({ ...x, name }));
     try { await saveSession(sessionId, workflow.app, next); setStoreErr(""); setSavedAt(Date.now()); refreshList(); }
-    catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); }
+    catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); return; }
+    if (keepOnAccount && !cloudOn) {
+      setCloudBusy(true); setCloudMsg("Saving to your account…");
+      try {
+        await syncSession(sessionId);
+        setCloudOn(true); setCloudMsg("Saved to your account — open it from any device you sign in on.");
+        api("/api/economy/uploads/").then(setStorage).catch(() => {});
+        refreshList();
+      } catch (e) { setCloudMsg(`Saved on this device, but not on your account: ${e.message}`); }
+      finally { setCloudBusy(false); }
+    }
   };
 
   // ---- key and tempo from the instrumental: free, on this device, and it says what it heard ----
@@ -1164,7 +1179,12 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={nameAndSave}
                 title="Kept on this device as you work. This names it and saves it right now. To keep a copy of the sound itself, bounce it and Save to FileZ.">
           💾 {session.name === "Untitled session" ? "Name & save" : "Save"}
+          {keepOnAccount && !cloudOn && <span className="ml-2 text-mcz-ember">−{mb(cloudBytes)} MB storage</span>}
+          {keepOnAccount && !cloudOn && <span className="ml-1 text-emerald-300">+ on any device</span>}
         </button>
+        <label className="flex items-center gap-1 text-white/70" title="When on, Save also keeps this session on your account (FileZ) so it opens on your other devices. Its sounds count against your storage, shown on the button. Turn it off to keep saves on this device only.">
+          <input type="checkbox" checked={keepOnAccount} onChange={(e) => setKeepOnAccount(e.target.checked)} /> Also keep on my account
+        </label>
         <button type="button" className="re-btn !w-auto px-3" disabled={cloudBusy} onClick={toggleCloud} data-tour="daw-cloud"
                 title={cloudOn ? "Stops keeping this session on your account and frees the storage its sounds used." : "Keeps this session on your account so it opens on your other devices."}>
           ☁️ {cloudBusy ? "Working…" : cloudOn ? "On my other devices ✓" : "Open on my other devices"}

@@ -382,6 +382,23 @@ export default function EditWindow({
                         title="Comping: open the takes as rows and swipe across the best parts to build one finished take" onClick={() => toggleComp(t.id)}>✂ Comp</button>
               )}
             </div>}
+            {/* Volume and pan on EVERY track, at every height: arrows to nudge, the amount in the middle, double-click it to reset. */}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-white/80">
+              <span className="flex items-center gap-0.5" title="Track volume. Arrows move it 1 dB; Shift+click 3 dB. Double-click the number to reset to 0 dB.">
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Turn ${t.name} down`} onClick={(e) => onTrack(t.id, { gain: Math.max(-60, Math.round((t.gain || 0) - (e.shiftKey ? 3 : 1))) })}>▼</button>
+                <button type="button" className="min-w-[3.6rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label={`${t.name} volume ${(t.gain || 0).toFixed(1)} dB, double-click to reset`} onDoubleClick={() => onTrack(t.id, { gain: 0 })}>
+                  {(t.gain || 0) > 0 ? "+" : ""}{(t.gain || 0).toFixed(1)} dB
+                </button>
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Turn ${t.name} up`} onClick={(e) => onTrack(t.id, { gain: Math.min(12, Math.round((t.gain || 0) + (e.shiftKey ? 3 : 1))) })}>▲</button>
+              </span>
+              <span className="flex items-center gap-0.5" title="Track pan. Arrows move it 10%; double-click the amount to centre it.">
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Pan ${t.name} left`} onClick={() => onTrack(t.id, { pan: Math.max(-1, Math.round(((t.pan || 0) - 0.1) * 10) / 10) })}>◀</button>
+                <button type="button" className="min-w-[2.6rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label={`${t.name} pan, double-click to centre`} onDoubleClick={() => onTrack(t.id, { pan: 0 })}>
+                  {Math.abs(t.pan || 0) < 0.05 ? "C" : `${(t.pan || 0) < 0 ? "L" : "R"}${Math.round(Math.abs(t.pan) * 100)}`}
+                </button>
+                <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Pan ${t.name} right`} onClick={() => onTrack(t.id, { pan: Math.min(1, Math.round(((t.pan || 0) + 0.1) * 10) / 10) })}>▶</button>
+              </span>
+            </div>
             {onInserts && (
               <div className="relative flex items-start gap-1 text-[10px]">
                 {t.armed && onMonitor && (
