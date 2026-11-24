@@ -6,6 +6,8 @@
 // Every call is wrapped, because private windows and blocked storage throw, and a DAW that fails to
 // autosave must keep working and say so rather than stop.
 
+// A session may also be kept on the member's account (cloud.js), opt-in per session. That choice and which
+// upload holds each sound live on the session's own row as `cloud`, so removing the row forgets them.
 const DB = "mcz-dawz";
 const VERSION = 1;
 
@@ -41,12 +43,17 @@ async function run(store, mode, fn) {
 const req = (r) => new Promise((resolve, reject) => { r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error); });
 
 export const listSessions = () => run("sessions", "readonly", (os) => req(os.getAll()))
-  .then((rows) => (rows || []).map(({ id, name, app, updated, session }) => ({ id, name, app, updated, genre: session?.genre || "", key: session?.key || "", bpm: session?.bpm, skills: Array.isArray(session?.skills) ? session.skills : [] })).sort((a, b) => b.updated - a.updated));
+  .then((rows) => (rows || []).map(({ id, name, app, updated, session, cloud }) => ({ id, name, app, updated, cloud: !!cloud?.on, genre: session?.genre || "", key: session?.key || "", bpm: session?.bpm, skills: Array.isArray(session?.skills) ? session.skills : [] })).sort((a, b) => b.updated - a.updated));
 
 export const loadSession = (id) => run("sessions", "readonly", (os) => req(os.get(id))).then((row) => row || null);
 
-export const saveSession = (id, app, session) =>
-  run("sessions", "readwrite", (os) => req(os.put({ id, app, name: session.name, updated: Date.now(), session })));
+/** Saves the session. `cloud` is left as it was unless passed (null forgets it), so an autosave never drops it. */
+export const saveSession = (id, app, session, cloud) =>
+  run("sessions", "readwrite", async (os) => {
+    const prev = await req(os.get(id));
+    const keep = cloud === undefined ? prev?.cloud : cloud;
+    return req(os.put({ id, app, name: session.name, updated: Date.now(), session, ...(keep ? { cloud: keep } : {}) }));
+  });
 
 export async function removeSession(id) {
   await run("sessions", "readwrite", (os) => req(os.delete(id)));

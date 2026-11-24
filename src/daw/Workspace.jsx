@@ -72,6 +72,8 @@ import OutputPick from "./OutputPick.jsx";
 import { holdPeak, latencyMs, levelFromSamples, meterPos } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
+import { listCloud, pullSession, removeCloud, sizeToSend, syncSession } from "./cloud.js";
+import { mb, mergeLists, originNote } from "./cloudList.js";
 
 const MODE_LABEL = {
   slip: { label: "Slip", what: "regions go exactly where you drop them" },
@@ -123,6 +125,11 @@ export default function Workspace({ workflow }) {
   const [others, setOthers] = useState([]);       // sessions made in the other DAWs
   const [saved, setSaved] = useState([]);         // sessions on this device
   const [storeErr, setStoreErr] = useState("");
+  const remoteRef = useRef([]);                       // the merged picker rows, for open() to read
+  const [cloudOn, setCloudOn] = useState(false);      // this session is also kept on the account
+  const [cloudMsg, setCloudMsg] = useState("");
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudBytes, setCloudBytes] = useState(0);    // what turning it on would add to storage
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
   const [zoom, setZoomRaw] = useState(40);        // pixels per second
@@ -169,7 +176,12 @@ export default function Workspace({ workflow }) {
   const redo = () => { if (!future.current.length) return; past.current = [...past.current, sRef.current]; put(future.current.shift()); bump((n) => n + 1); };
 
   // ---- the device: sessions and their audio ----
-  const refreshList = useCallback(() => listSessions().then((rows) => {
+  // This device's sessions, plus the ones kept on the account (made on another device, or newer there). A failed
+  // account fetch just means this device's list: the DAW never waits on the network to open what is already here.
+  const refreshList = useCallback(() => listSessions().then(async (local) => {
+    const remote = await listCloud().catch(() => []);
+    const rows = mergeLists(local, remote);
+    remoteRef.current = rows;
     setSaved(rows.filter((r) => r.app === workflow.app));
     setOthers(rows.filter((r) => r.app !== workflow.app));
   }).catch(() => { setSaved([]); setOthers([]); }), [workflow.app]);
@@ -179,6 +191,12 @@ export default function Workspace({ workflow }) {
   const open = useCallback(async (id, asCopy = false) => {
     setBusy("Opening the session…"); setErr(""); setMsg("");
     try {
+      // Made on another device, or newer on the account: bring it here first (arrangement and every sound).
+      const there = remoteRef.current.find((r) => r.id === id);
+      if (there?.remote) {
+        setBusy("Bringing it from your account…");
+        try { await pullSession(id); } catch (e) { throw new Error(`Couldn't bring that session from your account: ${e.message}`); }
+      }
       const row = await loadSession(id);
       if (!row) throw new Error("That session isn't on this device any more.");
       const s = cleanSession(row.session);
@@ -196,6 +214,7 @@ export default function Workspace({ workflow }) {
       }
       setMissing(lost);
       past.current = []; future.current = [];
+      setCloudOn(!asCopy && !!row.cloud?.on); setCloudMsg("");
       put(s); setSessionId(asCopy ? uid("ses") : id); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }, [daw]);
@@ -219,6 +238,23 @@ export default function Workspace({ workflow }) {
     }, 800);
     return () => clearTimeout(t);
   }, [session, sessionId, workflow.app, refreshList]);
+
+  // Kept on the account: a few seconds after the last edit (after the device's own save has landed), send it up.
+  useEffect(() => {
+    if (!cloudOn) return undefined;
+    const t = setTimeout(() => {
+      syncSession(sessionId).then(() => setCloudMsg(`On your account · ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`))
+        .catch((e) => setCloudMsg(`Not on your account yet: ${e.message}`));
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [session, sessionId, cloudOn]);
+  // What turning it on would add to storage, said before the switch.
+  useEffect(() => {
+    if (cloudOn) return undefined;
+    let live = true;
+    sizeToSend(session).then((n) => { if (live) setCloudBytes(n); }).catch(() => {});
+    return () => { live = false; };
+  }, [session.sources, cloudOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- automation writing (latch): while it plays with Write on, a fader or pan the member moves
   // is recorded at the playhead; that param follows the hand, not its lane, until playback stops,
@@ -998,8 +1034,29 @@ export default function Workspace({ workflow }) {
     put(setSession(newSession(), { editMode: workflow.editMode || "slip" }));
     setSessionId(uid("ses")); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null); setMissing(0); setMsg("");
   };
+  const toggleCloud = async () => {
+    setCloudBusy(true); setCloudMsg("");
+    try {
+      if (cloudOn) {
+        if (!window.confirm("Stop keeping this session on your account? Its sounds are removed from your account and your storage is freed. The copy on this device stays.")) return;
+        await removeCloud(sessionId);
+        await saveSession(sessionId, workflow.app, sRef.current, null);
+        setCloudOn(false); setCloudMsg("Removed from your account.");
+      } else {
+        await saveSession(sessionId, workflow.app, sRef.current);     // make sure this device has the latest first
+        await syncSession(sessionId);
+        setCloudOn(true); setCloudMsg("On your account — open it from any device you sign in on.");
+        api("/api/economy/uploads/").then(setStorage).catch(() => {});
+      }
+      refreshList();
+    } catch (e) { setCloudMsg(`${cloudOn ? "Couldn't remove it" : "Not kept on your account"}: ${e.message}`); }
+    finally { setCloudBusy(false); }
+  };
   const dropSession = async () => {
-    if (!window.confirm(`Delete "${session.name}" from this device? Its recordings go with it. Anything you saved to FileZ stays.`)) return;
+    if (!window.confirm(cloudOn
+      ? `Delete "${session.name}" from this device AND your account? Its recordings go with it on both. Anything you saved to FileZ stays.`
+      : `Delete "${session.name}" from this device? Its recordings go with it. Anything you saved to FileZ stays.`)) return;
+    if (cloudOn) { try { await removeCloud(sessionId); } catch { setStoreErr("Couldn't remove the copy on your account — it is still there. Try again."); return; } }
     try { await removeSession(sessionId); } catch { /* already gone */ }
     newOne();
     refreshList();
@@ -1039,11 +1096,12 @@ export default function Workspace({ workflow }) {
 
       <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
         <span className="text-emerald-300">Free.</span> Everything runs on your device: your session is kept in this browser on this device, and nothing is
-        uploaded until you press Save to FileZ{storage?.storage_free_mb != null ? <> (counts against your storage — {storage.storage_free_mb} MB free)</> : " (counts against your storage)"}.
+        uploaded until you press Save to FileZ or turn on Open on my other devices (which keeps this one session on your account){storage?.storage_free_mb != null ? <> (counts against your storage — {storage.storage_free_mb} MB free)</> : " (counts against your storage)"}.
         Use headphones when you record, so the playback doesn't get into the mic.
       </p>
       {note && <p className="text-[11px] text-white/60">🔌 {note}</p>}
       {storeErr && <p className="text-xs text-amber-200">{storeErr}</p>}
+      {cloudMsg && <p className="text-xs text-white/70" role="status">☁️ {cloudMsg}</p>}
       {missing > 0 && <p className="text-xs text-amber-200">{missing} recording{missing === 1 ? "" : "s"} in this session couldn't be found on this device, so {missing === 1 ? "it plays" : "they play"} as silence.</p>}
 
       {/* Session bar */}
@@ -1054,20 +1112,28 @@ export default function Workspace({ workflow }) {
                 title="Kept on this device as you work. This names it and saves it right now. To keep a copy of the sound itself, bounce it and Save to FileZ.">
           💾 {session.name === "Untitled session" ? "Name & save" : "Save"}
         </button>
+        <button type="button" className="re-btn !w-auto px-3" disabled={cloudBusy} onClick={toggleCloud} data-tour="daw-cloud"
+                title={cloudOn ? "Stops keeping this session on your account and frees the storage its sounds used." : "Keeps this session on your account so it opens on your other devices."}>
+          ☁️ {cloudBusy ? "Working…" : cloudOn ? "On my other devices ✓" : "Open on my other devices"}
+          {!cloudBusy && !cloudOn && (
+            <span className="ml-2 text-mcz-ember">−{mb(cloudBytes)} MB storage{storage?.storage_free_mb != null ? ` (${storage.storage_free_mb} free)` : ""}</span>
+          )}
+          {!cloudBusy && !cloudOn && <span className="ml-1 text-emerald-300">+ opens on any device</span>}
+        </button>
         <span className="text-[11px] text-white/50" role="status">
           {savedAt ? `Saved on this device · ${new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Kept on this device as you work"}
         </span>
         <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Open a saved session"
                 onChange={(e) => e.target.value && open(e.target.value)}>
-          <option value="">Open a session on this device…</option>
-          {saved.map((r) => <option key={r.id} value={r.id}>{[r.genre, r.key, r.name].filter(Boolean).join(" - ")}{r.skills?.length ? ` · ${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : ""} · {new Date(r.updated).toLocaleDateString()}</option>)}
+          <option value="">Open a session…</option>
+          {saved.map((r) => <option key={r.id} value={r.id}>{[r.genre, r.key, r.name].filter(Boolean).join(" - ")}{r.skills?.length ? ` · ${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : ""} · {new Date(r.updated).toLocaleDateString()}{originNote(r)}</option>)}
         </select>
         {others.length > 0 && (
           <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Copy in a session from another DAW"
                   title="Opens a copy here. The original stays in its own DAW, unchanged."
                   onChange={(e) => e.target.value && open(e.target.value, true)}>
             <option value="">Copy in from another DAW…</option>
-            {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
+            {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}{originNote(r)}</option>)}
           </select>
         )}
         <details className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-project-details">
