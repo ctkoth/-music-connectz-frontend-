@@ -2816,3 +2816,12 @@ than one take opens its takes as rows under it. Dragging across a take's row tak
 - Swipes snap to the grid when Snap is on. Driven in a real browser: three takes, a swipe across take 2, the comp row reading
   take 1 | take 2 | take 1, the green markers, Clear. **Not checked:** by ear (the audio is assembled from the same regions the
   engine already plays), on a phone, or with a swipe that crosses a take's own fades.
+
+## FX chains are searchable, and the ones that suit the track come first
+
+The FX panel's chain picker was a 130-option dropdown. `FxChainBrowser.jsx` replaces it with a search box (every word must
+match a chain's name, group or what it does) and a list that puts chains written for the track's role first (`chainSearch.js`:
+role from import or `guessRole`, mapped to chain groups). The role only ORDERS; nothing is hidden. Applying replaces the track's
+effects and says Undo brings them back; StatZ chains show 🔒 and refuse with the way to try them. The member's saved presets stay
+in the `TonePicker` beneath, labelled "Your saved presets". "Do best ft" (a cut-off message) was read as "make FX chains easy to
+find"; reversible by restoring the old picker in `EditWindow.jsx`.

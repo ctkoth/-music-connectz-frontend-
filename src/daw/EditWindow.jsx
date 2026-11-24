@@ -14,6 +14,7 @@ import AutoLane from "./AutoLane.jsx";
 import { KeyChip } from "../components/KeyBadge.jsx";
 import { StatzSample as StatzOffer, useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
+import FxChainBrowser from "./FxChainBrowser.jsx";
 import { ColorPick, EmojiPick } from "./Looks.jsx";
 import { MarkerHeader, MarkerStrip } from "./Markers.jsx";
 import { ArrangerHeader, ArrangerStrip } from "./ArrangerStrip.jsx";
@@ -425,8 +426,10 @@ export default function EditWindow({
                       </div>
                     )}
                     <p className="text-white/60">FX chains — a whole set of effects in one pick (voice, guitar, bass, keys, drums, mix, plus your own). It replaces this track's effects; Undo brings them back.</p>
+                    <FxChainBrowser track={t} onInserts={onInserts} statzOk={statzOk} />
+                    <p className="text-white/60">Your saved presets</p>
                     <TonePicker tones={tones} inserts={t.inserts || []} onApply={(list) => onInserts(t.id, list)} trackName={t.name} statzOk={statzOk}
-                                placeholder="🎛️ Pick an FX chain…" ariaLabel={`Put an FX chain on ${t.name}`} />
+                                placeholder="🎛️ Your saved presets…" ariaLabel={`Put a saved preset on ${t.name}`} />
                     {onOpenMix && <button type="button" className="re-btn !w-auto px-2 py-0.5" onClick={() => { setFx(null); onOpenMix(); }}>Open the mixer to adjust settings</button>}
                   </Popover>
                 )}
