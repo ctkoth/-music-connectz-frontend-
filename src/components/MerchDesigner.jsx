@@ -15,6 +15,13 @@ function drawProduct(ctx, key, color) {
     ctx.lineTo(s * .9, s * .25); ctx.lineTo(s * .8, s * .4); ctx.lineTo(s * .72, s * .35);
     ctx.lineTo(s * .72, s * .9); ctx.lineTo(s * .28, s * .9); ctx.lineTo(s * .28, s * .35);
     ctx.lineTo(s * .2, s * .4); ctx.lineTo(s * .1, s * .25); ctx.closePath();
+  } else if (key === "hoodie") {
+    ctx.moveTo(s * .38, s * .16); ctx.quadraticCurveTo(s * .5, s * .02, s * .62, s * .16);
+    ctx.lineTo(s * .88, s * .3); ctx.lineTo(s * .9, s * .82); ctx.lineTo(s * .8, s * .82); ctx.lineTo(s * .74, s * .4);
+    ctx.lineTo(s * .74, s * .92); ctx.lineTo(s * .26, s * .92); ctx.lineTo(s * .26, s * .4);
+    ctx.lineTo(s * .2, s * .82); ctx.lineTo(s * .1, s * .82); ctx.lineTo(s * .12, s * .3); ctx.closePath();
+    ctx.fill(); ctx.stroke(); ctx.beginPath();
+    ctx.roundRect(s * .34, s * .66, s * .32, s * .14, 10);   // front pocket
   } else if (key === "towel") {
     ctx.roundRect(s * .1, s * .15, s * .8, s * .7, 18);
   } else if (key === "bandana") {
@@ -88,7 +95,7 @@ export default function MerchDesigner() {
     <div className="re-card space-y-3" data-tour="merchz-designer">
       <div>
         <h2 className="text-lg font-semibold">👕 Design your own <span className="text-xs font-normal text-emerald-300">Free</span></h2>
-        <p className="text-sm text-white/70">A towel, T-shirt, bandana, wave cap, durag or baseball cap. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
+        <p className="text-sm text-white/70">A towel, T-shirt, hoodie, bandana, wave cap, durag or baseball cap. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {PRODUCTS.map((p) => (

@@ -2,6 +2,7 @@
 // No printer is connected yet (Corey's call: designer only for now), so nothing here is a price or an order.
 export const PRODUCTS = [
   { key: "shirt", label: "T-shirt", emoji: "👕", area: { x: 0.33, y: 0.3, w: 0.34, h: 0.36 } },
+  { key: "hoodie", label: "Hoodie", emoji: "🧥", area: { x: 0.35, y: 0.34, w: 0.3, h: 0.24 } },
   { key: "towel", label: "Towel", emoji: "🧺", area: { x: 0.14, y: 0.22, w: 0.72, h: 0.56 } },
   { key: "bandana", label: "Bandana", emoji: "🧣", area: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
   { key: "wavecap", label: "Wave cap", emoji: "🧢", area: { x: 0.3, y: 0.32, w: 0.4, h: 0.3 } },
