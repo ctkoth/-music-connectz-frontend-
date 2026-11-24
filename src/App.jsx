@@ -482,9 +482,7 @@ export const CUSTOM_ICONS = {
   "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
   "badge_thorough.png": "/icons/badge_thorough.jpg",
   "badge_decent.png": "/icons/badge_decent.jpg",
-  // Legendary keeps the drawn neon medal: its sign came with "≤" (8.9 or LOWER) where the rule is "≥". Swap it for
-  // /icons/badge_legendary.jpg once the corrected sign exists.
-  "badge_legendary.png": "/icons/badge_legendary-neon.svg",
+  "badge_legendary.png": "/icons/badge_legendary.jpg",
   "badge_supreme.png": "/icons/badge_supreme.jpg",
   "badge_perfect.png": "/icons/badge_perfect.jpg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
