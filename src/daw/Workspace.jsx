@@ -648,10 +648,10 @@ export default function Workspace({ workflow }) {
     const SLOW = "Still waiting for the microphone… Another app may be holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or pick another input in Audio settings.";
     const slow = setTimeout(() => setBusy(SLOW), 4000);
     const giveUp = (p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("The microphone didn't answer in 15 seconds. Another app is probably holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or choose a different input in Audio settings, then press Record again.")), 15000))]);
+    const streams = new Map();
     try {
       setBusy("Opening the microphone…");
       // One stream per device; the tracks reading it take their own channel of it.
-      const streams = new Map();
       for (const t of armed) {
         const dev = t.input?.device || "";
         if (streams.has(dev)) continue;
@@ -677,7 +677,14 @@ export default function Workspace({ workflow }) {
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
       setRecFrom(plan ? plan.from : cyc ? cyc.start : playhead);
       setRecording(true); setPlaying(true);
-    } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
+    } catch (e) {
+      // Whatever stopped the take must not leave the app half-way: playback running with nothing recording, and the
+      // browser still showing the mic as open (the red dot on the tab).
+      try { daw.stop(); } catch { /* nothing was playing */ }
+      streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
+      setPlaying(false); setRecording(false);
+      setErr(`Recording did not start: ${e.message}`);
+    } finally { clearTimeout(slow); setBusy(""); }
   };
 
   // A take keeps running when the member opens another app (recordingHold.js):
@@ -1200,12 +1207,16 @@ export default function Workspace({ workflow }) {
       )}
       {/* Always on screen, whatever is scrolled: is this RECORDING, or only PLAYING? Two different red/blue states, and a
           line saying what to press when a track is armed but nothing is being recorded. */}
-      {(recording || playing) && (
+      {(recording || playing || busy || err) && (
         <div role="status" aria-live="assertive"
-             className={`pointer-events-none fixed bottom-24 right-3 z-50 max-w-[16rem] rounded-2xl border-2 px-4 py-2 text-sm font-bold shadow-xl ${recording
-               ? "animate-pulse border-red-400 bg-red-600 text-white shadow-[0_0_28px_rgba(239,68,68,0.7)]"
-               : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
-          {recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"}</span></>
+             className={`fixed bottom-24 right-3 z-50 max-w-[18rem] rounded-2xl border-2 px-4 py-2 text-sm font-bold shadow-xl ${err
+               ? "border-red-400 bg-red-950/95 text-red-100"
+               : busy ? "border-amber-300 bg-slate-900/95 text-amber-200"
+               : recording ? "pointer-events-none animate-pulse border-red-400 bg-red-600 text-white shadow-[0_0_28px_rgba(239,68,68,0.7)]"
+               : "pointer-events-none border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
+          {err ? <><span>⚠ {err}</span> <button type="button" className="ml-2 underline" onClick={() => setErr("")}>OK</button></>
+            : busy ? <>⏳ {busy}</>
+            : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"}</span></>
             : <>▶ PLAYING — not recording<span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed: press Record to capture` : "nothing is being captured"}</span></>}
         </div>
       )}
