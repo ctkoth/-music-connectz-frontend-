@@ -628,6 +628,35 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message || "Couldn't transpose that track."); } finally { setBusy(""); }
   };
 
+  // ---- clip pitch edit: one region up or down (semitones + cents), its length kept. Same engine and tier range as
+  // the track transpose; always made from the original recording, so 0 / 0 gives it back exactly. Free, on the device.
+  const [clipSemi, setClipSemi] = useState(0);
+  const [clipCents, setClipCents] = useState(0);
+  const pitchClip = async () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const r = hit.region, semis = Math.round((clipSemi + clipCents / 100) * 100) / 100;
+    if (Math.abs(semis) > keyRange) { setErr(`Your tier moves a clip up to ±${keyRange} semitones — Premium ±6, StatZ a full octave.`); return; }
+    const base = r.orig || r.src;
+    setErr(""); setMsg("");
+    if (!semis) { commit((s) => updateRegion(s, r.id, { src: base, orig: undefined, semis: 0 })); setMsg(`“${r.name}” is back at its original pitch.`); return; }
+    const buf = daw.buffer(base);
+    if (!buf) { setErr("That clip's sound isn't loaded — reopen the session and try again."); return; }
+    setBusy("Shifting the clip's pitch…");
+    try {
+      await new Promise((res) => setTimeout(res, 0));
+      const chans = pitchShift(Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i)), buf.sampleRate, semis);
+      const out = new AudioBuffer({ numberOfChannels: chans.length, length: chans[0].length, sampleRate: buf.sampleRate });
+      chans.forEach((c, i) => out.copyToChannel(c, i));
+      const id = `${base}c${semis < 0 ? "m" : "p"}${String(Math.abs(semis)).replace(".", "_")}`;
+      daw.adopt(id, out);
+      const label = `${semis > 0 ? "+" : ""}${semis}`;
+      commit((s) => updateRegion(addSource(s, { id, name: `${sRef.current.sources[base]?.name || "Audio"} (${label})`, duration: out.duration, channels: out.numberOfChannels, rate: out.sampleRate }), r.id, { src: id, orig: base, semis }));
+      try { await putSource(id, daw.toWav(out, 24)); } catch { setStoreErr("The new pitch is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`“${r.name}” is now ${label} semitones, same length. Set 0 and 0 to get the original back; Undo works too.`);
+    } catch (e) { setErr(e.message || "Couldn't shift that clip."); } finally { setBusy(""); }
+  };
+
   // The inputs this device offers (labels appear once the browser has allowed a mic once).
   const [devices, setDevices] = useState([]);
   const refreshDevices = useCallback(() => {
@@ -1730,6 +1759,16 @@ export default function Workspace({ workflow }) {
           <span className="flex items-center gap-1" title="Stretches this clip so its tempo matches the project's (pitch kept). Leave the box blank to detect the clip's tempo, or type it. Free, on this device; Undo puts the original back.">
             <input type="number" min={30} max={300} placeholder="clip BPM" value={clipBpm} className="neon-input !w-20 !py-0.5" aria-label="The clip's BPM (blank to detect)" onChange={(e) => setClipBpm(e.target.value)} />
             <button type="button" className="re-btn !w-auto px-2" disabled={stretching || recording || !!busy} onClick={matchClipTempo}>⏱ Match project tempo ({session.bpm})</button>
+          </span>
+          <span className="flex items-center gap-1" title="Moves this clip's pitch up or down and keeps its length (and timing). Made from the original recording each time. Free, on this device; Undo puts it back. A track's Key setting replaces clip edits on that track.">
+            <span className="text-white/60">🎵 Pitch</span>
+            <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={clipSemi} aria-label="Semitones" onChange={(e) => setClipSemi(Number(e.target.value))}>
+              {Array.from({ length: keyRange * 2 + 1 }, (_, i) => i - keyRange).map((n) => <option key={n} value={n}>{n > 0 ? "+" : ""}{n} st</option>)}
+            </select>
+            <input type="number" min={-50} max={50} step={1} value={clipCents} className="neon-input !w-16 !py-0.5" aria-label="Cents (fine tune)" onChange={(e) => setClipCents(Math.max(-50, Math.min(50, Math.round(Number(e.target.value) || 0))))} />
+            <span className="text-white/60">¢</span>
+            <button type="button" className="re-btn !w-auto px-2" disabled={recording || !!busy} onClick={pitchClip}>Apply pitch · free</button>
+            {sel.region.semis ? <span className="text-xs text-white/60">now {sel.region.semis > 0 ? "+" : ""}{sel.region.semis}</span> : null}
           </span>
           <span className="flex items-center gap-1" title="Splits this clip wherever it is quieter than the threshold for 0.4 s or more and removes the dead air — a long take becomes clean phrases. Free; Undo puts it back.">
             <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={stripDb} aria-label="Silence threshold" onChange={(e) => setStripDb(Number(e.target.value))}>

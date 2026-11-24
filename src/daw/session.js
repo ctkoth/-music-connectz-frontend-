@@ -644,7 +644,7 @@ export function cleanSession(raw) {
         // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
         // new key is always made from the original and 0 gives the original back exactly.
         ...(r.from ? { from: String(r.from).slice(0, 60) } : {}),
-        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
+        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(Math.round(num(r.semis, 0) * 100) / 100, -12, 12) } : {}),
       })),
     }));
     return {
