@@ -34,7 +34,7 @@ const ICON_KEY = {
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", designz: "designz.png", mixez: "mixez.png", animez: "animez.png", animeconnectz: "animeconnectz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
-  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png", gamez: "gamez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png", gamez: "gamez.png", lookmaxz: "lookmaxz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
@@ -357,7 +357,7 @@ const FOCUS_LABEL = {
   drumz: 'DrumZ', producez: 'ProduceZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
-  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ', dawz: 'DawZ', gamez: 'GameZ',
+  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ', dawz: 'DawZ', gamez: 'GameZ', lookmaxz: 'LookZMaxZ',
 };
 
 function FocusTile({ appKey, onOpen, big }) {
