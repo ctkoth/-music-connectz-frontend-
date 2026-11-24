@@ -7,6 +7,12 @@ import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { RatingRow } from "../components/Rating.jsx";
+import { pathFor } from "../App.jsx";
+import { setLanding } from "../landing.js";
+
+// The tab's address is its key minus the trailing Z (App.jsx slugFor), so it is /lookmax — not /lookmaxz, which has no
+// route and falls through to the home page. Always ask pathFor rather than typing it.
+const LOOK = pathFor("lookmaxz");
 
 export default function LookSample() {
   const { user } = useAuth();
@@ -47,8 +53,8 @@ export default function LookSample() {
           <p className="text-[11px] leading-snug text-white/60">{d.care_note}</p>
           <p className="text-xs text-white/75">{d.real_reading}</p>
           <div className="flex flex-wrap gap-2">
-            <Link className="re-btn !w-auto px-4" to={user ? "/lookmaxz" : "/register"}>{user ? "Get my own reading" : "Join free to get my own"}</Link>
-            {!user && <Link className="re-btn !w-auto px-4" to="/login">I have an account</Link>}
+            <Link className="re-btn !w-auto px-4" to={user ? LOOK : "/register"} onClick={() => { if (!user) setLanding(LOOK); }}>{user ? "Get my own reading" : "Join free to get my own"}</Link>
+            {!user && <Link className="re-btn !w-auto px-4" to="/login" onClick={() => setLanding(LOOK)}>I have an account</Link>}
           </div>
         </>
       )}

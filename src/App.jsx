@@ -794,6 +794,12 @@ function TrialOrApp({ tabKey, children }) {
 // link like /battle while logged out is someone who already knows what this
 // is, and /login is the right place to send them).
 // Use the landing slot once: a slot left set would keep turning the home screen into a redirect.
+// An old address for a tab: same place, query string kept (?for=, ?look=).
+function TabAlias({ tabKey }) {
+  const loc = useLocation();
+  return <Navigate to={`${pathFor(tabKey)}${loc.search}`} replace />;
+}
+
 function LandOnce({ to }) {
   useEffect(() => { clearLanding(); }, []);
   return <Navigate to={to} replace />;
@@ -1749,6 +1755,8 @@ export default function App() {
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/rate/:handle" element={<RateInvite />} />
       <Route path="/lookmaxz/sample" element={<LookSample />} />
+      {/* Invite and share links already sent say /lookmaxz, which was never a route (the tab lives at /lookmax). */}
+      <Route path="/lookmaxz" element={<TabAlias tabKey="lookmaxz" />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       {/* Matched BEFORE /try/:appKey — route order matters here, or the
