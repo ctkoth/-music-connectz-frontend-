@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FolderOpen, HardDrive, Percent, Scale, ShieldCheck, Trash2, History as HistoryIcon } from "lucide-react";
 import { IconImg } from "../App.jsx";
 import { loadLimits } from "../limits.js";
-import { MODES, MODE_ORDER, dupeCopies, dupesOpen, human, openModes, plan, sumBytes, targetBytes } from "../cleanPlan.js";
+import { api } from "../api.js";
+import { MODES, MODE_ORDER, dupeCopies, human, openModes, plan, sumBytes, targetBytes } from "../cleanPlan.js";
 
 // Clean ConnectZ — free space on your own device. Pick a folder, say how much to free (a percent of it or a size),
 // choose how files are ranked, and review exactly which files would go: untick any you want to keep. It runs in this
@@ -54,9 +55,11 @@ export default function CleanConnectZ() {
   // `clean_modes` (server, /limits/) is how many ways of choosing what goes are open, and the duplicate finder opens with the 2nd.
   const [lim, setLim] = useState(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
+  // Duplicate scans (Windows app) are open on every plan; the tier says how many a day (`/cleanconnectz/dupes/`, said before the press).
+  const [dupes, setDupes] = useState(null);
+  useEffect(() => { if (bridge) api("/api/economy/cleanconnectz/dupes/").then(setDupes).catch(() => {}); }, []);
   const modesN = lim && "clean_modes" in lim ? lim.clean_modes : undefined;
   const open = openModes(modesN);
-  const canDupes = dupesOpen(modesN);
   const [stage, setStage] = useState("home");                // home | scanning | plan | done
   const [files, setFiles] = useState(null);
   const [root, setRoot] = useState("");
@@ -100,7 +103,8 @@ export default function CleanConnectZ() {
     setStage("plan");
   }
 
-  async function pickBridge(dupes) {
+  async function pickBridge(wantDupes) {
+    if (wantDupes && dupes && !dupes.can) { setMsg(`You've used today's ${dupes.limit} duplicate scans${dupes.next_limit === false ? "" : " — the next plan up allows " + (dupes.next_limit == null ? "any number" : dupes.next_limit)}. Nothing was charged.`); return; }
     let r;
     try { r = await bridge.pick(); } catch { setMsg("The Windows app couldn't open the folder dialog."); return; }
     if (!r) return;
@@ -113,10 +117,13 @@ export default function CleanConnectZ() {
       if (sc.error || sc.cancelled) { if (sc.error) setMsg(sc.error); setStage("home"); return; }
       let list = sc.files;
       setSeen({ n: list.length, bytes: sumBytes(list) });
-      if (dupes) {
+      if (wantDupes) {
         setSeen((x) => ({ ...x, n: 0 }));
         const d = await bridge.dupes(r.token, list);
         if (d.error || d.cancelled) { if (d.error) setMsg(d.error); setStage("home"); return; }
+        // The scan finished, so it counts — recorded now, never for a cancelled or failed one. Refused means no results.
+        try { const rec = await api("/api/economy/cleanconnectz/dupes/", { method: "POST", body: {} }); setDupes(rec.dupes); }
+        catch (e) { setMsg(e.message || "That scan couldn't be counted."); setStage("home"); return; }
         list = dupeCopies(list, d.groups);
         setDupeMode(true); setKind("percent"); setPercent(100); setMode("size");
         setMsg(list.length ? "" : "No duplicates found — no two files in this folder are byte-for-byte the same.");
@@ -221,7 +228,7 @@ export default function CleanConnectZ() {
                 className="my-1 w-full rounded-[20px] px-4 py-[17px] text-[17px] font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.4)] disabled:opacity-40"
                 style={{ background: "linear-gradient(135deg,#7c3aed,#a78bfa)" }}>🧹 Clean Now</button>
               {!canPick && <p className="text-sm text-mcz-gold">This browser can't open a folder for cleaning. Use Chrome or Edge, or the Windows app.</p>}
-              {bridge && <p className="text-center text-[12px] text-emerald-300">Windows app: real last-opened dates and the Recycle Bin{canDupes ? ", plus the duplicate finder" : "; the duplicate finder opens on Premium"}.</p>}
+              {bridge && <p className="text-center text-[12px] text-emerald-300">Windows app: real last-opened dates and the Recycle Bin{", plus the duplicate finder"}.</p>}
               {msg && <p role="status" className="text-sm text-white/80">{msg}</p>}
               <div className={`${card} flex items-center gap-3 p-4`}>
                 <span className="text-[22px]">🛡️</span>
@@ -243,11 +250,12 @@ export default function CleanConnectZ() {
                     <div className="mt-0.5 text-[13px] font-semibold text-violet-200">{sub}</div>
                   </button>
                 ))}
-                {bridge && canDupes && (
+                {bridge && (
                   <button onClick={() => pick("percent", { dupes: true })}
                     className="col-span-2 rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-violet-500/20">
                     <div className="mb-1.5 text-2xl">♊</div><div className="text-[14px] font-semibold">Find duplicates</div>
                     <div className="mt-0.5 text-[13px] font-semibold text-violet-200">Byte-identical copies · you keep one of each</div>
+                    {dupes && <div className="mt-1 text-[12px] text-violet-200/80">{dupes.unlimited ? "Free · no limit on your plan" : `Free · ${dupes.left} of ${dupes.limit} scans left today`}</div>}
                   </button>
                 )}
                 <div className="rounded-[18px] border border-violet-300/20 bg-white/[0.06] px-2.5 py-4 text-center backdrop-blur-xl">
