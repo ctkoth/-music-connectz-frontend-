@@ -45,7 +45,7 @@ import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
-  duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
+  beatSeconds, duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
@@ -900,6 +900,29 @@ export default function Workspace({ workflow }) {
       // Mounted but hidden behind another app: its keys are that app's keys.
       if (!onScreen) return;
       if (e.target.closest?.("input, select, textarea")) return;
+      // Arrow keys move the SELECTED clip: left/right by a beat (Shift: a bar), up/down to the track above/below.
+      // Down from the last track asks before making a new one. Free; Undo puts it back.
+      if (selected && e.key.startsWith("Arrow") && !e.ctrlKey && !e.metaKey && !e.altKey && !recording) {
+        const cur = sRef.current;
+        const hit = findRegion(cur, selected);
+        if (hit) {
+          e.preventDefault();
+          if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            const step = beatSeconds(cur) * (e.shiftKey ? cur.meter : 1) * (e.key === "ArrowLeft" ? -1 : 1);
+            commit((x) => ({ ...moveRegion({ ...x, editMode: "slip" }, selected, hit.region.at + step), editMode: x.editMode }));
+          } else {
+            const i = cur.tracks.findIndex((t) => t.id === hit.track.id);
+            const j = i + (e.key === "ArrowDown" ? 1 : -1);
+            if (j < 0) { setMsg("That clip is already on the top track."); }
+            else if (j < cur.tracks.length) { commit((x) => moveRegion(x, selected, hit.region.at, cur.tracks[j].id)); }
+            else if (tierCap != null && cur.tracks.length >= tierCap) { setMsg(trackCapLine("Couldn't add a track:")); }
+            else if (window.confirm("There's no track below this one. Create a new track and move the clip onto it?")) {
+              commit((x) => { const withT = addTrack(x, undefined, tierCap); const nt = withT.tracks[withT.tracks.length - 1]; return nt && nt.id !== hit.track.id ? moveRegion(withT, selected, hit.region.at, nt.id) : x; });
+            }
+          }
+          return;
+        }
+      }
       const act = actionFor(keymap, e);
       if (!act) return;
       if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else if (armedTracks(sRef.current).length) record(); else startPlay(); }
