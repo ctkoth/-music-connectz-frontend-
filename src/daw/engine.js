@@ -17,6 +17,7 @@ import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
 import { limiterWorkletSource } from "./limiterDsp.js";
+import { duckWorkletSource } from "./duckDsp.js";
 import { cleanLatencyMode } from "./audioIO.js";
 
 const CAPTURE_WORKLET = `
@@ -34,13 +35,17 @@ registerProcessor("mcz-capture", Capture);`;
  *  fallback chain in place, never a silent session. Works on a live context and on an OfflineAudioContext, so
  *  the bounce is the same DSP as the speakers. */
 export async function loadDsp(ctx, session) {
-  const uses = (session.tracks || []).some((t) => (t.inserts || []).some((i) => i.type === "limiter" && i.on));
-  if (!uses || ctx.__mczLimiter || !ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return;
-  try {
-    const url = URL.createObjectURL(new Blob([limiterWorkletSource()], { type: "text/javascript" }));
-    try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
-    ctx.__mczLimiter = true;
-  } catch { /* fall back to the node chain */ }
+  if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return;
+  const all = [...(session.tracks || []).flatMap((t) => t.inserts || []), ...(session.masterInserts || []), ...(session.buses || []).flatMap((b) => b.inserts || [])];
+  const load = async (flag, source) => {
+    try {
+      const url = URL.createObjectURL(new Blob([source()], { type: "text/javascript" }));
+      try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+      ctx[flag] = true;
+    } catch { /* fall back: the node chain for the limiter, a pass-through for the ducker */ }
+  };
+  if (all.some((i) => i.type === "limiter" && i.on) && !ctx.__mczLimiter) await load("__mczLimiter", limiterWorkletSource);
+  if (all.some((i) => i.type === "duck" && i.on) && !ctx.__mczDuck) await load("__mczDuck", duckWorkletSource);
 }
 
 let seq = 0;
@@ -105,12 +110,18 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
     tail.connect(lvl); lvl.connect(master);
     buses[b.id] = input; masterNodes.push(input, lvl);
   }
-  for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
-    const sum = ctx.createGain();
+  // A track that triggers another's ducker is built even when muted or not soloed (its fader is at zero, so it is not heard),
+  // so the ducking is the same live, in a solo and in the bounce.
+  const triggers = new Set(session.tracks.flatMap((t) => (t.inserts || []).filter((i) => i.type === "duck" && i.on && i.source).map((i) => i.source)));
+  const sums = {};
+  const building = live ? session.tracks : session.tracks.filter((x) => heard.has(x.id) || triggers.has(x.id));
+  for (const t of building) { sums[t.id] = ctx.createGain(); }
+  for (const t of building) {
+    const sum = sums[t.id];
     sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
     let tail = sum;
     for (const ins of t.inserts || []) {
-      const node = buildInsert(ctx, ins, { bpm: session.bpm });
+      const node = buildInsert(ctx, ins, { bpm: session.bpm, sidechain: ins.type === "duck" ? sums[ins.source] || null : null });
       if (node.dispose) disposers.push(node.dispose);
       tail.connect(node.input);
       tail = node.output;

@@ -70,6 +70,13 @@ export const PLUGINS = {
     label: "Limiter", emoji: "🧱", statz: true, what: "Makes a track louder while stopping its peaks at the ceiling, so it never clips. It looks 2 ms ahead, so the gain is already down when a peak arrives — it turns peaks down smoothly instead of chopping them off. Both channels move together, so the stereo image holds. It delays the track by 2 ms.",
     params: { drive: P("Drive", 0, 18, 3, "dB"), ceiling: P("Ceiling", -12, 0, -1, "dB"), release: P("Release", 10, 1000, 100, "ms") },
   },
+  duck: {
+    label: "Sidechain ducker", emoji: "🦆", statz: true, what: "Turns THIS track down while another track is loud — the sidechain, such as a kick or a voice: a pad that ducks under the kick, a beat that ducks under the vocal. Pick the track that triggers it.",
+    params: {
+      threshold: P("Threshold", -60, 0, -30, "dB"), ratio: P("Amount", 1, 20, 6, ":1"),
+      attack: P("Attack", 0.1, 100, 5, "ms"), release: P("Release", 10, 1000, 150, "ms"), depth: P("Most it turns down", 0, 40, 18, "dB"),
+    },
+  },
   glue: {
     label: "Glue compressor", emoji: "🧲", statz: true, what: "Bus-style compression with a parallel blend: the compressed copy is mixed under the dry one, so it holds together and keeps its punch.",
     params: {
@@ -127,6 +134,7 @@ export function cleanInsert(raw) {
   if (!spec) return null;
   const params = Object.fromEntries(Object.entries(spec.params).map(([k, p]) => [k, clamp(num(raw.params?.[k], p.default), p.min, p.max)]));
   const out = { id: String(raw.id || newInsert(raw.type).id), type: raw.type, on: raw.on !== false, params };
+  if (raw.type === "duck" && raw.source) out.source = String(raw.source).slice(0, 40);      // the track whose level triggers it
   if (raw.type === "eq") out.bands = cleanBands(Array.isArray(raw.bands) ? raw.bands : legacyEqBands(raw.params), { gain: EQ_GAIN });
   // StatZ's blend for every effect that has no mix of its own: how much of it is heard against the untouched sound.
   const amt = clamp(num(raw.amount, 100), 0, 100);
@@ -170,7 +178,7 @@ function wetDry(ctx, input, output, wetPath, mix) {
 /** Nodes for one insert: `{ input, output, update(params) }`. A bypassed insert is a straight wire. */
 /** `amount` (0-100, StatZ) blends an effect with the untouched sound, for the effects that have no mix of their own.
  *  50 is half as present. Effects with a mix control are blended by that control instead, so nothing is applied twice. */
-export function buildInsert(ctx, insert, opts = {}) {
+export function buildInsert(ctx, insert, opts = {}) {      // opts: { bpm, sidechain: the node carrying the sidechain track's signal }
   const core = buildCore(ctx, insert, opts);
   const a = Number.isFinite(Number(insert.amount)) ? clamp(Number(insert.amount) / 100, 0, 1) : 1;
   if (a >= 1 || !insert.on || PLUGINS[insert.type]?.params?.mix) return core;
@@ -181,7 +189,7 @@ export function buildInsert(ctx, insert, opts = {}) {
   return { ...core, input, output };
 }
 
-function buildCore(ctx, insert, { bpm = 120 } = {}) {
+function buildCore(ctx, insert, { bpm = 120, sidechain = null } = {}) {
   const input = ctx.createGain();
   const output = ctx.createGain();
   if (!insert.on) { input.connect(output); return { input, output, update() {} }; }
@@ -325,6 +333,18 @@ function buildCore(ctx, insert, { bpm = 120 } = {}) {
       };
       update(p);
       return { input, output, update };
+    }
+    case "duck": {
+      // Needs the worklet module on this context (`loadDsp`) and a sidechain track; without either it passes the sound
+      // through untouched rather than going silent.
+      if (!ctx.__mczDuck || typeof AudioWorkletNode === "undefined" || !sidechain) { input.connect(output); return { input, output, update() {} }; }
+      const node = new AudioWorkletNode(ctx, "mcz-duck", { numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [2], channelCountMode: "max" });
+      input.connect(node, 0, 0); sidechain.connect(node, 0, 1); node.connect(output);
+      const update = (q) => {
+        for (const k of ["threshold", "ratio", "attack", "release", "depth"]) node.parameters.get(k).value = q[k];
+      };
+      update(p);
+      return { input, output, update, dispose: () => { try { node.port.postMessage("stop"); node.disconnect(); } catch { /* already gone */ } } };
     }
     case "glue": {
       const c = ctx.createDynamicsCompressor(); const mk = ctx.createGain(); c.knee.value = 6;

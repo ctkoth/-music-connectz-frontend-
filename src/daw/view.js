@@ -15,8 +15,8 @@ export const pctLabel = (z) => { const p = zoomPct(z); return `${p < 1 ? p.toFix
 // just give the waveform more room.
 export const TRACK_SIZES = [
   { key: "compact", label: "Compact", h: 118, full: false },
-  { key: "normal", label: "Normal", h: 126, full: true },
-  { key: "large", label: "Large", h: 180, full: true },
-  { key: "huge", label: "Huge", h: 260, full: true },
+  { key: "normal", label: "Normal", h: 168, full: true },
+  { key: "large", label: "Large", h: 210, full: true },
+  { key: "huge", label: "Huge", h: 280, full: true },
 ];
 export const trackSize = (key) => TRACK_SIZES.find((s) => s.key === key) || TRACK_SIZES[1];

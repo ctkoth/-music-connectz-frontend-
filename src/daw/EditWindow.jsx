@@ -183,6 +183,14 @@ export default function EditWindow({
                         <li key={i.id || n} className="flex items-center gap-1 text-white/80">
                           <input type="checkbox" checked={!!i.on} aria-label={`${PLUGINS[i.type]?.label} on`} onChange={() => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, on: !x.on } : x)))} />
                           <span className="min-w-0 flex-1 truncate">{PLUGINS[i.type]?.emoji} {PLUGINS[i.type]?.label || i.type}</span>
+                          {i.type === "duck" && (
+                            <select className="max-w-[7rem] rounded bg-white/10 px-1 text-[10px] text-white [color-scheme:dark]" data-nomemo="true" aria-label={`${t.name} ducker is triggered by`}
+                                    title="The track whose level turns this one down" value={i.source || ""}
+                                    onChange={(e) => onInserts(t.id, t.inserts.map((x, k) => (k === n ? { ...x, source: e.target.value } : x)))}>
+                              <option value="">Triggered by…</option>
+                              {session.tracks.filter((x) => x.id !== t.id).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                            </select>
+                          )}
                           {(() => {
                             const hasMix = !!PLUGINS[i.type]?.params?.mix;
                             const val = hasMix ? (i.params?.mix ?? PLUGINS[i.type].params.mix.default) : (i.amount ?? 100);
