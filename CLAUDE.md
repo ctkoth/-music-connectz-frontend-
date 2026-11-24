@@ -2806,9 +2806,12 @@ than one take opens its takes as rows under it. Dragging across a take's row tak
   one whole take. Clearing the comp takes the one lane away and leaves every take.
 - **Every piece in the comp carries `from`** (the lane it came from), which is how each take row lights up green where it is being
   used (`compSpans`). `cleanSession` keeps both `comp` and `from`; a session saved and reopened still shows what came from where.
-- **Joins get a 10 ms fade on each side** (`XFADE`) so a cut between takes does not click. That is a dip, not an overlapping
-  crossfade; a true overlap would need the regions to share time, which the engine's "two regions that overlap crossfade" rule
-  could give later.
+- **A join is a true crossfade** (`XFADE`, 20 ms): the incoming piece starts half a fade early and the outgoing one keeps playing half a
+  fade late, so both sound while one rises and the other falls. The engine plays every region on its own with its own fades, so overlapping
+  regions in the comp lane ARE the crossfade; no engine change. It replaced a fade-out then fade-in that dipped about 5 dB over the join
+  (measured by bouncing two identical sine takes through the real engine: 0.1189 against a nominal 0.2099; with the crossfade every join
+  reads 0.2099, level to four places). A piece only reaches as far past a cut as its own take has audio, and the very start of a take is
+  never faded. Overlap in the comp lane is therefore normal and bounded by `XFADE`; `compSpans` reads overlapping same-lane pieces as one stretch.
 - **A track holding the most lanes has no room for a comp** and the swipe is refused with a sentence, rather than overwriting a take.
 - Swipes snap to the grid when Snap is on. Driven in a real browser: three takes, a swipe across take 2, the comp row reading
   take 1 | take 2 | take 1, the green markers, Clear. **Not checked:** by ear (the audio is assembled from the same regions the

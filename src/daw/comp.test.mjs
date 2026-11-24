@@ -18,7 +18,7 @@ const who = (s, id) => comp(s, id).map((r) => [r.src, +r.at.toFixed(3), +r.in.to
 test("the first swipe starts the comp from the playing take, then drops the other take's audio into the stretch", () => {
   const { s, id } = takes();
   const c = swipeComp(s, id, 1, 2, 4);
-  assert.deepEqual(who(c, id), [["s1", 0, 0, 2], ["s2", 2, 2, 4], ["s1", 4, 4, 8]]);                    // take 1, then take 2 for 2-4 s, then take 1 again
+  assert.deepEqual(who(c, id), [["s1", 0, 0, 2.01], ["s2", 1.99, 1.99, 4.01], ["s1", 3.99, 3.99, 8]]);   // take 1, take 2 for 2-4 s (each side overlapping 10 ms), take 1 again
   const t = c.tracks[0];
   assert.equal(t.playlists.length, 4); assert.equal(t.playlists[t.active].comp, true);                  // a new lane that plays; the three takes are untouched
   assert.deepEqual(t.playlists.slice(0, 3).map((p) => p.regions.length), [1, 1, 1]);
@@ -27,29 +27,42 @@ test("swiping again re-cuts the comp: it always covers the whole take with no ov
   const { s, id } = takes();
   let c = swipeComp(s, id, 1, 2, 4); c = swipeComp(c, id, 2, 3, 6); c = swipeComp(c, id, 0, 3.5, 4.5);
   const rs = comp(c, id).sort((a, b) => a.at - b.at);
-  for (let i = 1; i < rs.length; i++) assert.ok(Math.abs(endOf(rs[i - 1]) - rs[i].at) < 1e-6, `gap or overlap at ${rs[i].at}`);
-  assert.equal(rs[0].at, 0); assert.ok(Math.abs(endOf(rs.at(-1)) - 8) < 1e-6);
+  for (let i = 1; i < rs.length; i++) {
+    const gap = rs[i].at - endOf(rs[i - 1]);
+    assert.ok(gap <= 1e-6, `gap at ${rs[i].at}`);                                                       // never a hole
+    assert.ok(-gap <= XFADE + 1e-6, `more than a crossfade of overlap at ${rs[i].at}`);                 // and never more overlap than the fade
+  }
+  assert.equal(rs[0].at, 0); assert.ok(Math.abs(Math.max(...rs.map(endOf)) - 8) < 1e-6);
 });
 test("each piece plays the right part of its source: the offset into the file moves with the cut", () => {
   const { s, id } = takes();
   const c = swipeComp(s, id, 2, 5, 7);
   const piece = comp(c, id).find((r) => r.src === "s3");
-  assert.deepEqual([piece.at, piece.in, piece.out], [5, 5, 7]);                                           // 5 s into the timeline is 5 s into take 3's file
-  const after = comp(c, id).find((r) => r.src === "s1" && r.at >= 7);
-  assert.deepEqual([after.at, after.in, after.out], [7, 7, 8]);
+  assert.deepEqual([piece.at, piece.in, piece.out].map((x) => +x.toFixed(3)), [4.99, 4.99, 7.01]);       // timeline time equals file time, and the piece reaches 10 ms past each cut
+  const after = comp(c, id).find((r) => r.src === "s1" && r.at >= 6);
+  assert.deepEqual([after.at, after.in, after.out].map((x) => +x.toFixed(3)), [6.99, 6.99, 8]);
 });
-test("the joins are faded a little so a cut between takes does not click, and the take's own fades are not disturbed", () => {
+test("a join is a true crossfade: the pieces overlap by the fade and fade across exactly that overlap, so the sum stays level", () => {
   const { s, id } = takes();
   const c = swipeComp(s, id, 1, 2, 4);
   const [before, taken, after] = comp(c, id);
   assert.equal(before.fadeOut, XFADE); assert.equal(taken.fadeIn, XFADE); assert.equal(taken.fadeOut, XFADE); assert.equal(after.fadeIn, XFADE);
-  assert.equal(before.fadeIn, 0); assert.equal(after.fadeOut, 0);
+  assert.equal(before.fadeIn, 0); assert.equal(after.fadeOut, 0);                                         // the take's own start and end are not faded
+  // the outgoing fade and the incoming fade cover the SAME stretch, which is what makes it a crossfade rather than two dips
+  assert.ok(Math.abs((endOf(before) - before.fadeOut) - taken.at) < 1e-6 && Math.abs(endOf(before) - (taken.at + taken.fadeIn)) < 1e-6);
+  assert.ok(Math.abs((endOf(taken) - taken.fadeOut) - after.at) < 1e-6 && Math.abs(endOf(taken) - (after.at + after.fadeIn)) < 1e-6);
+});
+test("at the very start of a take there is nothing to crossfade with, so no fade is invented", () => {
+  const { s, id } = takes();
+  const c = swipeComp(s, id, 1, 0, 2);
+  const first = comp(c, id).sort((a, b) => a.at - b.at)[0];
+  assert.equal(first.at, 0); assert.equal(first.fadeIn, 0);
 });
 test("the pieces know which take they came from, and compSpans reports it for drawing", () => {
   const { s, id } = takes();
   const c = swipeComp(swipeComp(s, id, 1, 2, 4), id, 1, 4, 5);                                            // two adjacent swipes of take 2 read as one stretch
   const spans = compSpans(c.tracks[0]);
-  assert.deepEqual(spans.map((x) => [x.lane, x.a, x.b]), [["p1", 0, 2], ["p2", 2, 5], ["p1", 5, 8]]);
+  assert.deepEqual(spans.map((x) => [x.lane, Math.round(x.a * 10) / 10, Math.round(x.b * 10) / 10]), [["p1", 0, 2], ["p2", 2, 5], ["p1", 5, 8]]);
 });
 test("swiping from the comp itself, a bad range, or an unknown take changes nothing", () => {
   const { s, id } = takes();

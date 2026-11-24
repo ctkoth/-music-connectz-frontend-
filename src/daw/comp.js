@@ -3,9 +3,13 @@
 // The take lanes are never touched, so any swipe can be redone from the originals. Every piece in the comp remembers which lane it
 // came from (`from`), which is how the screen shows what was taken from where. Joins get a 10 ms fade each side so a cut between
 // two takes does not click. Pure and tested.
+//
+// A join is a true CROSSFADE, not a dip: the incoming piece starts half a fade early and the outgoing one keeps playing half a fade
+// late, so for XFADE seconds both sound, one rising as the other falls. The engine plays every region on its own with its own fades,
+// so overlapping regions in the comp lane are exactly what makes the crossfade; nothing else is needed.
 import { MIN_LEN, MAX_PLAYLISTS, endOf, uid } from "./session.js";
 
-export const XFADE = 0.01;
+export const XFADE = 0.02;                       // the length of the overlap at a join, in seconds (half each side of the cut)
 const EPS = 1e-6;
 const round = (x) => Math.round(x * 1e6) / 1e6;
 
@@ -27,12 +31,13 @@ function carve(regions, a, b, xfade) {
   for (const r of regions) {
     const rEnd = endOf(r);
     if (rEnd <= a + EPS || r.at >= b - EPS) { out.push(r); continue; }          // untouched
-    if (r.at < a - EPS) {                                                       // the part before the cut
-      const keep = Math.min(a, rEnd);
+    const h = xfade / 2;
+    if (r.at < a - EPS) {                                                       // the part before the cut keeps sounding half a fade into the new piece
+      const keep = Math.min(a + h, rEnd);
       if (keep - r.at >= MIN_LEN) out.push({ ...r, out: r.in + (keep - r.at), fadeOut: Math.min(xfade, keep - r.at) });
     }
-    if (rEnd > b + EPS) {                                                       // the part after it
-      const start = Math.max(b, r.at);
+    if (rEnd > b + EPS) {                                                       // the part after it starts half a fade early, under the end of the new piece
+      const start = Math.max(b - h, r.at);
       if (rEnd - start >= MIN_LEN) out.push({ ...r, id: r.at < a - EPS ? uid("r") : r.id, at: round(start), in: r.in + (start - r.at), fadeIn: Math.min(xfade, rEnd - start) });
     }
   }
@@ -68,7 +73,11 @@ export function swipeComp(s, trackId, srcIndex, a, b, { xfade = XFADE } = {}) {
   }
   return withTrack(cur, trackId, (t) => {
     const ci = compIndex(t); const src = t.playlists[srcIndex];
-    const taken = clipTo(src.regions, lo, hi, src.id).map((r) => ({ ...r, fadeIn: Math.min(xfade, endOf(r) - r.at), fadeOut: Math.min(xfade, endOf(r) - r.at) }));
+    // The taken piece reaches half a fade past each cut (as far as its own take has audio) and fades in and out across that overlap.
+    const h = xfade / 2;
+    const taken = clipTo(src.regions, lo - h, hi + h, src.id).map((r) => ({
+      ...r, fadeIn: r.at < lo - EPS ? Math.min(xfade, endOf(r) - r.at) : 0, fadeOut: endOf(r) > hi + EPS ? Math.min(xfade, endOf(r) - r.at) : 0,
+    }));
     const regions = sortRegions([...carve(t.playlists[ci].regions, lo, hi, xfade), ...taken]);
     return { ...t, playlists: t.playlists.map((p, i) => (i === ci ? { ...p, regions } : p)), active: ci };
   });
@@ -91,7 +100,7 @@ export function compSpans(t) {
   const out = [];
   for (const r of sortRegions(c.regions)) {
     const last = out.at(-1);
-    if (last && last.lane === r.from && Math.abs(last.b - r.at) < 1e-3) last.b = endOf(r); else out.push({ lane: r.from || null, a: r.at, b: endOf(r) });
+    if (last && last.lane === r.from && r.at <= last.b + 1e-3) last.b = Math.max(last.b, endOf(r)); else out.push({ lane: r.from || null, a: r.at, b: endOf(r) });
   }
   return out;
 }
