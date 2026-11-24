@@ -537,6 +537,8 @@ export function createDaw() {
   /** A meter on a mic stream: `read()` fills one block of samples, `stop()` lets go. Nothing is recorded or heard. */
   function inputMeter(stream) {
     const c = audio();
+    // A context made without a fresh tap starts suspended and reads pure silence, which looked exactly like a dead mic.
+    if (c.state !== "running") c.resume().catch(() => {});
     const src = c.createMediaStreamSource(stream);
     const an = c.createAnalyser(); an.fftSize = 2048;
     src.connect(an);

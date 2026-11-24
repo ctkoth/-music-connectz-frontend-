@@ -488,7 +488,7 @@ export default function Workspace({ workflow }) {
   useEffect(() => {
     const list = armedKey ? armedKey.split(",").map((x) => x.split("|")) : [];
     if (!list.length) { setLevels({}); return undefined; }
-    let dead = false, raf = 0;
+    let dead = false, raf = 0, wakeOff = () => {};
     const open = new Map();
     const held = {};
     (async () => {
@@ -502,6 +502,11 @@ export default function Workspace({ workflow }) {
       }
       if (dead) return;
       refreshDevices();
+      // The first tap or key anywhere wakes a suspended engine: until then a meter reads silence however loud the room is.
+      const wake = () => { const c = daw.context(); if (c.state !== "running") c.resume().catch(() => {}); };
+      wake();
+      window.addEventListener("pointerdown", wake); window.addEventListener("keydown", wake);
+      wakeOff = () => { window.removeEventListener("pointerdown", wake); window.removeEventListener("keydown", wake); };
       let last = performance.now(), painted = 0;
       const tick = (now) => {
         const next = {};
@@ -519,7 +524,7 @@ export default function Workspace({ workflow }) {
       };
       raf = requestAnimationFrame(tick);
     })();
-    return () => { dead = true; cancelAnimationFrame(raf); for (const o of open.values()) { o.meter?.stop(); o.stream?.getTracks().forEach((x) => x.stop()); } };
+    return () => { dead = true; wakeOff(); cancelAnimationFrame(raf); for (const o of open.values()) { o.meter?.stop(); o.stream?.getTracks().forEach((x) => x.stop()); } };
   }, [armedKey, daw]); // eslint-disable-line react-hooks/exhaustive-deps
   const useInputForArmed = (dev) => commit((s) => s.tracks.filter((t) => t.armed).reduce((cur, t) => setTrack(cur, t.id, { input: { ...(t.input || {}), device: dev } }), s));
 
