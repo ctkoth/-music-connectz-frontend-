@@ -330,6 +330,28 @@ export function setAuto(s, id, param, lane) {
   return mapTrack(s, id, (t) => ({ ...t, auto: { ...(t.auto || {}), [param]: cleanLane(param, lane) } }));
 }
 
+export const GROUPS = ["A", "B", "C", "D"];
+/** A change to one track, carried to every track in its group (Pro Tools' track groups): a volume move moves them all by the
+ *  same number of dB (so their balance is kept), and mute and solo are set to the same value. Everything else, and a track
+ *  in no group, changes alone. */
+export function setTrackGrouped(s, id, patch) {
+  const t = s.tracks.find((x) => x.id === id);
+  if (!t || !t.group || !GROUPS.includes(t.group)) return setTrack(s, id, patch);
+  const mates = s.tracks.filter((x) => x.group === t.group);
+  let out = setTrack(s, id, patch);
+  const linked = {};
+  if (patch.mute !== undefined) linked.mute = !!patch.mute;
+  if (patch.solo !== undefined) linked.solo = !!patch.solo;
+  const delta = patch.gain !== undefined ? num(patch.gain, 0) - num(t.gain, 0) : 0;
+  for (const m of mates) {
+    if (m.id === id) continue;
+    const p2 = { ...linked };
+    if (delta) p2.gain = (m.gain || 0) + delta;
+    if (Object.keys(p2).length) out = setTrack(out, m.id, p2);
+  }
+  return out;
+}
+
 export const MAX_BUSES = 4;
 /** A track's send amounts: { busId: 0-100 }, only for real numbers above 0. */
 export function cleanSends(raw) {
@@ -356,6 +378,7 @@ export function setTrack(s, id, patch) {
     out.recMode = cleanRecMode(out.recMode);
     out.input = cleanInput(out.input);
     out.sends = cleanSends(out.sends);
+    out.group = GROUPS.includes(out.group) ? out.group : "";
     return out;
   });
 }

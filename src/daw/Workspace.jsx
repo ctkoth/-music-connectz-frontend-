@@ -45,7 +45,7 @@ import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
-  beatSeconds, duplicateRegion, repeatRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
+  beatSeconds, duplicateRegion, repeatRegion, setTrackGrouped, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
@@ -1147,7 +1147,7 @@ export default function Workspace({ workflow }) {
   const mixEl = (
     <MixWindow
           session={session} daw={daw} playing={playing}
-          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
+          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrackGrouped(s, id, patch)); }}
           writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
           autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
           onInserts={setInserts}
@@ -1585,7 +1585,7 @@ export default function Workspace({ workflow }) {
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
           onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))} onAddBus={addBus} onRemoveBus={removeBus} onBusLevel={busLevel}
-          onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
+          onTrack={(id, patch) => commit((s) => setTrackGrouped(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
           keyRange={keyRange} onTranspose={transposeTrack}

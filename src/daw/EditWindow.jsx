@@ -7,7 +7,7 @@
 //   * tap the ruler or an empty lane → put the playhead there
 import { Fragment, memo, useEffect, useRef, useState } from "react";
 import { Circle, Copy, Plus, Trash2 } from "lucide-react";
-import { REC_MODES, endOf, lenOf, regionsOf, rulerTicks } from "./session.js";
+import { GROUPS, REC_MODES, endOf, lenOf, regionsOf, rulerTicks } from "./session.js";
 import { PARAMS, laneOf } from "./automation.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import AutoLane from "./AutoLane.jsx";
@@ -500,6 +500,14 @@ export default function EditWindow({
                 </button>
                 <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label={`Turn ${t.name} up`} onClick={(e) => onTrack(t.id, { gain: Math.min(12, Math.round((t.gain || 0) + (e.shiftKey ? 3 : 1))) })}>▲</button>
               </span>
+              <label className="flex items-center gap-1" title="Group tracks (Pro Tools style): moving the volume of one moves the others by the same dB, and mute and solo go together. Free.">
+                Grp
+                <select className="rounded bg-white/10 px-0.5 text-[10px] text-white [color-scheme:dark]" data-nomemo="true" aria-label={`${t.name} group`} value={t.group || ""}
+                        onChange={(e) => onTrack(t.id, { group: e.target.value })}>
+                  <option value="">—</option>
+                  {GROUPS.map((g) => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </label>
               {(session.buses || []).map((b) => (
                 <label key={b.id} className="flex items-center gap-1" title={`How much of ${t.name} goes to the ${b.name} bus (after its fader). Free.`}>
                   {b.name.slice(0, 3)} {t.sends?.[b.id] || 0}%
