@@ -29,6 +29,15 @@ function drawProduct(ctx, key, color) {
     ctx.moveTo(s * .5, s * .08); ctx.lineTo(s * .92, s * .5); ctx.lineTo(s * .5, s * .92); ctx.lineTo(s * .08, s * .5); ctx.closePath();
   } else if (key === "wavecap") {
     ctx.ellipse(s * .5, s * .55, s * .3, s * .32, 0, Math.PI, 0); ctx.lineTo(s * .8, s * .7); ctx.lineTo(s * .2, s * .7); ctx.closePath();
+  } else if (key === "mug") {
+    ctx.roundRect(s * .2, s * .24, s * .46, s * .52, 16);
+    ctx.fill(); ctx.stroke(); ctx.beginPath();
+    ctx.lineWidth = s * .04; ctx.strokeStyle = color; ctx.arc(s * .7, s * .5, s * .1, -Math.PI / 2, Math.PI / 2);
+    ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = line; ctx.beginPath();
+  } else if (key === "phonecase") {
+    ctx.roundRect(s * .33, s * .1, s * .34, s * .8, 36);
+    ctx.fill(); ctx.stroke(); ctx.beginPath();
+    ctx.fillStyle = "#222"; ctx.roundRect(s * .36, s * .13, s * .1, s * .1, 14);
   } else if (key === "baseballcap") {
     ctx.ellipse(s * .5, s * .52, s * .26, s * .28, 0, Math.PI, 0); ctx.lineTo(s * .24, s * .52); ctx.closePath();
     ctx.fill(); ctx.stroke(); ctx.beginPath();
@@ -117,7 +126,7 @@ export default function MerchDesigner({ onListed }) {
     <div className="re-card space-y-3" data-tour="merchz-designer">
       <div>
         <h2 className="text-lg font-semibold">👕 Design your own <span className="text-xs font-normal text-emerald-300">Free</span></h2>
-        <p className="text-sm text-white/70">A towel, T-shirt, hoodie, bandana, wave cap, durag or baseball cap. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
+        <p className="text-sm text-white/70">A towel, T-shirt, hoodie, bandana, wave cap, durag, baseball cap, mug or phone case. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {PRODUCTS.map((p) => (
