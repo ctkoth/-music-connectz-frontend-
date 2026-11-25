@@ -23,23 +23,21 @@ unless the Tracking section below says otherwise.
 | Health & Fitness → Health | Yes (judgment) | App Functionality | BodieZ soreness and "can't use arms/legs" answers, and the optional substance-use declaration. Declaring is safer than leaving out. |
 | Location → Coarse / Precise | Yes, only if shipped | App Functionality | opt-in, for nearby collabs and VenueZ. **Info.plist has no location usage text yet** — add `NSLocationWhenInUseUsageDescription` if you keep it, or answer No. |
 | Financial Info → Other Financial Info | Yes | App Functionality | wallet and payout balances; card details stay with Stripe |
-| Purchases → Purchase History | Yes | App Functionality | |
+| Purchases → Purchase History | **No** | — | iOS 1.0 sells nothing (`apple-decisions-memo.md`) |
 | User Content → Photos or Videos | Yes | App Functionality | avatars, posts, video takes |
 | User Content → Audio Data | Yes | App Functionality | takes recorded for scoring, posts, releases. A take is sent to Google (and the written advice to Anthropic) for scoring and is stored only if the member ticks "Keep this take". |
 | User Content → Emails or Text Messages | Yes | App Functionality | MessageZ, group messages |
 | User Content → Gameplay Content | No | — | |
 | User Content → Other User Content | Yes | App Functionality | posts, ratings, comments, bug reports |
 | Usage Data → Product Interaction | Yes | App Functionality, Analytics | app opens, the join-funnel events |
-| Usage Data → Advertising Data | See Tracking | | only if AdMob ships in the iOS build |
+| Usage Data → Advertising Data | **No** | — | no ads in the iOS build |
 | Diagnostics → Crash / Performance | No, unless you add a crash SDK | | |
 | Browsing / Search History, Contacts | No | | |
 
 ## Step 3 — Tracking
-**"Used for tracking": No for every row above — unless AdMob ships in the iOS build.**
-- The iOS project includes `@capacitor-community/admob` with only Google's *test* app id. If real ads show, declare
-  **Device ID** and **Advertising Data** as used for **Third-Party Advertising**, answer **Yes** to tracking, and add
-  `NSUserTrackingUsageDescription` plus the App Tracking Transparency prompt.
-- The cleanest route is to drop AdMob from the iOS build. Then the answer is No tracking, and no prompt is needed.
+**"Used for tracking": No for every row.** The iOS build has no ads: the AdMob pod is stripped by `tools/ios-sync.sh`,
+`GADApplicationIdentifier` is gone from `Info.plist`, and `src/platform.js` hides AdZ. No tracking prompt is needed.
+If ads come back in 1.1, this section changes first (Device ID, Advertising Data, tracking Yes, the prompt).
 
 ## Step 4 — Privacy policy
 - URL: `https://musicconnectz.net/privacy.html`
@@ -47,6 +45,6 @@ unless the Tracking section below says otherwise.
 
 ## Before you press Publish on the questionnaire
 - [ ] Every row matches what the iOS build actually does (hide a feature → remove its row).
-- [ ] AdMob decision made (see Tracking).
+- [x] AdMob decision made: no ads on iOS 1.0.
 - [ ] Location decision made (usage text added, or answered No).
 - [ ] Age rating answers are consistent: sexual orientation and substance fields are adults-only server-side.

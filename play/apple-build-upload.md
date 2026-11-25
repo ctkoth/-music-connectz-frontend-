@@ -5,9 +5,9 @@ opened on a Mac. If a menu name differs in your Xcode version, follow the intent
 
 ## A. Before you build (10 minutes, on the Mac)
 1. [ ] `git pull` the branch, then `npm ci && npm run build`.
-2. [ ] **AdMob id:** open `ios/App/App/Info.plist`. `GADApplicationIdentifier` is Google's *test* id. Put your real iOS id in, or remove the AdMob plugin (`npm uninstall @capacitor-community/admob`) before the next step.
+2. [x] **AdMob:** already removed from the iOS project (`GADApplicationIdentifier` deleted; `tools/ios-sync.sh` strips the pod). The package stays installed because the Android bundle uses it.
 3. [ ] **Thin wrapper:** in `capacitor.config.json`, decide whether to keep `server.url` (loads the live site) or remove it so the bundled `dist/` runs. Removing it is safer for review; test sign-in redirects either way.
-4. [ ] `npx cap sync ios` (this runs `pod install`; if it fails, `cd ios/App && pod install --repo-update`).
+4. [ ] `tools/ios-sync.sh` — builds, syncs, **strips the AdMob pod** and runs `pod install`. (Plain `npx cap sync ios` puts AdMob back; don't use it.) If pods fail, `cd ios/App && pod install --repo-update`.
 5. [ ] `npx cap open ios`. Always open the `.xcworkspace`, never the `.xcodeproj`.
 
 ## B. Xcode settings (once)

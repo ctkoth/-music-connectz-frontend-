@@ -10,7 +10,7 @@ understated rating is grounds for removal. Apple computes the rating (4+, 9+, 13
 | Unrestricted web access | **Yes** | Members post links that open in the in-app browser |
 | User-generated content | **Yes** | Posts, comments, takes, battles |
 | Messaging and chat | **Yes** | MessageZ, group messages, calls |
-| Advertising | **Yes if AdMob/AdZ ships in the iOS build, else No** | see `apple-app-privacy.md` |
+| Advertising | **No** | the iOS build has no ads |
 | Parental controls | No | none exist |
 | Age assurance | **Yes** | stated-age grouping on the server and optional ID check for 18+ features |
 

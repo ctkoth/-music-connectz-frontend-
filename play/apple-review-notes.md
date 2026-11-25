@@ -41,11 +41,12 @@ Policy: https://musicconnectz.net/privacy.html. A take is sent to Google for sco
 to Anthropic; the recording is not stored unless the member ticks "Keep this take".
 
 SIGN-IN
-REPLACE: describe the sign-in options in this build (email/password; Sign in with Apple if enabled).
+Email and password only. There is no Google, Facebook or other third-party sign-in in this build.
 
 PURCHASES
-REPLACE: either "This build has no in-app purchases; all features are free to use." (if purchase screens are
-hidden on iOS) or describe the in-app purchase products and where to find them.
+This build has no in-app purchases and no ads. Premium, credits and the member marketplace are not offered here.
+Members can pay each other for real-world creative work (CollabZ deals held in escrow), and withdraw earnings;
+that is payment between people for services, not a purchase of digital content from us.
 
 CONTACT
 REPLACE_WITH_A_REAL_EMAIL_AND_PHONE_THE_REVIEWER_CAN_REACH

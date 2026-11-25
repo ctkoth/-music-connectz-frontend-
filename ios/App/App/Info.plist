@@ -49,8 +49,6 @@
 	<string>Music ConnectZ uses the camera only when you record a video take.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo or clip to attach to a take or post.</string>
-	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
