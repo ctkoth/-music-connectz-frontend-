@@ -2844,3 +2844,10 @@ The server picks the take and decides what work this viewer may open; the screen
 
 `chunkError.isChunkError` also recognises Vite's **"Unable to preload CSS for /assets/…"** — a phone showed it on the
 error card instead of reloading, because only the JS forms of the stale-deploy error were listed (`chunkError.test.mjs`).
+
+## A lift's target sets can change mid-session
+
+Tap the "3/5 sets ✎" pill on a live lift: −/+ set today's target (1-20), "Make it 3/3" stops at what is done. Today only,
+kept per session on the device (`mcz_bodiez_sets_<id>`, like the drag order). "Also save N sets to the routine · free"
+PATCHes the routine. The screen says the end-of-session report counts against the ROUTINE (server `completion_pct`), so a
+today-only change still reads as part of the plan undone — saving it is how the report agrees. Driven at 412px.
