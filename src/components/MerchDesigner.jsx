@@ -42,6 +42,11 @@ function drawProduct(ctx, key, color) {
     ctx.roundRect(s * .2, s * .2, s * .6, s * .6, 48);
   } else if (key === "poster") {
     ctx.rect(s * .24, s * .1, s * .52, s * .8);
+  } else if (key === "tote") {
+    ctx.rect(s * .24, s * .32, s * .52, s * .56);
+    ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.lineWidth = s * .025; ctx.strokeStyle = color;
+    ctx.moveTo(s * .36, s * .32); ctx.quadraticCurveTo(s * .36, s * .1, s * .5, s * .1); ctx.quadraticCurveTo(s * .64, s * .1, s * .64, s * .32);
+    ctx.stroke(); ctx.lineWidth = 4; ctx.strokeStyle = line; ctx.beginPath();
   } else if (key === "buckethat") {
     ctx.moveTo(s * .32, s * .58); ctx.lineTo(s * .35, s * .3); ctx.quadraticCurveTo(s * .5, s * .22, s * .65, s * .3);
     ctx.lineTo(s * .68, s * .58); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.beginPath();
@@ -137,7 +142,7 @@ export default function MerchDesigner({ onListed }) {
     <div className="re-card space-y-3" data-tour="merchz-designer">
       <div>
         <h2 className="text-lg font-semibold">👕 Design your own <span className="text-xs font-normal text-emerald-300">Free</span></h2>
-        <p className="text-sm text-white/70">A towel, T-shirt, hoodie, bandana, wave cap, durag, baseball cap, mug, phone case, sticker, poster, bucket hat or beanie. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
+        <p className="text-sm text-white/70">A towel, T-shirt, hoodie, bandana, wave cap, durag, baseball cap, mug, phone case, sticker, poster, tote bag, bucket hat or beanie. Free, on this device. <span className="text-mcz-gold">Ordering isn't open yet</span> — no printer is connected, so nothing here can be bought. Save your designs and they'll be ready when it is.</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {PRODUCTS.map((p) => (

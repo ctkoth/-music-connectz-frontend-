@@ -311,7 +311,7 @@ const TOOLZ_MENU = {
     { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
   ],
   'MercheZ': [
-    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — and design your own towels, shirts, hoodies, bandanas, wave caps, durags, baseball caps, mugs, phone cases, stickers, posters, hats and beanies' },
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — and design your own towels, shirts, hoodies, bandanas, wave caps, durags, baseball caps, mugs, phone cases, stickers, posters, tote bags, hats and beanies' },
   ],
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
