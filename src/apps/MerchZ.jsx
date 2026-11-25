@@ -2,6 +2,7 @@ import Doors from "../components/Doors.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
+import { HIDE_PURCHASES } from "../platform.js";
 import { IconImg } from "../App.jsx";
 import MemberName from "../MemberName.jsx";
 import { MONEY } from "../resources.js";
@@ -21,7 +22,7 @@ const CATS = [["", "Everything"], ["apparel", "Apparel"], ["art", "Art"], ["beat
   ["accessories", "Accessories"], ["digital", "Digital"], ["routines", "Routines"]];
 const usd = (c) => `$${(c / 100).toFixed(2).replace(/\.00$/, "")}`;
 
-export default function MerchZ() {
+function MerchZInner() {
   const [items, setItems] = useState(null);
   const [fees, setFees] = useState(null);
   const [money, setMoney] = useState(null);
@@ -206,4 +207,13 @@ function MySales() {
       </div>
     </div>
   );
+}
+
+export default function MerchZ() {
+  // Digital goods (beats, packs, routines) sold for cash, with a platform fee — iOS 1.0 sells
+  // nothing for money (platform.js), so the marketplace waits for 1.1.
+  if (HIDE_PURCHASES()) {
+    return <div className="re-card text-sm text-white/70">MerchZ isn't available in this version of the app.</div>;
+  }
+  return <MerchZInner />;
 }

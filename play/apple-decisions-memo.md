@@ -74,4 +74,5 @@ Also decide, because a reviewer may ask:
 - **Sign-in:** `OAuthButtons` renders nothing on iOS, so email/password is the only way in.
 - **Purchases:** MembershipZ shows a one-line note, `PromptzDoor` (the "buy with your balance" door) and `OfferPanel` and `TierUpgradePrompt` render nothing.
 - Tests: `src/platform.test.mjs`; full suite and build pass. Driven in a browser with the platform faked as iOS: plans and the cash buy door gone, AdZ note shown, web unchanged.
-- **Not covered:** `SpecZ` (`specz/buy`) and `MerchZ` purchases, and scattered "upgrade" wording inside tier-locked screens. Review those before submitting. Also still to do: remove `@capacitor-community/admob` and its `Info.plist` id, and update the four docs listed above.
+- **MerchZ** (members selling beats, packs and routines for cash, with a platform fee) is hidden on iOS the same way. **SpecZ** is left as it is: it spends earned 🍥, no cash, so it isn't a purchase of the kind Apple wants in-app purchase for.
+- **Not covered:** scattered "upgrade" wording inside tier-locked screens. Review those before submitting. Also still to do: remove `@capacitor-community/admob` and its `Info.plist` id, and update the four docs listed above.
