@@ -12,6 +12,8 @@ export const PRODUCTS = [
   { key: "sticker", label: "Sticker", emoji: "🏷️", area: { x: 0.22, y: 0.22, w: 0.56, h: 0.56 }, note: "Cut to a rounded square. Art fills it edge to edge." },
   { key: "poster", label: "Poster", emoji: "🖼️", area: { x: 0.26, y: 0.12, w: 0.48, h: 0.76 }, note: "Portrait. Upload art at least 2400 px tall so it prints sharp." },
   // Caps are embroidered, not printed: a small front panel, and thread suits bold, simple art.
+  { key: "buckethat", label: "Bucket hat", emoji: "👒", area: { x: 0.36, y: 0.36, w: 0.28, h: 0.16 }, note: "Embroidered, not printed: bold, simple art with a few colours stitches best. Fine detail and gradients won't." },
+  { key: "beanie", label: "Beanie", emoji: "🧶", area: { x: 0.36, y: 0.58, w: 0.28, h: 0.12 }, note: "Embroidered on the fold: keep it short and bold — a word or a simple logo." },
   { key: "baseballcap", label: "Baseball cap", emoji: "⚾", area: { x: 0.36, y: 0.3, w: 0.28, h: 0.16 }, note: "Embroidered, not printed: bold, simple art with a few colours stitches best. Fine detail and gradients won't." },
 ];
 export const COLORS = ["#111111", "#ffffff", "#c81d25", "#1d4ed8", "#15803d", "#7e22ce", "#f59e0b", "#ec4899"];
