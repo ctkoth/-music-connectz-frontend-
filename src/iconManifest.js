@@ -2041,6 +2041,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "genrez.jpg",
   "guitarz.png",
   "habitz.png",
+  "healthz.jpg",
   "imagez.png",
   "keyconnectz.png",
   "keyz.png",

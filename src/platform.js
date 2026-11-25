@@ -18,3 +18,6 @@ export const HIDE_ADS = () => isIOS();
 export const HIDE_PURCHASES = () => isIOS();
 /** Google/GitHub/Spotify… sign-in. Apple wants Sign in with Apple beside any of them. */
 export const HIDE_SOCIAL_LOGIN = () => isIOS();
+/** HealthZ (sleep and conditions). Health data gets its own scrutiny on iOS and the privacy answers for
+ *  1.0 do not cover it, so it waits for 1.1 (play/apple-decisions-memo.md). */
+export const HIDE_HEALTH = () => isIOS();

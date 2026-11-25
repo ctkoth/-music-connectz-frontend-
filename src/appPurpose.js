@@ -75,6 +75,7 @@ export const APP_PURPOSE = {
   budgetz:     { does: "Plan your money",              words: "budget money finance expenses income spending savings bank limit planner" },
   genrez:      { does: "Find talent by genre",           words: "genre hip hop metal country scene talent find filter sound style" },
   vybez:       { does: "Find members by filters",        words: "dating match filter search browse region zodiac sober distance personality vibe" },
+  healthz:     { does: "Sleep log and your own conditions",  words: "sleep health condition diagnosis wellness rest insomnia asthma log" },
   bodiez:      { does: "Log workouts and build routines", words: "workout exercise gym lift squat routine fitness strength train bodybuilding weights" },
   coachz:      { does: "Manage your teaching studio",    words: "coach teach studio students lessons tutor mentor" },
   statsz:      { does: "Your scores across every instrument", words: "stats scores dashboard history progress overview takes" },

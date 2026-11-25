@@ -161,6 +161,7 @@ const MetZ = lazy(lazyRoute(() => import("./apps/MetZ.jsx")));
 const TunerZ = lazy(lazyRoute(() => import("./apps/TunerZ.jsx")));
 const ChordZ = lazy(lazyRoute(() => import("./apps/ChordZ.jsx")));
 const BreathZ = lazy(lazyRoute(() => import("./apps/BreathZ.jsx")));
+const HealthZ = lazy(lazyRoute(() => import("./apps/HealthZ.jsx")));
 const IconZ = lazy(lazyRoute(() => import("./apps/IconZ.jsx")));
 const ToolZMenu = lazy(lazyRoute(() => import("./components/ToolZMenu.jsx")));
 const Landing = lazy(lazyRoute(() => import("./Landing.jsx")));
@@ -398,6 +399,7 @@ export const CUSTOM_ICONS = {
   "tunerz.jpg": "/icons/tunerz.jpg",
   "chordz.jpg": "/icons/chordz-neon.svg",
   "breathz.png": "/icons/breathz-neon.png",
+  "healthz.jpg": "/icons/healthz.jpg",
   "toolz.png": "/icons/toolz-main.svg",
   // Registered ahead of the MCZ2 surface being wired up, so its rows don't
   // land as logos the day it is.
@@ -682,6 +684,7 @@ const TABS = [
   { key: "habitz", label: "HabitZ", icon: "habitz.png", el: <HabitZ /> },
   { key: "lilith", label: "Lilith", icon: "lilithz.png", el: <Lilith /> },
   { key: "bodiez", label: "BodieZ", icon: "bodiez.png", el: <BodieZ /> },
+  { key: "healthz", label: "HealthZ", icon: "healthz.jpg", el: <HealthZ /> },
   { key: "collabz", label: "CollabZ", icon: "collabz.png", el: <CollabZ /> },
   { key: "venuez", label: "VenueZ", icon: "venuez.png", el: <VenueZ /> },
   { key: "battlez", label: "BattleZ", icon: "battlez.png", el: <BattleZ /> },
@@ -1042,6 +1045,7 @@ const TAB_ABOUT = {
   lessonz: "📚 LessonZ — book and run lessons; teachers set skills, rates and availability.",
   singz: "🎤 SingZ — vocal training: range detection, quests, Boss SongZ — voice health first.",
   rapz: "🎤 RapZ — rap training: style tracks, breath control, combo meter, Boss Mode.",
+  healthz: "💚 HealthZ — your own sleep log and the conditions you say you have. Free, private, typed by you; it never diagnoses or scores anything.",
   breathz: "🫁 BreathZ — free breath training for your takes: box breathing, long exhales, support hisses and bar breathing at your tempo. It earns XP for turning up and never changes a score — your coach's Breath score is the measure.",
   messagez: "📨 MessageZ — your messaging center: Inbox and Outbox.",
   journalz: "📔 JournalZ — your diary. A day, written down: mood, weather, tags, the people you were with and where you were. Every entry is private until you publish it — tagging somebody on a private entry tells them nothing. Your first entry each day completes a QuestZ daily.",

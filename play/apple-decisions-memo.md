@@ -79,3 +79,5 @@ Also decide, because a reviewer may ask:
 
 - **AdMob removed from iOS:** the package stays in `package.json` (the Android bundle's rewarded ads need it, `RELEASE_ANDROID.md` §3b), so `tools/ios-sync.sh` strips the pod from `ios/App/Podfile` after each sync, and `GADApplicationIdentifier` is deleted from `Info.plist`. Not run on a Mac.
 - The four docs (privacy, age rating, review notes, listing description) are updated to match.
+
+- **HealthZ** (a member's own sleep log and a private list of conditions they say they have) is hidden on iOS 1.0 (`HIDE_HEALTH` in `src/platform.js`): health data gets extra review and the privacy answers for 1.0 don't cover it. When it ships on iOS (1.1), the privacy label gains Health (Medical Records or Health), the age rating's Medical or Treatment Information gets reconsidered, and the review notes describe it. It records what the member types, never diagnoses, suggests, infers or scores.
