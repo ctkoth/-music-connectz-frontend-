@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findRound, gradeFind, peakDb, matchRound, matchError, matchGrade, addResult, summary, LEVELS, SLIDERS, rng } from "./mixez.js";
+import { balanceRound, balanceGrade, BALANCE_RANGE, findRound, gradeFind, peakDb, matchRound, matchError, matchGrade, addResult, summary, LEVELS, SLIDERS, rng } from "./mixez.js";
 
 test("peaking filter hits its gain at centre and is flat far away", () => {
   assert.ok(Math.abs(peakDb(1000, 1000, 9, 1.4) - 9) < 0.05);
@@ -40,4 +40,16 @@ test("progress counts only the drill asked, caps at 200, and says null with no t
   assert.equal(summary([], "find").pct, null);
   const s = summary(addResult(addResult([], "find", true), "find", false), "find");
   assert.deepEqual([s.n, s.ok, s.pct], [2, 1, 50]);
+});
+
+test("balance: rounds stay inside the fader, never at zero, grading is the plain dB gap", () => {
+  for (let s = 0; s < 200; s++) for (const lv of ["easy", "medium", "hard"]) {
+    const { db } = balanceRound(s, lv);
+    assert.ok(db !== 0 && Math.abs(db) <= BALANCE_RANGE && Number.isInteger(db));
+  }
+  assert.equal(balanceGrade(5, 5).words, "Spot on");
+  assert.equal(balanceGrade(5, 4.2).close, true);
+  assert.equal(balanceGrade(-6, 0).close, false);
+  assert.equal(balanceGrade(3, 6).side, "too loud");
+  assert.equal(balanceGrade(3, 0).side, "too quiet");
 });

@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Square } from "lucide-react";
 import { LEVELS, SLIDERS, SLIDER_RANGE, fmtHz, findRound, gradeFind, matchRound, matchError, matchGrade, addResult, summary } from "../mixez.js";
+import { balanceRound, balanceGrade, BALANCE_RANGE } from "../mixez.js";
 import { renderProgression, progressionChords } from "../daw/chords.js";
+import { renderBars } from "../daw/rack.js";
+import { drumPart } from "../daw/drummer.js";
 import { goToTab } from "../goto.js";
 
 const KEY = "mcz_mixez_log";
@@ -122,6 +125,60 @@ function Match({ level, log, onResult }) {
   );
 }
 
+// Drill 3 plays two rendered parts on their own faders, so the level offset is exactly the number the score reads.
+function Balance({ level, log, onResult }) {
+  const st = useRef({});
+  const [playing, setPlaying] = useState(false);
+  const [target, setTarget] = useState(() => balanceRound(seed(), level));
+  const [mine, setMine] = useState(0);
+  const [hear, setHear] = useState("target");
+  const [res, setRes] = useState(null);
+  useEffect(() => { setTarget(balanceRound(seed(), level)); setMine(0); setRes(null); }, [level]);
+  const db = hear === "target" ? target.db : mine;
+  useEffect(() => { const g = st.current.chords; if (g) g.gain.value = 10 ** (db / 20) * 0.6; }, [db, playing]);
+  const stop = () => { for (const k of ["a", "b"]) { try { st.current[k]?.stop(); } catch { /* already stopped */ } st.current[k] = null; } setPlaying(false); };
+  const start = async () => {
+    const s = st.current;
+    if (!s.ctx) s.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (s.ctx.state === "suspended") await s.ctx.resume();
+    if (!s.drums) {
+      const r = s.ctx.sampleRate;
+      s.drums = await renderBars(drumPart("hiphop", { busy: 0.5, hard: 0.6, bars: 4, fillEvery: 0 }), { bpm: 96, rate: r });
+      s.chordBuf = await renderProgression(progressionChords(9, "minor", "pop"), { bpm: 96, times: 1, layers: { pad: true, keys: true, bass: true }, rate: r });
+    }
+    stop();
+    const mk = (buf) => { const n = s.ctx.createBufferSource(); n.buffer = buf; n.loop = true; return n; };
+    const a = mk(s.drums), b = mk(s.chordBuf), ga = s.ctx.createGain(), gb = s.ctx.createGain();
+    ga.gain.value = 0.6; a.connect(ga).connect(s.ctx.destination); b.connect(gb).connect(s.ctx.destination);
+    s.chords = gb; s.a = a; s.b = b; gb.gain.value = 10 ** (db / 20) * 0.6; a.start(); b.start(); setPlaying(true);
+  };
+  useEffect(() => () => { stop(); st.current.ctx?.close(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const check = () => { const g = balanceGrade(target.db, mine); setRes(g); onResult(g.close); };
+  const next = () => { setTarget(balanceRound(seed(), level)); setMine(0); setRes(null); setHear("target"); };
+  return (
+    <div className="space-y-3">
+      <p className="text-sm">The drums stay put; the <b>chords</b> are set to a hidden level against them. Listen to the <b>Target</b>, then set the chords' fader on <b>Yours</b> until the balance sounds the same. Scored by how many dB apart you are — within 1 dB counts as matched. Free, nothing charged.</p>
+      <div className="flex flex-wrap gap-2">
+        <button className="neon-btn" onClick={() => (playing ? stop() : start())}>{playing ? <><Square size={14} /> Stop</> : <><Play size={14} /> Play loop</>}</button>
+        {["target", "mine"].map((k) => <button key={k} onClick={() => setHear(k)} aria-pressed={hear === k} className={`neon-btn ${hear === k ? "" : "opacity-60"}`}>{k === "target" ? "Hear Target" : "Hear Yours"}</button>)}
+      </div>
+      <label className="block text-xs">
+        <span>Chords vs drums: {mine > 0 ? "+" : ""}{mine} dB</span>
+        <input type="range" className="w-full" min={-BALANCE_RANGE} max={BALANCE_RANGE} step={1} value={mine} aria-label="Chords level against the drums"
+          onChange={(e) => { setMine(+e.target.value); setHear("mine"); }} />
+      </label>
+      {!res ? <button className="neon-btn" onClick={check}>Check my balance</button> : (
+        <div role="status" className="re-card p-3 text-sm">
+          <b className={res.close ? "text-emerald-300" : "text-mcz-ember"}>{res.words} — {res.err} dB apart{res.close ? "" : ` (yours is ${res.side})`}.</b>
+          <div className="text-xs opacity-80">Target was {target.db > 0 ? "+" : ""}{target.db} dB.</div>
+          <div className="mt-2"><button className="neon-btn" onClick={next}>Next round</button></div>
+        </div>
+      )}
+      <Meter log={log} drill="balance" />
+    </div>
+  );
+}
+
 export default function MixEZ() {
   const [drill, setDrill] = useState("find");
   const [level, setLevel] = useState("easy");
@@ -134,12 +191,12 @@ export default function MixEZ() {
         <p className="text-sm opacity-80">Mix-engineer ear training. Free, on your device, no AI and nothing charged — every score is measured from the filter the app applied, not opinion. Practice only: no certificates.</p>
       </header>
       <div className="flex flex-wrap gap-2" role="tablist">
-        {[["find", "Find the frequency"], ["match", "Match the EQ"]].map(([k, l]) => <button key={k} role="tab" aria-selected={drill === k} onClick={() => setDrill(k)} className={`neon-btn ${drill === k ? "" : "opacity-60"}`}>{l}</button>)}
+        {[["find", "Find the frequency"], ["match", "Match the EQ"], ["balance", "Balance the mix"]].map(([k, l]) => <button key={k} role="tab" aria-selected={drill === k} onClick={() => setDrill(k)} className={`neon-btn ${drill === k ? "" : "opacity-60"}`}>{l}</button>)}
         <select aria-label="Level" data-nomemo="true" value={level} onChange={(e) => setLevel(e.target.value)} className="neon-input ml-auto">
           {Object.entries(LEVELS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
       </div>
-      {drill === "find" ? <Find key="f" level={level} log={log} onResult={record("find")} /> : <Match key="m" level={level} log={log} onResult={record("match")} />}
+      {drill === "find" ? <Find key="f" level={level} log={log} onResult={record("find")} /> : drill === "match" ? <Match key="m" level={level} log={log} onResult={record("match")} /> : <Balance key="b" level={level} log={log} onResult={record("balance")} />}
       <div className="flex flex-wrap gap-2 text-sm">
         <span className="opacity-70">Now use it:</span>
         <button className="neon-btn" onClick={() => goToTab("mixconnectz")}>Mix ConnectZ</button>

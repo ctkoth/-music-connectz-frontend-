@@ -2828,7 +2828,7 @@ find"; reversible by restoring the old picker in `EditWindow.jsx`.
 
 ## MixEZ: mix-engineer ear training, scored by measurement (first slice)
 
-`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with two drills on a rendered chord loop
+`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with three drills (the third, **Balance the mix**, plays rendered drums and chords on separate gains and scores the dB gap between your chord level and the hidden target; within 1 dB is matched) — the first two on a rendered chord loop
 through real peaking filters: **Find the frequency** (name the boosted band) and **Match the EQ** (five sliders against a hidden
 curve; score = RMS dB between the two RBJ responses, under 1.5 dB is "matched"). `src/mixez.js` is pure and tested. Free, on the
 device, no AI, nothing charged, and a wrong answer costs nothing. Progress is a practice count kept in localStorage, never a rating,
