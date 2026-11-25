@@ -18,7 +18,7 @@ understated rating is grounds for removal. Apple computes the rating (4+, 9+, 13
 | Question | Answer | Why |
 |---|---|---|
 | Medical or treatment information | No | BodieZ is a workout log; no treatment claims |
-| Health or wellness topics | **Infrequent** | BodieZ workouts, soreness, accessibility settings |
+| Health or wellness topics | **Yes** (if the form asks Yes/No) / Infrequent | BodieZ workout and lifestyle content |
 | Mature or suggestive themes | **Infrequent** | member posts and lyrics are uncensored |
 | Sexual content or nudity | **None** | none provided by the app; members' content is moderated by reporting |
 | Graphic sexual content | None | |

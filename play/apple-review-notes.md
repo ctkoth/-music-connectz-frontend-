@@ -23,7 +23,8 @@ HOW TO TRY THE MAIN FEATURE (no instrument needed)
 
 PERMISSIONS
 The microphone and camera are used only when the member taps Record or Record on camera; the photo library
-only when attaching a file. Each prompt appears at that tap, with its reason.
+only when attaching a file. Location is used only if a member turns on ProfileZ → "Share my approximate location"
+(adults only, off by default, stored rounded to about 1 km, deleted when turned off). Each prompt appears at that tap, with its reason.
 
 USER-GENERATED CONTENT — reporting, blocking, moderation
 - "Report this output" under every AI result, and report options on posts, go to the owner's moderation queue.

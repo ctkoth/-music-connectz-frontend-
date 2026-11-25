@@ -33,6 +33,7 @@ import VisibilitieZ from "../VisibilitieZ.jsx";
 import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
+import LocationShare from "../components/LocationShare.jsx";
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
 import { MyClassZ } from "../components/ClassZ.jsx";
@@ -944,6 +945,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         <div className="border-t border-white/10 pt-3" data-tour="portfolio-links">
           <PortfolioLinks />
           <GlowColor />
+        </div>
+        {/* Opt-in, approximate, adults only — the server has read it for distance gates for a
+            long time and nothing let a member turn it on. */}
+        <div className="border-t border-white/10 pt-3">
+          <LocationShare initial={!!me.shares_location} />
         </div>
         {/* What they play, wear and work with — rated by members piece by piece and in total. */}
         <div className="border-t border-white/10 pt-3">

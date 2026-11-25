@@ -47,6 +47,8 @@
 	<string>Music ConnectZ uses the microphone only when you press Record to score a take.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Music ConnectZ uses the camera only when you record a video take.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Music ConnectZ uses your location only when you choose to share an approximate position, so nearby rooms and collaborators can be found. You can turn it off at any time.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose a photo or clip to attach to a take or post.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>

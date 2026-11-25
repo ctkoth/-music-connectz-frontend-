@@ -21,7 +21,7 @@ unless the Tracking section below says otherwise.
 | Sensitive Info | Yes | App Functionality | sexual orientation (optional, adults only, set in the profile). Declare it. |
 | Health & Fitness → Fitness | Yes | App Functionality | BodieZ workouts, sets, weights |
 | Health & Fitness → Health | Yes (judgment) | App Functionality | BodieZ soreness and "can't use arms/legs" answers, and the optional substance-use declaration. Declaring is safer than leaving out. |
-| Location → Coarse / Precise | Yes, only if shipped | App Functionality | opt-in, for nearby collabs and VenueZ. **Info.plist has no location usage text yet** — add `NSLocationWhenInUseUsageDescription` if you keep it, or answer No. |
+| Location → Coarse Location | **Yes** | App Functionality | opt-in (ProfileZ → Share my approximate location, adults only), stored rounded to about 1 km, used for distance filters in VenueZ, CollabZ, BattleZ and member search. Not Precise. `Info.plist` has the usage text. |
 | Financial Info → Other Financial Info | Yes | App Functionality | wallet and payout balances; card details stay with Stripe |
 | Purchases → Purchase History | **No** | — | iOS 1.0 sells nothing (`apple-decisions-memo.md`) |
 | User Content → Photos or Videos | Yes | App Functionality | avatars, posts, video takes |
