@@ -2828,9 +2828,26 @@ find"; reversible by restoring the old picker in `EditWindow.jsx`.
 
 ## MixEZ: mix-engineer ear training, scored by measurement (first slice)
 
-`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with two drills on a rendered chord loop
+`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with three drills (the third, **Balance the mix**, plays rendered drums and chords on separate gains and scores the dB gap between your chord level and the hidden target; within 1 dB is matched) — the first two on a rendered chord loop
 through real peaking filters: **Find the frequency** (name the boosted band) and **Match the EQ** (five sliders against a hidden
 curve; score = RMS dB between the two RBJ responses, under 1.5 dB is "matched"). `src/mixez.js` is pure and tested. Free, on the
 device, no AI, nothing charged, and a wrong answer costs nothing. Progress is a practice count kept in localStorage, never a rating,
 and the screen says "no certificates" because we cannot issue one. Not built: a course library, compression/level drills,
 anything graded by opinion. Driven in headless Chromium (both drills, no console errors); not heard by ear or on a phone.
+
+## Tapping a CoachZ best score opens the work and the coach's feedback
+
+`CoachBest.jsx` (member profile modal and CreatorProfile) rows are buttons when given a `username`: a tap opens, under the
+row, the take that scored highest (`/api/economy/coachbest/<user>/<app>/`) — the post it scored with its player and a link
+to it, or the YouTube video, or "recorded in the coach and not posted" — and the coach's read drawn by `CoachReadCard`.
+The server picks the take and decides what work this viewer may open; the screen picks nothing. Driven at 412px.
+
+`chunkError.isChunkError` also recognises Vite's **"Unable to preload CSS for /assets/…"** — a phone showed it on the
+error card instead of reloading, because only the JS forms of the stale-deploy error were listed (`chunkError.test.mjs`).
+
+## A lift's target sets can change mid-session
+
+Tap the "3/5 sets ✎" pill on a live lift: −/+ set today's target (1-20), "Make it 3/3" stops at what is done. Today only,
+kept per session on the device (`mcz_bodiez_sets_<id>`, like the drag order). "Also save N sets to the routine · free"
+PATCHes the routine. The screen says the end-of-session report counts against the ROUTINE (server `completion_pct`), so a
+today-only change still reads as part of the plan undone — saving it is how the report agrees. Driven at 412px.

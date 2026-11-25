@@ -1,4 +1,6 @@
 import Doors from "../components/Doors.jsx";
+import MerchDesigner from "../components/MerchDesigner.jsx";
+import ShopList from "../components/ShopList.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
@@ -23,6 +25,7 @@ const usd = (c) => `$${(c / 100).toFixed(2).replace(/\.00$/, "")}`;
 
 export default function MerchZ() {
   const [items, setItems] = useState(null);
+  const [shopTick, setShopTick] = useState(0);
   const [fees, setFees] = useState(null);
   const [money, setMoney] = useState(null);
   const [cat, setCat] = useState("");
@@ -82,6 +85,8 @@ export default function MerchZ() {
           <p className="text-sm text-white/60">Sell and buy from other creators — apparel, art, beats, packs, routines. Legal goods only.</p>
         </div>
       </header>
+      <MerchDesigner onListed={() => setShopTick((n) => n + 1)} />
+      <ShopList refresh={shopTick} />
       {money != null && <p className="text-xs text-white/50">Your balance: {usd(money)} {MONEY}</p>}
       {msg && <p className="text-sm text-emerald-300">{msg}</p>}
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}

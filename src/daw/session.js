@@ -294,6 +294,8 @@ export function setSession(s, patch) {
   if (!EDIT_MODES.includes(out.editMode)) out.editMode = "slip";
   if (!(out.grid in GRIDS)) out.grid = "1/4";
   out.master = clamp(num(out.master, 0), GAIN_DB.min, GAIN_DB.max);
+  out.masterInserts = Array.isArray(out.masterInserts) ? out.masterInserts.slice(0, 8) : [];
+  out.buses = cleanBuses(out.buses);     // the master track's own effects
   out.name = String(out.name || "Untitled session").slice(0, 60);
   out.key = SESSION_KEYS.includes(out.key) ? out.key : "";
   out.snap = out.snap !== false;
@@ -328,6 +330,43 @@ export function setAuto(s, id, param, lane) {
   return mapTrack(s, id, (t) => ({ ...t, auto: { ...(t.auto || {}), [param]: cleanLane(param, lane) } }));
 }
 
+export const GROUPS = ["A", "B", "C", "D"];
+/** A change to one track, carried to every track in its group (Pro Tools' track groups): a volume move moves them all by the
+ *  same number of dB (so their balance is kept), and mute and solo are set to the same value. Everything else, and a track
+ *  in no group, changes alone. */
+export function setTrackGrouped(s, id, patch) {
+  const t = s.tracks.find((x) => x.id === id);
+  if (!t || !t.group || !GROUPS.includes(t.group)) return setTrack(s, id, patch);
+  const mates = s.tracks.filter((x) => x.group === t.group);
+  let out = setTrack(s, id, patch);
+  const linked = {};
+  if (patch.mute !== undefined) linked.mute = !!patch.mute;
+  if (patch.solo !== undefined) linked.solo = !!patch.solo;
+  const delta = patch.gain !== undefined ? num(patch.gain, 0) - num(t.gain, 0) : 0;
+  for (const m of mates) {
+    if (m.id === id) continue;
+    const p2 = { ...linked };
+    if (delta) p2.gain = (m.gain || 0) + delta;
+    if (Object.keys(p2).length) out = setTrack(out, m.id, p2);
+  }
+  return out;
+}
+
+export const MAX_BUSES = 4;
+/** A track's send amounts: { busId: 0-100 }, only for real numbers above 0. */
+export function cleanSends(raw) {
+  const out = {};
+  if (raw && typeof raw === "object") for (const [k, v] of Object.entries(raw)) { const n = clamp(Math.round(num(v, 0)), 0, 100); if (n > 0) out[String(k).slice(0, 24)] = n; }
+  return out;
+}
+/** The send buses: shared effects (a reverb, a delay) that several tracks feed by an amount. */
+export function cleanBuses(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_BUSES).map((b, i) => ({
+    id: String(b?.id || `bus${i + 1}`).slice(0, 24), name: String(b?.name || `Bus ${i + 1}`).slice(0, 24),
+    inserts: Array.isArray(b?.inserts) ? b.inserts.slice(0, 8) : [], level: clamp(num(b?.level, 0), GAIN_DB.min, GAIN_DB.max),
+  }));
+}
+
 export function setTrack(s, id, patch) {
   return mapTrack(s, id, (t) => {
     const out = { ...t, ...patch };
@@ -338,6 +377,8 @@ export function setTrack(s, id, patch) {
     out.emoji = cleanEmoji(out.emoji);
     out.recMode = cleanRecMode(out.recMode);
     out.input = cleanInput(out.input);
+    out.sends = cleanSends(out.sends);
+    out.group = GROUPS.includes(out.group) ? out.group : "";
     return out;
   });
 }
@@ -455,6 +496,34 @@ export function duplicateRegion(s, id) {
   if (!hit || regionCount(s) >= MAX_REGIONS) return s;
   const copy = { ...hit.region, id: uid("r"), at: endOf(hit.region) };
   return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, copy]) })));
+}
+
+/** Lay `times` more copies of a clip end to end after it (Mixcraft's "# Loops"): a bar of beat becomes a verse's worth. */
+export function repeatRegion(s, id, times) {
+  const hit = findRegion(s, id);
+  const n = Math.max(0, Math.min(64, Math.floor(Number(times) || 0)));
+  if (!hit || !n) return s;
+  const len = endOf(hit.region) - hit.region.at;
+  if (!(len > 0)) return s;
+  const room = Math.max(0, MAX_REGIONS - regionCount(s));
+  const copies = Array.from({ length: Math.min(n, room) }, (_, k) => ({ ...hit.region, id: uid("r"), at: hit.region.at + len * (k + 1) }));
+  if (!copies.length) return s;
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, ...copies]) })));
+}
+
+/** Replace one clip with the pieces of it worth keeping (Strip Silence). `segments` are {from, to} in seconds of the SOURCE;
+ *  each piece stays exactly where it was on the timeline, so the gaps between them are real gaps. */
+export function stripRegion(s, id, segments) {
+  const hit = findRegion(s, id);
+  if (!hit) return s;
+  const r = hit.region;
+  const pieces = (segments || []).map((g) => ({ from: Math.max(r.in, g.from), to: Math.min(r.out, g.to) })).filter((g) => g.to - g.from >= MIN_LEN);
+  if (!pieces.length || regionCount(s) - 1 + pieces.length > MAX_REGIONS) return s;
+  const made = pieces.map((g, i) => ({
+    ...r, id: i === 0 ? r.id : uid("r"), at: r.at + (g.from - r.in), in: g.from, out: g.to,
+    fadeIn: g.from > r.in ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeIn, fadeOut: g.to < r.out ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeOut,
+  }));
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions.filter((x) => x.id !== id), ...made]) })));
 }
 
 /** Nudge by grid steps (negative is earlier), whatever the edit mode. */
@@ -575,7 +644,7 @@ export function cleanSession(raw) {
         // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
         // new key is always made from the original and 0 gives the original back exactly.
         ...(r.from ? { from: String(r.from).slice(0, 60) } : {}),
-        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
+        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(Math.round(num(r.semis, 0) * 100) / 100, -12, 12) } : {}),
       })),
     }));
     return {

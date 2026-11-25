@@ -38,12 +38,16 @@ function useHolders(onOpen, holders) {
   return [handler, sheet];
 }
 
+// The Thorough ladder's art is a square neon SIGN (frame, name, the number), not a round medal. A circle crop
+// takes the frame's corners and clips the title and the ">=", so these draw as rounded squares, whole.
+const SIGN_ART = /^badge_(thorough|decent|legendary|supreme|perfect)\.png$/;
+
 export function Medal({ badge, className = "h-16 w-16" }) {
   // The registry guard matters: a badge naming art the frontend hasn't shipped
   // would render the MCZ logo, which says nothing. The emoji says everything.
   return CUSTOM_ICONS[badge.icon] ? (
     <IconImg icon={badge.icon} alt=""
-             className={`${className} shrink-0 rounded-full object-cover shadow-neon`}
+             className={`${className} shrink-0 ${SIGN_ART.test(badge.icon) ? "rounded-xl object-contain" : "rounded-full object-cover"} shadow-neon`}
              fallback={<span className="text-2xl">{badge.emoji}</span>} />
   ) : (
     <span className={`${className} flex shrink-0 items-center justify-center text-2xl`}>

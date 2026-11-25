@@ -41,6 +41,7 @@ export const FOCUS_SUPPORT = [
   "membershipz", "onboardz", "logz",
   // Not music, kept on purpose: Corey uses them.
   "bodiez", "lilith",
+  "lookmaxz",                  // Corey: up front too; opens for anybody (an example reading, no account or ID)
   "imagez", "dawz", "gamez",   // Corey: up front on the home screen (DawZ is also in StudioZ)
 ];
 
@@ -51,7 +52,7 @@ export const FOCUS_SUPPORT = [
 // routed, and an app a member opens often still lands in "Your apps".
 export const HOME_FEATURED = "SkillZ";
 export const HOME_PARENTS = ["ToolZ", "IntelligenceZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];
-export const HOME_APPS = ["bodiez", "dawz", "imagez", "gamez"];
+export const HOME_APPS = ["bodiez", "dawz", "imagez", "gamez", "lookmaxz"];
 
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
 

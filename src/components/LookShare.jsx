@@ -2,6 +2,7 @@
 // invite, the other person gets THEIR OWN reading, and only they can choose to show it to you.
 // Every word of the rules is the server's (/api/economy/lookmaxz/invite/, /share/); a share is made
 // from the server-signed reading the coach answered with, never from anything typed here.
+import { pathFor } from "../App.jsx";
 import { useEffect, useState } from "react";
 import { Copy, Loader2, Trash2 } from "lucide-react";
 import { api } from "../api.js";
@@ -48,7 +49,7 @@ export function ShareReading({ reading, note, prefillTo = "", photoKept = false,
     return (
       <section className="neon-frame space-y-1 p-4" role="status">
         <p className="text-sm text-emerald-300">Shared{done.to ? ` with @${done.to} — they've been notified` : ""}.</p>
-        {!done.to && <p className="text-[12px] text-white/60">Link for any verified adult: <code>{`${window.location.origin}/lookmaxz?look=${done.token}`}</code></p>}
+        {!done.to && <p className="text-[12px] text-white/60">Link for any verified adult: <code>{`${window.location.origin}${pathFor("lookmaxz")}?look=${done.token}`}</code></p>}
         <p className="text-[11px] text-white/55">Take it down any time under "Your shared readings".</p>
       </section>
     );

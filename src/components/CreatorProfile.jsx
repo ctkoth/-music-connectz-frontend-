@@ -80,7 +80,7 @@ export default function CreatorProfile({ username, worn, visibility, audiences }
           </div>
         </div>
       )}
-      <CoachBest rows={card.coach_best} audience={audience} className="mx-4 my-3" />
+      <CoachBest rows={card.coach_best} audience={audience} username={username} className="mx-4 my-3" />
 
       <div role="tablist" className="flex justify-around border-b border-white/10 text-[13px] font-bold uppercase tracking-widest">
         {TABS.map(([k, t]) => (

@@ -32,7 +32,7 @@ const NAMES = {
   attracted_to: "Attracted to", age: "Age", birthday: "Birthday",
   location: "Location", substances: "SubstanceZ",
   superfan: "On artists' SuperfanZ 🫶 lists",
-  coach_best: "My CoachZ best scores",
+  coach_best: "My CoachZ best scores, and the coach's feedback on each",
   inventory_value: "What my InVenTorieZ is worth",
 };
 const nameOf = (f) => NAMES[f] || f.replace(/_/g, " ");

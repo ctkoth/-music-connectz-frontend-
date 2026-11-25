@@ -720,6 +720,7 @@ export default function BodieZ() {
               keepOnScreen={keepOnScreen}
               session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet} onUndoSet={undoSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
+              onSaveRoutineExercises={saveRoutineExercises}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -1487,8 +1488,10 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
 }
 
 function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
-                     grip = null, onReorder = null, pair = null }) {
+                     grip = null, onReorder = null, pair = null, onTarget = null, onSaveTarget = null }) {
   const unit = useUnit();
+  const [targetOpen, setTargetOpen] = useState(false);
+  const [targetNote, setTargetNote] = useState("");
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
@@ -1557,12 +1560,49 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
             {swapOpen ? "Done" : "Change"}
           </button>
         )}
-        <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
-          done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
-                              : "bg-white/5 text-white/50 ring-white/10"}`}>
-          {done}/{targetSets} sets
-        </span>
+        {onTarget ? (
+          <button type="button" aria-expanded={targetOpen} onClick={() => { setTargetOpen(!targetOpen); setTargetNote(""); }}
+                  title="Change how many sets this lift is for"
+                  className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
+            done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                                : "bg-white/5 text-white/60 ring-white/15 hover:text-white"}`}>
+            {done}/{targetSets} sets ✎
+          </button>
+        ) : (
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
+            done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                                : "bg-white/5 text-white/50 ring-white/10"}`}>
+            {done}/{targetSets} sets
+          </span>
+        )}
       </div>
+      {targetOpen && onTarget && (
+        <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-2.5" data-testid="target-sets">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] text-white/70">Sets of {planned.name}:</span>
+            <button type="button" className="h-8 w-8 rounded-full bg-white/10 text-white disabled:opacity-30" aria-label="One set fewer"
+                    disabled={targetSets <= 1} onClick={() => onTarget(targetSets - 1)}>−</button>
+            <span className="w-6 text-center text-base font-bold text-white">{targetSets}</span>
+            <button type="button" className="h-8 w-8 rounded-full bg-white/10 text-white disabled:opacity-30" aria-label="One set more"
+                    disabled={targetSets >= 20} onClick={() => onTarget(targetSets + 1)}>+</button>
+            {done > 0 && done !== targetSets && (
+              <button type="button" className="pill" onClick={() => onTarget(done)}>Make it {done}/{done}</button>
+            )}
+          </div>
+          <p className="text-[11px] leading-relaxed text-white/55">
+            For today only{planned.routine_sets != null && planned.routine_sets !== targetSets ? ` — your routine still says ${planned.routine_sets}` : ""}.
+            {" "}The end-of-session report counts against the routine, so save it there if this is the new plan.
+          </p>
+          {onSaveTarget && planned.routine_sets !== targetSets && (
+            <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-[11px]"
+                    onClick={async () => setTargetNote((await onSaveTarget(targetSets))
+                      ? `Saved — the routine now says ${targetSets} sets.` : "Couldn't save it to the routine; today's target still stands.")}>
+              Also save {targetSets} sets to the routine · free
+            </button>
+          )}
+          {targetNote && <p className="text-[11px] text-mcz-cyan">{targetNote}</p>}
+        </div>
+      )}
       {demoOpen && planned.demo_url && (
         <video src={demoSrc(planned.demo_url)} controls autoPlay loop muted playsInline preload="metadata"
                className="max-h-64 w-full rounded-lg bg-black" aria-label={`${planned.name} demonstration`} />
@@ -1626,7 +1666,7 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
   );
 }
 
-function TodayView({ keepOnScreen = null, session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
+function TodayView({ keepOnScreen = null, session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs, onSaveRoutineExercises = null,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1652,6 +1692,19 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
   const setOrder = (ids) => {
     setOrderState(ids);
     try { localStorage.setItem(orderKey, JSON.stringify(ids)); } catch { /* blocked */ }
+  };
+  // Today-only target sets per planned lift (routine exercise id -> sets), kept for this
+  // session on this device like the order. The routine changes only when the member says so.
+  const setsKey = session ? `mcz_bodiez_sets_${session.id}` : "";
+  const [setsOver, setSetsOverState] = useState({});
+  useEffect(() => {
+    if (!setsKey) return;
+    try { setSetsOverState(JSON.parse(localStorage.getItem(setsKey) || "{}")); } catch { setSetsOverState({}); }
+  }, [setsKey]);
+  const setTargetSets = (origId, n) => {
+    const next = { ...setsOver, [origId]: Math.max(1, Math.min(20, n)) };
+    setSetsOverState(next);
+    try { localStorage.setItem(setsKey, JSON.stringify(next)); } catch { /* blocked */ }
   };
   const planBlocksRef = useRef([]);
   const dndPlan = useDragReorder("today-ex", (from, to) => {
@@ -1713,7 +1766,8 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     .map((e) => {
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
-      return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
+      return { ...e, sets: setsOver[e.exercise_id] ?? e.sets, routine_sets: e.sets ?? 3,
+               orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment, demo_url: ex?.demo_url };
     }) : [];
   const setsByExercise = {};
@@ -1744,6 +1798,9 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
     allExercises: exercises,
     onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+    onTarget: (n) => setTargetSets(p.orig_id, n),
+    onSaveTarget: onSaveRoutineExercises && routine ? (n) => onSaveRoutineExercises(routine.id,
+      asList(routine.exercises).map((e) => (e.exercise_id === p.orig_id ? { ...e, sets: n } : e))) : null,
   });
   // The most recent set, and the lift a rest alert should point at when it fires.
   const lastLogged = asList(session.sets).reduce(

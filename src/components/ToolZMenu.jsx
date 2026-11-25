@@ -1,6 +1,6 @@
 import { purposeOf } from '../appPurpose.js';
 import VersionBadge from "./VersionBadge.jsx";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
@@ -8,7 +8,8 @@ import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
-import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
+import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds, readChosen, writeChosen, toggleChosen } from '../yourApps.js';
+import { loadLimits } from '../limits.js';
 import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS, HOME_FEATURED } from '../focus.js';
 import './ToolZMenu.css';
 
@@ -34,7 +35,7 @@ const ICON_KEY = {
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
   mangaz: "mangaz.png", designz: "designz.png", mixez: "mixez.png", animez: "animez.png", animeconnectz: "animeconnectz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
-  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png", gamez: "gamez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png", gamez: "gamez.png", lookmaxz: "lookmaxz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
@@ -310,7 +311,7 @@ const TOOLZ_MENU = {
     { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
   ],
   'MercheZ': [
-    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — legal goods only' },
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — and design your own towels, shirts, hoodies, bandanas, wave caps, durags, baseball caps, mugs, phone cases, stickers, posters, tote bags, hats and beanies' },
   ],
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
@@ -357,7 +358,7 @@ const FOCUS_LABEL = {
   drumz: 'DrumZ', producez: 'ProduceZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
-  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ', dawz: 'DawZ', gamez: 'GameZ',
+  bodiez: 'BodieZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ', dawz: 'DawZ', gamez: 'GameZ', lookmaxz: 'LookZMaxZ',
 };
 
 function FocusTile({ appKey, onOpen, big }) {
@@ -381,9 +382,51 @@ function FocusTile({ appKey, onOpen, big }) {
 // app. Same card the "More apps" grid draws, lifted to the front.
 // "Your apps": the member's own, from what they pin and open (yourApps.js, kept on the device).
 function yourAppsNow() {
-  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [],
+  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [], chosen: readChosen(),
                  seeds: readSeeds(), exclude: ['toolz'], valid: tabKeys() };
   return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
+}
+
+// Edit "Your apps": tick any app, up to the plan's count (Free 3, Premium 6, StatZ unlimited — the
+// served `imagez_layers`, the same count tracks and layers use). Free to do; nothing is charged.
+// Most-used apps still fill the rest of the row on their own.
+function EditYourApps({ chosen, onChange, onDone }) {
+  const [cap, setCap] = useState(undefined);          // undefined = not loaded, null = unlimited
+  const [q, setQ] = useState('');
+  const [note, setNote] = useState('');
+  useEffect(() => { loadLimits().then((l) => setCap(l && 'imagez_layers' in l ? l.imagez_layers : 3)).catch(() => setCap(3)); }, []);
+  const effCap = cap === undefined ? 3 : cap;         // never offer more than the lowest plan until the server answers
+  const all = [...tabKeys()].filter((k) => k !== 'toolz').map((k) => ({ k, m: tabMeta(k) })).filter((x) => x.m)
+    .sort((a, b) => String(a.m.label).localeCompare(String(b.m.label)));
+  const shown = all.filter((x) => !q.trim() || String(x.m.label).toLowerCase().includes(q.trim().toLowerCase()));
+  const toggle = (k) => {
+    const r = toggleChosen(chosen, k, effCap);
+    if (r.refused) { setNote(`Your plan holds ${effCap} picked apps. Untick one to swap, or upgrade for more.`); return; }
+    setNote(''); onChange(r.list);
+  };
+  return (
+    <div className="re-card" style={{ margin: '8px 0 14px', padding: 12 }}>
+      <p style={{ fontWeight: 700 }}>
+        Pick your apps — {chosen.length}{effCap == null ? '' : ` of ${effCap}`} <span className="text-emerald-300">free to change</span>
+      </p>
+      <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 8px' }}>
+        Free 3 · Premium 6 · StatZ unlimited. The apps you open most still fill the rest of the row.
+      </p>
+      <input className="neon-input" placeholder="Search apps" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search apps" />
+      {note && <p role="status" className="text-mcz-ember" style={{ fontSize: 12, margin: '6px 0' }}>{note}</p>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0', maxHeight: 220, overflowY: 'auto' }}>
+        {shown.map(({ k, m }) => (
+          <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 10,
+                                  border: `1px solid ${chosen.includes(k) ? '#6ee7b7' : 'rgba(255,255,255,.2)'}` }}>
+            <input type="checkbox" checked={chosen.includes(k)} onChange={() => toggle(k)} />
+            <span style={{ fontSize: 13 }}>{m.label}</span>
+          </label>
+        ))}
+        {shown.length === 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>No app matches.</span>}
+      </div>
+      <button type="button" className="toolz-more-button" onClick={onDone}>Done</button>
+    </div>
+  );
 }
 
 function YourAppTile({ appKey, onOpen }) {
@@ -449,7 +492,10 @@ export default function ToolZMenu() {
   const [showNeeds, setShowNeeds] = useState(false);
   const openFocus = (key) => goToSpot(key, `${key}:main`);
   // Read once per visit to the home screen: what this member uses leads, the rest folds away.
-  const [mine] = useState(yourAppsNow);
+  const [mine, setMine] = useState(yourAppsNow);
+  const [editing, setEditing] = useState(false);
+  const [chosen, setChosen] = useState(readChosen);
+  const saveChosen = (list) => { setChosen(list); writeChosen(list); setMine(yourAppsNow()); };
   const [showAll, setShowAll] = useState(false);
   const [hoveredApp, setHoveredApp] = useState(null);
 
@@ -593,9 +639,16 @@ export default function ToolZMenu() {
 
       {/* One home: your apps (once you have some), then every coach and tool in one grid.
           Everything else is one tap behind More apps. */}
-      {FOCUS_MODE && mine.apps.length > 0 && (
+      {FOCUS_MODE && (mine.apps.length > 0 || editing) && (
         <>
-          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
+          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">
+            Your apps{' '}
+            <button type="button" className="toolz-more-button" style={{ fontSize: 12, marginLeft: 8 }}
+                    aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+              {editing ? 'Close' : '✎ Edit'}
+            </button>
+          </p>
+          {editing && <EditYourApps chosen={chosen} onChange={saveChosen} onDone={() => setEditing(false)} />}
           <div className="category-grid">
             {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>

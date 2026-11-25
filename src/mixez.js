@@ -74,3 +74,17 @@ export function summary(log, drill) {
   const last10 = rows.slice(-10), ok10 = last10.filter((x) => x.right).length;
   return { n, ok, pct: n ? Math.round((100 * ok) / n) : null, last10: last10.length, ok10 };
 }
+
+// Drill 3: balance. A hidden level of the chords against the drums; the member sets their own by ear. Score = dB apart.
+export const BALANCE_RANGE = 12;                          // the fader goes this far either way
+export const BALANCE_CLOSE_DB = 1;                        // within this is "matched"
+export function balanceRound(seed, level = "easy") {
+  const r = rng(seed);
+  const [lo, hi] = level === "hard" ? [1, 4] : level === "medium" ? [3, 7] : [5, 10];
+  const mag = Math.round(lo + r() * (hi - lo));
+  return { db: r() < 0.5 ? -mag : mag };                  // + means the chords are louder than the drums
+}
+export function balanceGrade(target, mine) {
+  const err = Math.abs(target - mine);
+  return { err, close: err <= BALANCE_CLOSE_DB, words: err <= 0.5 ? "Spot on" : err <= BALANCE_CLOSE_DB ? "Matched" : err <= 3 ? "Close" : "Not yet", side: mine > target ? "too loud" : "too quiet" };
+}

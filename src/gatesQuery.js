@@ -7,7 +7,7 @@
 // empty range asks nothing of anyone.
 const PARAM = { rating: "rating", price: "price", attract: "attr", age: "age" };
 
-export const CLASS_KEYS = ["thuro", "sexi"];
+export const CLASS_KEYS = ["thuro", "sexi", "thorough"];
 
 /** How many gates are set: ranges and classes both count. */
 export const gatesSet = (gates) => Object.entries(gates || {})

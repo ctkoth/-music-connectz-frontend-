@@ -140,7 +140,7 @@ function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onT
   );
 }
 
-export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoAllowed = false, bands }) {
+export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoMode = "latch", onAutoMode, autoAllowed = false, bands }) {
   const meters = useMeters(daw, playing);
   const tones = useTonePresets();
   return (
@@ -157,9 +157,17 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
                   className={`rounded px-2 py-0.5 font-bold ${writeAuto ? "bg-red-600 text-white" : "bg-white/10 text-white/70"}`}>
             ✍️ Write automation {writeAuto ? "on" : "off"}
           </button>
+          {onAutoMode && (
+            <span className="flex items-center gap-1" role="group" aria-label="Automation write mode">
+              {[["latch", "Latch", "Keeps writing from your first move until you press Stop."], ["touch", "Touch", "Writes only while you hold the control; the lane takes over again when you let go."]].map(([k, label, tip]) => (
+                <button key={k} type="button" title={tip} aria-pressed={autoMode === k} onClick={() => onAutoMode(k)}
+                        className={`rounded px-2 py-0.5 ${autoMode === k ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>{label}</button>
+              ))}
+            </span>
+          )}
           <span className="text-white/60">
             {writeAuto
-              ? "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass."
+              ? (autoMode === "touch" ? "Press play and move a fader or pan: only the part you hold is written; let go and the lane takes over again." : "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass.")
               : "Turn on, press play and ride the faders — every move becomes a line you can edit in Tracks."}
           </span>
         </div>

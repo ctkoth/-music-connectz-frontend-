@@ -45,7 +45,7 @@ import SmartDrummer from "./SmartDrummer.jsx";
 import Songwriter from "./Songwriter.jsx";
 import {
   BPM, EDIT_MODES, GRIDS, MAX_PLAYLISTS, addRegion, addSource, addTrack, armTrack, armedTracks, inputClash, barsBeats, cleanSession, deletePlaylist,
-  duplicateRegion, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
+  beatSeconds, duplicateRegion, repeatRegion, stripRegion, setTrackGrouped, findRegion, lengthOf, minSec, moveRegion, newPlaylist, newSession, nudgeRegion, recordInto, regionsOf,
   removeRegion, removeTrack, setSession, setTrack, splitRegion, switchPlaylist, trimRegion, updateRegion, uid, setAuto, audible, playlistOf,
   addMarker, COUNT_INS, punchPlan, emptyTakeCount, removeEmptyTakes, dropIfEmptied, setLoop, toggleLoop, endOf, updateMarker, removeMarker, snapIf, SESSION_KEYS, projectTitle,
 } from "./session.js";
@@ -60,6 +60,10 @@ import { guessRole } from "../mastering/multitrack.js";
 import StagePanel from "./StagePanel.jsx";
 import TimingPanel from "./TimingPanel.jsx";
 import AutotunePanel from "./AutotunePanel.jsx";
+import DawTuner from "./DawTuner.jsx";
+import { setProjectBpm } from "../dawTempo.js";
+import { keepSegments } from "./stripSilence.js";
+import { foldTempo, stretchChannels, stretchFor } from "./tempoMatch.js";
 import MixCheck from "./MixCheck.jsx";
 import { duckPoints, shiftFader } from "./mixcheck.js";
 import { envelopeOf, sameAudioGroups } from "./dupes.js";
@@ -72,6 +76,8 @@ import OutputPick from "./OutputPick.jsx";
 import { holdPeak, latencyMs, levelFromSamples, meterPos } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
 import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
+import { listCloud, pullSession, removeCloud, sizeToSend, syncSession } from "./cloud.js";
+import { mb, mergeLists, originNote } from "./cloudList.js";
 
 const MODE_LABEL = {
   slip: { label: "Slip", what: "regions go exactly where you drop them" },
@@ -123,6 +129,11 @@ export default function Workspace({ workflow }) {
   const [others, setOthers] = useState([]);       // sessions made in the other DAWs
   const [saved, setSaved] = useState([]);         // sessions on this device
   const [storeErr, setStoreErr] = useState("");
+  const remoteRef = useRef([]);                       // the merged picker rows, for open() to read
+  const [cloudOn, setCloudOn] = useState(false);      // this session is also kept on the account
+  const [cloudMsg, setCloudMsg] = useState("");
+  const [cloudBusy, setCloudBusy] = useState(false);
+  const [cloudBytes, setCloudBytes] = useState(0);    // what turning it on would add to storage
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
   const [zoom, setZoomRaw] = useState(40);        // pixels per second
@@ -133,6 +144,119 @@ export default function Workspace({ workflow }) {
   const [playhead, setPlayhead] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [recording, setRecording] = useState(false);
+  useEffect(() => {                                   // the tab itself says it too, for when another window is in front
+    if (!recording) return undefined;
+    const was = document.title; document.title = `● REC — ${was.replace(/^● REC — /, "")}`;
+    return () => { document.title = was; };
+  }, [recording]);
+  const [recBoost, setRecBoostRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_recboost")); return [0, 6, 12, 18].includes(v) ? v : 0; } catch { return 0; } });
+  const setRecBoost = (v) => { setRecBoostRaw(v); try { localStorage.setItem("mcz_daw_recboost", String(v)); } catch { /* per-visit */ } };
+  useEffect(() => { setProjectBpm(session.bpm); }, [session.bpm]);        // MetZ beside the DAW plays the project's tempo
+  useEffect(() => () => setProjectBpm(null), []);
+  // Effects on a track, or on the master track (the pseudo-track id "__master").
+  const setInserts = (id, list) => {
+    commit((s) => {
+      if (id === "__master") return setSession(s, { masterInserts: cleanInserts(list) });
+      if (String(id).startsWith("__bus:")) { const bid = id.slice(6); return setSession(s, { buses: (s.buses || []).map((b) => (b.id === bid ? { ...b, inserts: cleanInserts(list) } : b)) }); }
+      return setTrack(s, id, { inserts: cleanInserts(list) });
+    });
+    restartIfPlaying();
+  };
+  // Send buses: a shared reverb or delay many tracks can feed by an amount (the Pro Tools "aux" idea).
+  const addBus = (kind) => commit((s) => {
+    if ((s.buses || []).length >= 4) return s;
+    const ins = newInsert(kind); ins.params = { ...ins.params, mix: 100 };
+    const id = `bus${Date.now().toString(36)}`;
+    return setSession(s, { buses: [...(s.buses || []), { id, name: kind === "reverb" ? "Reverb" : "Delay", inserts: [ins], level: 0 }] });
+  });
+  const removeBus = (id) => commit((s) => ({ ...setSession(s, { buses: (s.buses || []).filter((b) => b.id !== id) }), tracks: s.tracks.map((t) => { const { [id]: _gone, ...rest } = t.sends || {}; return { ...t, sends: rest }; }) }));
+  const busLevel = (id, db) => commit((s) => setSession(s, { buses: (s.buses || []).map((b) => (b.id === id ? { ...b, level: Math.max(-60, Math.min(12, db)) } : b)) }));
+  const [stripDb, setStripDb] = useState(-40);
+  // Strip Silence: split the selected clip where it is quiet for long enough and drop the dead air. Free, on this device;
+  // the sound itself is untouched (the pieces point into it), so Undo and trimming back out both work.
+  const stripSilenceNow = () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const buf = daw.buffer(hit.region.src);
+    if (!buf) { setErr("That clip's sound isn't loaded — reopen the session and try again."); return; }
+    const rate = buf.sampleRate, a = Math.round(hit.region.in * rate), b = Math.round(hit.region.out * rate);
+    const chans = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c).subarray(a, b));
+    const segs = keepSegments(chans, rate, { thresholdDb: stripDb }).map((g) => ({ from: g.from + hit.region.in, to: g.to + hit.region.in }));
+    if (!segs.length) { setMsg(`Nothing in that clip is louder than ${stripDb} dB, so nothing was changed. Try a lower number.`); return; }
+    const kept = segs.reduce((n, g) => n + (g.to - g.from), 0), total = hit.region.out - hit.region.in;
+    if (segs.length === 1 && total - kept < 0.2) { setMsg(`No silence of 0.4 s or more at ${stripDb} dB in that clip. Try a higher number.`); return; }
+    commit((x) => stripRegion(x, hit.region.id, segs));
+    setMsg(`Stripped ${minSec(total - kept)} of silence: the clip is now ${segs.length} piece${segs.length === 1 ? "" : "s"} (${stripDb} dB threshold, gaps of 0.4 s or more). Undo puts it back.`);
+  };
+  // Commit (Pro Tools): bake a track's effects into audio. The track is rendered on its own with its effects (not its fader, pan,
+  // sends, the master's effects or a send bus's), laid down as a NEW take, and its effects are cleared so they are not applied twice.
+  // The original take is the previous one in the track's take menu and Undo puts the effects back, so nothing is lost.
+  const commitFx = async (trackId) => {
+    const cur = sRef.current;
+    const t = cur.tracks.find((x) => x.id === trackId);
+    if (!t || !(t.inserts || []).length) { setMsg("That track has no effects to commit."); return; }
+    if (!playlistOf(t).regions.length) { setMsg("That track has no audio yet — there is nothing to commit."); return; }
+    setErr(""); setMsg(""); setBusy(`Committing ${t.name}'s effects…`);
+    try {
+      const solo = { ...cur, master: 0, masterInserts: [], buses: [], tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {}, sends: {} } : {}) })) };
+      const buf = await daw.bounce(solo, { tail: 2 });
+      const name = `${t.name} (effects committed)`.slice(0, 80);
+      const wav = daw.toWav(buf, 24);
+      const meta = await daw.decode(await wav.arrayBuffer(), name);
+      commit((x) => {
+        const out = recordInto(addSource(x, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate }), t.id, { src: meta.id, at: 0, name });
+        return setTrack(out.session, t.id, { inserts: [] });
+      });
+      try { await putSource(meta.id, wav); } catch { setStoreErr("The committed take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`Committed ${t.name}'s ${t.inserts.length} effect${t.inserts.length === 1 ? "" : "s"} into audio: it is a new take now, with the effects cleared so they aren't applied twice. The original is the previous take in the track's take menu. Undo puts the effects back.`);
+      restartIfPlaying();
+    } catch (e) { setErr(`Couldn't commit: ${e.message}`); } finally { setBusy(""); }
+  };
+  // Pre-roll and post-roll (Pro Tools): hear the song before the take starts, and keep hearing it after you stop.
+  const rollPref = (key) => { try { const v = Number(localStorage.getItem(key)); return [0, 2, 4, 8].includes(v) ? v : 0; } catch { return 0; } };
+  const [preRoll, setPreRollRaw] = useState(() => rollPref("mcz_daw_preroll"));
+  const [postRoll, setPostRollRaw] = useState(() => rollPref("mcz_daw_postroll"));
+  const setPreRoll = (v) => { setPreRollRaw(v); try { localStorage.setItem("mcz_daw_preroll", String(v)); } catch { /* per-visit */ } };
+  const setPostRoll = (v) => { setPostRollRaw(v); try { localStorage.setItem("mcz_daw_postroll", String(v)); } catch { /* per-visit */ } };
+  const [repeatN, setRepeatN] = useState(4);
+  const [clipBpm, setClipBpm] = useState("");          // what the member says the selected clip's tempo is; blank = detect it
+  const [stretching, setStretching] = useState(false);
+  // Time-stretch the selected clip so its tempo is the project's, pitch kept. The original sound stays on the device
+  // (Undo puts the clip back on it); the stretched copy is a new sound and replaces the clip in place.
+  const matchClipTempo = async () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const r = hit.region, proj = sRef.current.bpm;
+    setErr(""); setMsg(""); setStretching(true);
+    try {
+      const buf = daw.buffer(r.src);
+      if (!buf) throw new Error("That clip's sound isn't loaded — reopen the session and try again.");
+      const channels = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
+      let from = Number(clipBpm), how = "you said";
+      if (!(from > 0)) {
+        await new Promise((res) => setTimeout(res, 0));
+        const a = Math.round(r.in * buf.sampleRate), b = Math.round(r.out * buf.sampleRate);
+        const found = detectTempoFromChannels({ channels: channels.map((c) => c.subarray(a, b)), rate: buf.sampleRate });
+        if (!found?.bpm) throw new Error("I couldn't find a steady beat in that clip. Type its BPM in the box and press again.");
+        from = foldTempo(found.bpm, proj); how = "heard";
+      }
+      const ratio = stretchFor(from, proj);
+      if (!ratio) throw new Error(`A ${Math.round(from)} BPM clip can't be stretched to ${proj} BPM without sounding like a different recording (the limit is half to double). Change the project tempo or the clip's BPM.`);
+      if (Math.abs(ratio - 1) < 0.005) { setMsg(`That clip is already at ${proj} BPM.`); return; }
+      setBusy("Stretching the clip…"); await new Promise((res) => setTimeout(res, 0));
+      const out = stretchChannels(channels, buf.sampleRate, r.in, r.out, ratio);
+      const nb = new AudioBuffer({ numberOfChannels: out.length, length: out[0].length, sampleRate: buf.sampleRate });
+      out.forEach((c, i) => nb.copyToChannel(c, i));
+      const name = `${r.name} @ ${proj} BPM`.slice(0, 80);
+      const wav = daw.toWav(nb, 24);
+      const meta = await daw.decode(await wav.arrayBuffer(), name);
+      commit((x) => updateRegion(addSource(x, { id: meta.id, name, duration: meta.duration, channels: meta.channels, rate: meta.rate }), r.id, { src: meta.id, in: 0, out: meta.duration, name }));
+      try { await putSource(meta.id, wav); } catch { setStoreErr("The stretched clip is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`Stretched “${r.name}” from ${Math.round(from * 10) / 10} BPM (${how}) to the project's ${proj} BPM — ${ratio > 1 ? "slowed" : "sped up"} ${Math.round(Math.abs(ratio - 1) * 100)}%, pitch kept. Undo puts the original back.`);
+    } catch (e) { setErr(e.message); } finally { setStretching(false); setBusy(""); }
+  };
+  const [dummyRepeat] = useState(0);
+  const [recFrom, setRecFrom] = useState(0);           // where on the timeline the take in progress began (for the recording path)
   const [click, setClick] = useState(false);
   const [countBars, setCountBarsRaw] = useState(() => { try { const v = Number(localStorage.getItem("mcz_daw_countin")); return COUNT_INS.includes(v) ? v : 0; } catch { return 0; } });
   const [punchOn, setPunchRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_punch") === "1"; } catch { return false; } });
@@ -169,7 +293,12 @@ export default function Workspace({ workflow }) {
   const redo = () => { if (!future.current.length) return; past.current = [...past.current, sRef.current]; put(future.current.shift()); bump((n) => n + 1); };
 
   // ---- the device: sessions and their audio ----
-  const refreshList = useCallback(() => listSessions().then((rows) => {
+  // This device's sessions, plus the ones kept on the account (made on another device, or newer there). A failed
+  // account fetch just means this device's list: the DAW never waits on the network to open what is already here.
+  const refreshList = useCallback(() => listSessions().then(async (local) => {
+    const remote = await listCloud().catch(() => []);
+    const rows = mergeLists(local, remote);
+    remoteRef.current = rows;
     setSaved(rows.filter((r) => r.app === workflow.app));
     setOthers(rows.filter((r) => r.app !== workflow.app));
   }).catch(() => { setSaved([]); setOthers([]); }), [workflow.app]);
@@ -179,11 +308,19 @@ export default function Workspace({ workflow }) {
   const open = useCallback(async (id, asCopy = false) => {
     setBusy("Opening the session…"); setErr(""); setMsg("");
     try {
+      // Made on another device, or newer on the account: bring it here first (arrangement and every sound).
+      const there = remoteRef.current.find((r) => r.id === id);
+      if (there?.remote) {
+        setBusy("Bringing it from your account…");
+        try { await pullSession(id); } catch (e) { throw new Error(`Couldn't bring that session from your account: ${e.message}`); }
+      }
       const row = await loadSession(id);
       if (!row) throw new Error("That session isn't on this device any more.");
       const s = cleanSession(row.session);
       if (asCopy) s.name = `${s.name} (from ${DAW_NAMES[row.app] || "another DAW"})`.slice(0, 60);
       s.tracks = s.tracks.map((t) => ({ ...t, inserts: cleanInserts(t.inserts) }));
+      s.masterInserts = cleanInserts(s.masterInserts);
+      s.buses = (s.buses || []).map((b) => ({ ...b, inserts: cleanInserts(b.inserts) }));
       let lost = 0;
       for (const sid of Object.keys(s.sources)) {
         if (daw.buffer(sid)) continue;
@@ -196,6 +333,7 @@ export default function Workspace({ workflow }) {
       }
       setMissing(lost);
       past.current = []; future.current = [];
+      setCloudOn(!asCopy && !!row.cloud?.on); setCloudMsg("");
       put(s); setSessionId(asCopy ? uid("ses") : id); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }, [daw]);
@@ -220,6 +358,23 @@ export default function Workspace({ workflow }) {
     return () => clearTimeout(t);
   }, [session, sessionId, workflow.app, refreshList]);
 
+  // Kept on the account: a few seconds after the last edit (after the device's own save has landed), send it up.
+  useEffect(() => {
+    if (!cloudOn) return undefined;
+    const t = setTimeout(() => {
+      syncSession(sessionId).then(() => setCloudMsg(`On your account · ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`))
+        .catch((e) => setCloudMsg(`Not on your account yet: ${e.message}`));
+    }, 4000);
+    return () => clearTimeout(t);
+  }, [session, sessionId, cloudOn]);
+  // What turning it on would add to storage, said before the switch.
+  useEffect(() => {
+    if (cloudOn) return undefined;
+    let live = true;
+    sizeToSend(session).then((n) => { if (live) setCloudBytes(n); }).catch(() => {});
+    return () => { live = false; };
+  }, [session.sources, cloudOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- automation writing (latch): while it plays with Write on, a fader or pan the member moves
   // is recorded at the playhead; that param follows the hand, not its lane, until playback stops,
   // and then the pass is written into the lane (automation.js writePass). ----
@@ -238,6 +393,11 @@ export default function Workspace({ workflow }) {
   const autoAllowed = !!(statz?.is_statz || statz?.active);
   const [writeAuto, setWriteAuto] = useState(false);
   const writeBuf = useRef({});                    // "trackId|param" -> [{ t, v }]
+  // Latch keeps writing from your first move until Stop; Touch writes only while you hold the control and goes back to the
+  // lane the moment you let go (a pause of 0.4 s with no movement counts as letting go).
+  const [autoMode, setAutoModeRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_automode") === "touch" ? "touch" : "latch"; } catch { return "latch"; } });
+  const setAutoMode = (m) => { setAutoModeRaw(m); try { localStorage.setItem("mcz_daw_automode", m); } catch { /* per-visit */ } };
+  const touchTimers = useRef({});
   const tierCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
   const liveView = (s) => {
     const keys = Object.keys(writeBuf.current);
@@ -262,6 +422,17 @@ export default function Workspace({ workflow }) {
     }, s));
     setMsg(`Wrote ${keys.length === 1 ? "an automation pass" : `${keys.length} automation passes`}. In Tracks, set a track's lane to Volume or Pan to see the line and move its points.`);
   };
+  const flushKey = (k) => {
+    const pts = writeBuf.current[k];
+    delete writeBuf.current[k];
+    if (!pts || !pts.length) return;
+    const [id, param] = k.split("|");
+    commit((s) => {
+      const tr = s.tracks.find((t) => t.id === id);
+      return tr ? setAuto(s, id, param, writePass(param, laneOf(tr, param), pts)) : s;
+    });
+    setMsg("Wrote a touch pass: the lane takes over again where you let go. Undo takes it away.");
+  };
   const recordWrite = (id, patch) => {
     if (!writeAuto || recording || !autoAllowed) return;
     const pos = daw.position();
@@ -273,6 +444,10 @@ export default function Workspace({ workflow }) {
         writeBuf.current[k] = [];
       }
       writeBuf.current[k].push({ t: pos, v: Number(patch[key]) });
+      if (autoMode === "touch") {
+        clearTimeout(touchTimers.current[k]);
+        touchTimers.current[k] = setTimeout(() => flushKey(k), 400);
+      }
     }
   };
 
@@ -453,6 +628,35 @@ export default function Workspace({ workflow }) {
     } catch (e) { setErr(e.message || "Couldn't transpose that track."); } finally { setBusy(""); }
   };
 
+  // ---- clip pitch edit: one region up or down (semitones + cents), its length kept. Same engine and tier range as
+  // the track transpose; always made from the original recording, so 0 / 0 gives it back exactly. Free, on the device.
+  const [clipSemi, setClipSemi] = useState(0);
+  const [clipCents, setClipCents] = useState(0);
+  const pitchClip = async () => {
+    const hit = selected && findRegion(sRef.current, selected);
+    if (!hit) return;
+    const r = hit.region, semis = Math.round((clipSemi + clipCents / 100) * 100) / 100;
+    if (Math.abs(semis) > keyRange) { setErr(`Your tier moves a clip up to ±${keyRange} semitones — Premium ±6, StatZ a full octave.`); return; }
+    const base = r.orig || r.src;
+    setErr(""); setMsg("");
+    if (!semis) { commit((s) => updateRegion(s, r.id, { src: base, orig: undefined, semis: 0 })); setMsg(`“${r.name}” is back at its original pitch.`); return; }
+    const buf = daw.buffer(base);
+    if (!buf) { setErr("That clip's sound isn't loaded — reopen the session and try again."); return; }
+    setBusy("Shifting the clip's pitch…");
+    try {
+      await new Promise((res) => setTimeout(res, 0));
+      const chans = pitchShift(Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i)), buf.sampleRate, semis);
+      const out = new AudioBuffer({ numberOfChannels: chans.length, length: chans[0].length, sampleRate: buf.sampleRate });
+      chans.forEach((c, i) => out.copyToChannel(c, i));
+      const id = `${base}c${semis < 0 ? "m" : "p"}${String(Math.abs(semis)).replace(".", "_")}`;
+      daw.adopt(id, out);
+      const label = `${semis > 0 ? "+" : ""}${semis}`;
+      commit((s) => updateRegion(addSource(s, { id, name: `${sRef.current.sources[base]?.name || "Audio"} (${label})`, duration: out.duration, channels: out.numberOfChannels, rate: out.sampleRate }), r.id, { src: id, orig: base, semis }));
+      try { await putSource(id, daw.toWav(out, 24)); } catch { setStoreErr("The new pitch is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
+      setMsg(`“${r.name}” is now ${label} semitones, same length. Set 0 and 0 to get the original back; Undo works too.`);
+    } catch (e) { setErr(e.message || "Couldn't shift that clip."); } finally { setBusy(""); }
+  };
+
   // The inputs this device offers (labels appear once the browser has allowed a mic once).
   const [devices, setDevices] = useState([]);
   const refreshDevices = useCallback(() => {
@@ -590,6 +794,14 @@ export default function Workspace({ workflow }) {
         const passes = good[0].pass != null ? good.filter((t) => t.key === good[0].key).length : 0;
         if (passes) { setMsg(`Cycle recorded ${passes} pass${passes === 1 ? "" : "es"} onto ${[...new Set(names)].join(", ")}, each as its own take. The last one is playing; pick another from the track's take menu to hear it.${silent.length ? " A silent pass was not added." : ""}`); }
         else setMsg(`Recorded ${minSec(good[0].duration)} onto ${names.join(", ")}.${kept ? " What was under it is kept as the previous take in the playlist menu." : ""}${silent.length ? ` ${silent.join(", ")} came in silent and ${silent.length === 1 ? "was" : "were"} not added.` : ""}${lined}`);
+        // A take far below a normal level is the mic's, not the singer's: say so, with the two fixes, while it is fresh.
+        try {
+          let peak = 0;
+          for (const take of good) { const b = daw.buffer(take.id); for (let c = 0; c < b.numberOfChannels; c++) { const d = b.getChannelData(c); for (let i = 0; i < d.length; i += 7) { const v = Math.abs(d[i]); if (v > peak) peak = v; } } }
+          const db = peak > 0 ? 20 * Math.log10(peak) : -120;
+          if (db < -24) setErr(`That take is very quiet — the loudest moment is ${db < -90 ? "silence" : `${Math.round(db)} dB`}. That's the microphone level, not you: raise it in Windows (Settings → Sound → Input → your mic) or your interface's gain, record again, or press 📏 Normalize on the track to bring it up (free).`);
+        } catch { /* the check is a courtesy; the take is already kept */ }
+        if (postRoll > 0) { startPlay(longest || headRef.current); setTimeout(() => stopPlay(), postRoll * 1000); }        // keep hearing the song for a moment after the take
         for (const take of good) {
           try { await putSource(take.id, daw.toWav(daw.buffer(take.id), 24)); } catch { setStoreErr("The take is in this session but couldn't be kept on the device — bounce or save before closing the tab."); }
         }
@@ -606,10 +818,10 @@ export default function Workspace({ workflow }) {
     const SLOW = "Still waiting for the microphone… Another app may be holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or pick another input in Audio settings.";
     const slow = setTimeout(() => setBusy(SLOW), 4000);
     const giveUp = (p) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error("The microphone didn't answer in 15 seconds. Another app is probably holding it (Windows Voice Access, Zoom, Teams, OBS, another tab). Close it, or choose a different input in Audio settings, then press Record again.")), 15000))]);
+    const streams = new Map();
     try {
       setBusy("Opening the microphone…");
       // One stream per device; the tracks reading it take their own channel of it.
-      const streams = new Map();
       for (const t of armed) {
         const dev = t.input?.device || "";
         if (streams.has(dev)) continue;
@@ -623,18 +835,32 @@ export default function Workspace({ workflow }) {
       }
       clearTimeout(slow);
       refreshDevices();
-      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"}, then recording…`); await daw.countIn(sRef.current, countBars); }
+      if (countBars > 0) { setBusy(`Count-in: ${countBars} bar${countBars === 1 ? "" : "s"} (${Math.round(countBars * sRef.current.meter * 60 / sRef.current.bpm)} s at ${sRef.current.bpm} BPM), then recording…`); await daw.countIn(sRef.current, countBars); }
       setBusy("Starting playback and recording…");
       const lp = sRef.current.loop;
       const cyc = cycleOn && lp && lp.end - lp.start >= 0.5 ? { start: lp.start, end: lp.end } : null;      // cycle: every pass of the loop is a take
-      const plan = cyc ? null : punchPlan(sRef.current, punchOn);
+      let plan = cyc ? null : punchPlan(sRef.current, punchOn);
+      // A region the member selected is the part they mean to record over: start THERE, not wherever the playhead was left.
+      const selR = !plan && !cyc && selected ? sRef.current.tracks.flatMap((t) => regionsOf(t)).find((x) => x.id === selected) : null;
+      // Pre-roll: the song plays for a few seconds BEFORE the take starts (you hear what you come in on); what the mic hears
+      // during it is not kept, and the take begins at the start point. It never ends the take by itself (out is far away).
+      if (!plan && !cyc && preRoll > 0) { const base = selR ? selR.at : playhead; plan = { from: Math.max(0, base - preRoll), in: base, out: 1e9, preroll: true }; }
       punchRef.current = plan;
-      if (plan) setPlayhead(plan.from); else if (cyc) setPlayhead(cyc.start);
-      await daw.startRecording(sRef.current, plan ? plan.from : cyc ? cyc.start : playhead, { click, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
+      const startAt = plan ? plan.from : cyc ? cyc.start : selR ? selR.at : playhead;
+      if (plan || cyc || selR) setPlayhead(startAt);
+      await daw.startRecording(sRef.current, startAt, { click, boostDb: recBoost, cycle: cyc, punch: plan ? { in: plan.in, out: plan.out } : null,
         inputs: armed.map((t) => ({ key: t.id, stream: streams.get(t.input?.device || ""), channel: t.input?.channel || "both" })) });
       if (cyc) { cycleInfo.current = { t0: performance.now(), len: cyc.end - cyc.start }; setCyclePass(1); }
+      setRecFrom(plan?.preroll ? plan.in : startAt);
       setRecording(true); setPlaying(true);
-    } catch (e) { setErr(e.message); } finally { clearTimeout(slow); setBusy(""); }
+    } catch (e) {
+      // Whatever stopped the take must not leave the app half-way: playback running with nothing recording, and the
+      // browser still showing the mic as open (the red dot on the tab).
+      try { daw.stop(); } catch { /* nothing was playing */ }
+      streams.forEach((st) => st.getTracks().forEach((t) => t.stop()));
+      setPlaying(false); setRecording(false);
+      setErr(`Recording did not start: ${e.message}`);
+    } finally { clearTimeout(slow); setBusy(""); }
   };
 
   // A take keeps running when the member opens another app (recordingHold.js):
@@ -767,6 +993,7 @@ export default function Workspace({ workflow }) {
   // A MIDI file handed over (Instrumental ConnectZ's .mid) opens in the MIDI window; anything else is audio.
   const [midiIn, setMidiIn] = useState(null);
   useEffect(() => onHandoff(workflow.app, (p) => {
+    if (p?.sessionId) { refreshList().then(() => open(p.sessionId)); return; }       // a saved session opened from FileZ
     if (p?.midi) { setMidiIn({ url: p.midi, name: p.name || "Imported.mid", sounds: p.sounds }); setView("midi"); return; }
     if (p?.url) fromFileZ({ url: p.url, name: p.title || p.name || "Imported audio" });
   }), []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -840,9 +1067,32 @@ export default function Workspace({ workflow }) {
       // Mounted but hidden behind another app: its keys are that app's keys.
       if (!onScreen) return;
       if (e.target.closest?.("input, select, textarea")) return;
+      // Arrow keys move the SELECTED clip: left/right by a beat (Shift: a bar), up/down to the track above/below.
+      // Down from the last track asks before making a new one. Free; Undo puts it back.
+      if (selected && e.key.startsWith("Arrow") && !e.ctrlKey && !e.metaKey && !e.altKey && !recording) {
+        const cur = sRef.current;
+        const hit = findRegion(cur, selected);
+        if (hit) {
+          e.preventDefault();
+          if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            const step = beatSeconds(cur) * (e.shiftKey ? cur.meter : 1) * (e.key === "ArrowLeft" ? -1 : 1);
+            commit((x) => ({ ...moveRegion({ ...x, editMode: "slip" }, selected, hit.region.at + step), editMode: x.editMode }));
+          } else {
+            const i = cur.tracks.findIndex((t) => t.id === hit.track.id);
+            const j = i + (e.key === "ArrowDown" ? 1 : -1);
+            if (j < 0) { setMsg("That clip is already on the top track."); }
+            else if (j < cur.tracks.length) { commit((x) => moveRegion(x, selected, hit.region.at, cur.tracks[j].id)); }
+            else if (tierCap != null && cur.tracks.length >= tierCap) { setMsg(trackCapLine("Couldn't add a track:")); }
+            else if (window.confirm("There's no track below this one. Create a new track and move the clip onto it?")) {
+              commit((x) => { const withT = addTrack(x, undefined, tierCap); const nt = withT.tracks[withT.tracks.length - 1]; return nt && nt.id !== hit.track.id ? moveRegion(withT, selected, hit.region.at, nt.id) : x; });
+            }
+          }
+          return;
+        }
+      }
       const act = actionFor(keymap, e);
       if (!act) return;
-      if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else startPlay(); }
+      if (act === "play") { e.preventDefault(); if (recording) record(); else if (playing) stopPlay(); else if (armedTracks(sRef.current).length) record(); else startPlay(); }
       else if (act === "record") { e.preventDefault(); record(); }
       else if (act === "undo") { e.preventDefault(); undo(); }
       else if (act === "redo") { e.preventDefault(); redo(); }
@@ -871,6 +1121,10 @@ export default function Workspace({ workflow }) {
   // panels measure, so their answers are about the audio itself rather than the current settings.
   // ---- name & save: the session is kept on this device as it changes; this makes that visible and lets a member name it on purpose ----
   const [savedAt, setSavedAt] = useState(0);
+  // A saved session is kept on the member's account (FileZ) by default, so it opens on any device they sign in on.
+  // The sounds count against their storage, which the line beside Save says BEFORE it is pressed; they can turn it off.
+  const [keepOnAccount, setKeepOnAccountRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_keep_account") !== "0"; } catch { return true; } });
+  const setKeepOnAccount = (v) => { setKeepOnAccountRaw(v); try { localStorage.setItem("mcz_daw_keep_account", v ? "1" : "0"); } catch { /* per-visit */ } };
   const nameAndSave = async () => {
     let name = session.name;
     if (!name || name === "Untitled session") {
@@ -881,7 +1135,17 @@ export default function Workspace({ workflow }) {
     const next = { ...sRef.current, name };
     commit((x) => ({ ...x, name }));
     try { await saveSession(sessionId, workflow.app, next); setStoreErr(""); setSavedAt(Date.now()); refreshList(); }
-    catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); }
+    catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); return; }
+    if (keepOnAccount && !cloudOn) {
+      setCloudBusy(true); setCloudMsg("Saving to your account…");
+      try {
+        await syncSession(sessionId);
+        setCloudOn(true); setCloudMsg("Saved to your account — open it from any device you sign in on.");
+        api("/api/economy/uploads/").then(setStorage).catch(() => {});
+        refreshList();
+      } catch (e) { setCloudMsg(`Saved on this device, but not on your account: ${e.message}`); }
+      finally { setCloudBusy(false); }
+    }
   };
 
   // ---- key and tempo from the instrumental: free, on this device, and it says what it heard ----
@@ -920,7 +1184,7 @@ export default function Workspace({ workflow }) {
   };
   const measureTrackAudio = async (t) => {
     const cur = sRef.current;
-    const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {} } : {}) })) };
+    const solo = { ...cur, master: 0, masterInserts: [], buses: [], tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute, ...(x.id === t.id ? { gain: 0, pan: 0, auto: {}, sends: {} } : {}) })) };
     const buf = await daw.bounce(solo, { tail: 0 });
     return { channels: Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c)), rate: buf.sampleRate };
   };
@@ -979,15 +1243,15 @@ export default function Workspace({ workflow }) {
       setStorage(res);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
-  const mb = bounced ? bounced.blob.size / 1048576 : 0;
+  const bounceMb = bounced ? bounced.blob.size / 1048576 : 0;
 
   const mixEl = (
     <MixWindow
           session={session} daw={daw} playing={playing}
-          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrack(s, id, patch)); }}
-          writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
+          onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrackGrouped(s, id, patch)); }}
+          autoMode={autoMode} onAutoMode={setAutoMode} writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
           autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onInserts={setInserts}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />
   );
@@ -998,8 +1262,29 @@ export default function Workspace({ workflow }) {
     put(setSession(newSession(), { editMode: workflow.editMode || "slip" }));
     setSessionId(uid("ses")); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null); setMissing(0); setMsg("");
   };
+  const toggleCloud = async () => {
+    setCloudBusy(true); setCloudMsg("");
+    try {
+      if (cloudOn) {
+        if (!window.confirm("Stop keeping this session on your account? Its sounds are removed from your account and your storage is freed. The copy on this device stays.")) return;
+        await removeCloud(sessionId);
+        await saveSession(sessionId, workflow.app, sRef.current, null);
+        setCloudOn(false); setCloudMsg("Removed from your account.");
+      } else {
+        await saveSession(sessionId, workflow.app, sRef.current);     // make sure this device has the latest first
+        await syncSession(sessionId);
+        setCloudOn(true); setCloudMsg("On your account — open it from any device you sign in on.");
+        api("/api/economy/uploads/").then(setStorage).catch(() => {});
+      }
+      refreshList();
+    } catch (e) { setCloudMsg(`${cloudOn ? "Couldn't remove it" : "Not kept on your account"}: ${e.message}`); }
+    finally { setCloudBusy(false); }
+  };
   const dropSession = async () => {
-    if (!window.confirm(`Delete "${session.name}" from this device? Its recordings go with it. Anything you saved to FileZ stays.`)) return;
+    if (!window.confirm(cloudOn
+      ? `Delete "${session.name}" from this device AND your account? Its recordings go with it on both. Anything you saved to FileZ stays.`
+      : `Delete "${session.name}" from this device? Its recordings go with it. Anything you saved to FileZ stays.`)) return;
+    if (cloudOn) { try { await removeCloud(sessionId); } catch { setStoreErr("Couldn't remove the copy on your account — it is still there. Try again."); return; } }
     try { await removeSession(sessionId); } catch { /* already gone */ }
     newOne();
     refreshList();
@@ -1039,11 +1324,12 @@ export default function Workspace({ workflow }) {
 
       <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
         <span className="text-emerald-300">Free.</span> Everything runs on your device: your session is kept in this browser on this device, and nothing is
-        uploaded until you press Save to FileZ{storage?.storage_free_mb != null ? <> (counts against your storage — {storage.storage_free_mb} MB free)</> : " (counts against your storage)"}.
+        uploaded until you press Save to FileZ or turn on Open on my other devices (which keeps this one session on your account){storage?.storage_free_mb != null ? <> (counts against your storage — {storage.storage_free_mb} MB free)</> : " (counts against your storage)"}.
         Use headphones when you record, so the playback doesn't get into the mic.
       </p>
       {note && <p className="text-[11px] text-white/60">🔌 {note}</p>}
       {storeErr && <p className="text-xs text-amber-200">{storeErr}</p>}
+      {cloudMsg && <p className="text-xs text-white/70" role="status">☁️ {cloudMsg}</p>}
       {missing > 0 && <p className="text-xs text-amber-200">{missing} recording{missing === 1 ? "" : "s"} in this session couldn't be found on this device, so {missing === 1 ? "it plays" : "they play"} as silence.</p>}
 
       {/* Session bar */}
@@ -1053,21 +1339,34 @@ export default function Workspace({ workflow }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={nameAndSave}
                 title="Kept on this device as you work. This names it and saves it right now. To keep a copy of the sound itself, bounce it and Save to FileZ.">
           💾 {session.name === "Untitled session" ? "Name & save" : "Save"}
+          {keepOnAccount && !cloudOn && <span className="ml-2 text-mcz-ember">−{mb(cloudBytes)} MB storage</span>}
+          {keepOnAccount && !cloudOn && <span className="ml-1 text-emerald-300">+ on any device</span>}
+        </button>
+        <label className="flex items-center gap-1 text-white/70" title="When on, Save also keeps this session on your account (FileZ) so it opens on your other devices. Its sounds count against your storage, shown on the button. Turn it off to keep saves on this device only.">
+          <input type="checkbox" checked={keepOnAccount} onChange={(e) => setKeepOnAccount(e.target.checked)} /> Also keep on my account
+        </label>
+        <button type="button" className="re-btn !w-auto px-3" disabled={cloudBusy} onClick={toggleCloud} data-tour="daw-cloud"
+                title={cloudOn ? "Stops keeping this session on your account and frees the storage its sounds used." : "Keeps this session on your account so it opens on your other devices."}>
+          ☁️ {cloudBusy ? "Working…" : cloudOn ? "On my other devices ✓" : "Open on my other devices"}
+          {!cloudBusy && !cloudOn && (
+            <span className="ml-2 text-mcz-ember">−{mb(cloudBytes)} MB storage{storage?.storage_free_mb != null ? ` (${storage.storage_free_mb} free)` : ""}</span>
+          )}
+          {!cloudBusy && !cloudOn && <span className="ml-1 text-emerald-300">+ opens on any device</span>}
         </button>
         <span className="text-[11px] text-white/50" role="status">
           {savedAt ? `Saved on this device · ${new Date(savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Kept on this device as you work"}
         </span>
         <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Open a saved session"
                 onChange={(e) => e.target.value && open(e.target.value)}>
-          <option value="">Open a session on this device…</option>
-          {saved.map((r) => <option key={r.id} value={r.id}>{[r.genre, r.key, r.name].filter(Boolean).join(" - ")}{r.skills?.length ? ` · ${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : ""} · {new Date(r.updated).toLocaleDateString()}</option>)}
+          <option value="">Open a session…</option>
+          {saved.map((r) => <option key={r.id} value={r.id}>{[r.genre, r.key, r.name].filter(Boolean).join(" - ")}{r.skills?.length ? ` · ${r.skills.length} skill${r.skills.length === 1 ? "" : "s"}` : ""} · {new Date(r.updated).toLocaleDateString()}{originNote(r)}</option>)}
         </select>
         {others.length > 0 && (
           <select className="neon-input !w-auto !py-1.5" value="" data-nomemo="true" aria-label="Copy in a session from another DAW"
                   title="Opens a copy here. The original stays in its own DAW, unchanged."
                   onChange={(e) => e.target.value && open(e.target.value, true)}>
             <option value="">Copy in from another DAW…</option>
-            {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}</option>)}
+            {others.map((r) => <option key={r.id} value={r.id}>{DAW_NAMES[r.app] || r.app} · {r.name} · {new Date(r.updated).toLocaleDateString()}{originNote(r)}</option>)}
           </select>
         )}
         <details className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-project-details">
@@ -1125,6 +1424,55 @@ export default function Workspace({ workflow }) {
           <span className="text-emerald-300">Free · Undo puts it back</span>
         </div>
       )}
+      {/* Always on screen, whatever is scrolled: is this RECORDING, or only PLAYING? Two different red/blue states, and a
+          line saying what to press when a track is armed but nothing is being recorded. */}
+      {(recording || playing || busy || err || armedAll.length > 0) && (
+        <div role="status" aria-live="assertive"
+             className={`fixed bottom-24 right-3 z-50 max-w-[18rem] rounded-2xl border-2 px-4 py-2 text-sm font-bold shadow-xl ${err
+               ? "border-red-400 bg-red-950/95 text-red-100"
+               : busy ? "border-amber-300 bg-slate-900/95 text-amber-200"
+               : recording ? "pointer-events-none animate-pulse border-red-400 bg-red-600 text-white shadow-[0_0_28px_rgba(239,68,68,0.7)]"
+               : "border-cyan-400/70 bg-slate-900/95 text-cyan-200"}`}>
+          {err ? <><span>⚠ {err}</span> <button type="button" className="ml-2 underline" onClick={() => setErr("")}>OK</button></>
+            : busy ? <>⏳ {busy}</>
+            : recording && playhead < recFrom - 0.05 ? <>▶ PRE-ROLL — recording starts at {minSec(recFrom)}<span className="block text-[11px] font-semibold text-white/90">what you hear now is the lead-in; it is not kept</span></>
+            : recording ? <>● RECORDING {minSec(Math.max(0, playhead - recFrom))}<span className="block text-[11px] font-semibold text-white/90">onto {armedAll.map((t) => t.name).join(" + ") || "armed track"} · from {minSec(recFrom)}</span><span className="block text-[11px] font-semibold text-white/90">{silentFor > 1.5 ? "Beat/mix is silent in the app" : outDb != null ? `beat/mix going out: ${outDb < -60 ? "—" : Math.round(outDb)} dB` : ""}</span></>
+            : <>
+                {playing ? "▶ PLAYING — not recording" : "⏺ Armed — not recording yet"}
+                <span className="block text-[11px] font-semibold text-white/70">{armedAll.length ? `${armedAll.map((t) => t.name).join(" + ")} armed. Space records when a track is armed.` : "nothing is being captured"}</span>
+                {armedAll.length > 0 && (
+                  <button type="button" onClick={record} disabled={!!busy}
+                          className="mt-1 w-full rounded-full bg-red-600 px-3 py-1.5 text-sm font-extrabold text-white shadow-[0_0_14px_rgba(239,68,68,0.6)] active:scale-95">
+                    ● Record now <span className="font-semibold opacity-80">(or press R)</span>
+                  </button>
+                )}
+              </>}
+        </div>
+      )}
+      {/* The recording path, while a take runs: where the sound is coming from, where it is going, how long, and what
+          stopping does. A red button alone does not say which track is taking it or that nothing has left the device. */}
+      {recording && (
+        <div role="status" aria-live="polite" className="rounded-xl border-2 border-red-500/70 bg-red-500/10 p-2 text-xs text-white">
+          <p className="font-bold text-red-300">
+            <span className="animate-pulse">●</span> Recording {minSec(Math.max(0, playhead - recFrom))}
+            {cyclePass > 0 && ` · pass ${cyclePass}`}
+          </p>
+          <p className="mt-1 text-white/85">
+            <span className="text-white/60">Path:</span>{" "}
+            {armedAll.map((t) => `🎤 ${t.input?.device ? "chosen input" : "default mic"}${t.input?.channel && t.input.channel !== "both" ? ` (${t.input.channel})` : ""} → ${t.name}`).join("  ·  ")}
+            {" → "}{cyclePass > 0 ? "one take per pass" : punchRef.current?.preroll ? `a new take from ${minSec(punchRef.current.in)} (you hear ${Math.round(punchRef.current.in - punchRef.current.from)} s of lead-in first)` : punchRef.current ? "punch in/out (only inside the loop is kept)" : `a new take starting at ${barsBeats(session, recFrom)}`}
+          </p>
+          <p className="mt-1 text-white/60">
+            Stop recording adds it to the track{armedAll.length > 1 ? "s" : ""} and keeps the sound on this device as a 24-bit WAV. Nothing is uploaded until you press Save to FileZ.
+          </p>
+        </div>
+      )}
+      <DawTuner daw={daw} track={armed} cap={tierCap === undefined ? 3 : tierCap} disabled={!!busy && !recording} beatBusy={keyBusy}
+                onKeyFromBeat={detectProjectKey}
+                onSetKey={(found) => {
+                  const named = sessionKeyFor(found);
+                  if (named) { commit((x) => setSession(x, { key: named })); setMsg(`Project key set to ${named}. ${keySentence(found, [armed?.name || "your input"], false)}`); }
+                }} />
       {/* Transport */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-black/40 p-2 text-xs">
         <button type="button" className="re-btn !w-auto px-2" aria-label="Back to the start" onClick={() => seek(0)} disabled={recording}><SkipBack size={14} /></button>
@@ -1136,10 +1484,28 @@ export default function Workspace({ workflow }) {
                 title={armed ? `Records onto ${armedAll.map((t) => t.name).join(", ")} at once` : "Arm a track first (R) — arm several to record them together"}>
           <Circle size={16} className="mr-1.5 inline" fill="currentColor" />{recording ? "Stop recording" : armed ? `Record → ${armedNames}` : "Record"}
         </button>
+        <label className="flex items-center gap-1 text-white/70" title="You hear the song for this long BEFORE the take starts, so you come in on what is playing. What the mic hears during it is not kept. Free.">
+          Pre-roll
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={preRoll} disabled={recording} onChange={(e) => setPreRoll(Number(e.target.value))} aria-label="Pre-roll seconds">
+            {[0, 2, 4, 8].map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} s`}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-white/70" title="After you press Stop, the song keeps playing for this long so you can hear how the take sits. Free.">
+          Post-roll
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={postRoll} disabled={recording} onChange={(e) => setPostRoll(Number(e.target.value))} aria-label="Post-roll seconds">
+            {[0, 2, 4, 8].map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} s`}</option>)}
+          </select>
+        </label>
         <label className="flex items-center gap-1 text-white/70" title="Clicks this many bars before recording starts, so you can come in on the beat. Nothing is recorded during the count-in.">
           Count-in
           <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={countBars} disabled={recording} onChange={(e) => setCountBars(Number(e.target.value))} aria-label="Count-in bars">
             {COUNT_INS.map((n) => <option key={n} value={n}>{n === 0 ? "Off" : `${n} bar${n === 1 ? "" : "s"}`}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1 text-white/70" title="Windows can turn the beat down while a mic is open. This lifts the beat by this much ONLY while you record (a limiter keeps it from clipping). Free. Off leaves it exactly as it plays.">
+          Beat while recording
+          <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={recBoost} disabled={recording} onChange={(e) => setRecBoost(Number(e.target.value))} aria-label="Beat level while recording">
+            {[0, 6, 12, 18].map((n) => <option key={n} value={n}>{n === 0 ? "Normal" : `+${n} dB`}</option>)}
           </select>
         </label>
         <label className={`flex items-center gap-1 ${session.loop ? "text-white/70" : "text-white/35"}`}
@@ -1181,6 +1547,12 @@ export default function Workspace({ workflow }) {
                 title="Listens to the instrumental, tells you the key and the BPM, and sets both on the project. Free, on your device.">
           {keyBusy ? "Listening…" : "🎹 Detect key & BPM"}
         </button>
+        <span className="flex items-center gap-0.5 text-white/70" title="Master volume: everything you hear and bounce. Arrows move it 1 dB; double-click the number to reset.">
+          Master
+          <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Turn the master down" onClick={() => commit((s) => setSession(s, { master: Math.max(-60, Math.round((s.master || 0) - 1)) }))}>▼</button>
+          <button type="button" className="min-w-[3.6rem] rounded bg-black/40 px-1 text-center font-mono tabular-nums" aria-label="Master volume, double-click to reset" onDoubleClick={() => commit((s) => setSession(s, { master: 0 }))}>{(session.master || 0) > 0 ? "+" : ""}{(session.master || 0).toFixed(1)} dB</button>
+          <button type="button" className="rounded bg-white/10 px-1 hover:bg-white/20" aria-label="Turn the master up" onClick={() => commit((s) => setSession(s, { master: Math.min(12, Math.round((s.master || 0) + 1)) }))}>▲</button>
+        </span>
         <label className="flex items-center gap-1 text-white/60">BPM
           <input type="number" className="neon-input !w-16 !py-1" min={BPM.min} max={BPM.max} value={session.bpm} disabled={recording}
                  onChange={(e) => commit((s) => setSession(s, { bpm: e.target.value }))} />
@@ -1326,8 +1698,8 @@ export default function Workspace({ workflow }) {
           arranger={arranger} onDropItem={workflow.browser ? dragonDrop : null} onDropFiles={workflow.browser ? dragonFiles : null} savedToneIds={savedToneIds}
           picked={pickedLive} onPick={setPicked} onMeasure={measureTrackAudio}
           session={session} daw={daw} zoom={zoom} onZoom={(f) => setZoom((z) => clampZoom(z * f))} trackSizeKey={trackSizeKey} punchArmed={punchOn && !!session.loop} selected={selected} onSelect={setSelected} onSeek={seekClick} onJump={seek} playhead={playhead}
-          onCommit={onCommit} recording={recording}
-          onTrack={(id, patch) => commit((s) => setTrack(s, id, patch))}
+          onCommit={onCommit} recording={recording} onMaster={(db) => commit((s) => setSession(s, { master: db }))} onCommitFx={commitFx} onAddBus={addBus} onRemoveBus={removeBus} onBusLevel={busLevel}
+          onTrack={(id, patch) => commit((s) => setTrackGrouped(s, id, patch))}
           onArm={(id) => commit((s) => armTrack(s, id))}
           devices={devices} onInput={(id, input) => commit((s) => setTrack(s, id, { input }))}
           keyRange={keyRange} onTranspose={transposeTrack}
@@ -1340,7 +1712,7 @@ export default function Workspace({ workflow }) {
           onAddMarker={(t) => commit((s) => addMarker(s, snapIf(s, t ?? headRef.current ?? playhead)))}
           onMarker={(id, patch) => commit((s) => updateMarker(s, id, patch))}
           onRemoveMarker={(id) => commit((s) => removeMarker(s, id))}
-          onInserts={(id, list) => { commit((s) => setTrack(s, id, { inserts: cleanInserts(list) })); restartIfPlaying(); }}
+          onInserts={setInserts}
           onOpenMix={() => setView("mix")}
           monitorTrack={monitorTrack} monitorLat={monitorLat} onMonitor={toggleMonitor} levels={levels}
           onAudioSettings={() => window.dispatchEvent(new Event("mcz-audio-settings"))}
@@ -1384,6 +1756,30 @@ export default function Workspace({ workflow }) {
           <button type="button" className="re-btn !w-auto px-2" onClick={saveTakeToFileZ} disabled={!!busy} title="Keep this clip in FileZ">Save to FileZ · {(takeBytes() / 1048576).toFixed(1)} MB of your storage</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={split} title="Split at the playhead (B)"><Scissors size={13} /> Split</button>
           <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => duplicateRegion(s, sel.region.id))}><Copy size={13} /> Duplicate</button>
+          <span className="flex items-center gap-1" title="Stretches this clip so its tempo matches the project's (pitch kept). Leave the box blank to detect the clip's tempo, or type it. Free, on this device; Undo puts the original back.">
+            <input type="number" min={30} max={300} placeholder="clip BPM" value={clipBpm} className="neon-input !w-20 !py-0.5" aria-label="The clip's BPM (blank to detect)" onChange={(e) => setClipBpm(e.target.value)} />
+            <button type="button" className="re-btn !w-auto px-2" disabled={stretching || recording || !!busy} onClick={matchClipTempo}>⏱ Match project tempo ({session.bpm})</button>
+          </span>
+          <span className="flex items-center gap-1" title="Moves this clip's pitch up or down and keeps its length (and timing). Made from the original recording each time. Free, on this device; Undo puts it back. A track's Key setting replaces clip edits on that track.">
+            <span className="text-white/60">🎵 Pitch</span>
+            <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={clipSemi} aria-label="Semitones" onChange={(e) => setClipSemi(Number(e.target.value))}>
+              {Array.from({ length: keyRange * 2 + 1 }, (_, i) => i - keyRange).map((n) => <option key={n} value={n}>{n > 0 ? "+" : ""}{n} st</option>)}
+            </select>
+            <input type="number" min={-50} max={50} step={1} value={clipCents} className="neon-input !w-16 !py-0.5" aria-label="Cents (fine tune)" onChange={(e) => setClipCents(Math.max(-50, Math.min(50, Math.round(Number(e.target.value) || 0))))} />
+            <span className="text-white/60">¢</span>
+            <button type="button" className="re-btn !w-auto px-2" disabled={recording || !!busy} onClick={pitchClip}>Apply pitch · free</button>
+            {sel.region.semis ? <span className="text-xs text-white/60">now {sel.region.semis > 0 ? "+" : ""}{sel.region.semis}</span> : null}
+          </span>
+          <span className="flex items-center gap-1" title="Splits this clip wherever it is quieter than the threshold for 0.4 s or more and removes the dead air — a long take becomes clean phrases. Free; Undo puts it back.">
+            <select className="neon-input !w-auto !py-0.5" data-nomemo="true" value={stripDb} aria-label="Silence threshold" onChange={(e) => setStripDb(Number(e.target.value))}>
+              {[-30, -40, -50, -60].map((d) => <option key={d} value={d}>{d} dB</option>)}
+            </select>
+            <button type="button" className="re-btn !w-auto px-2" onClick={stripSilenceNow}>✂ Strip silence</button>
+          </span>
+          <span className="flex items-center gap-1" title="Lays this many more copies end to end after the clip — a bar of beat becomes a whole verse. Free; Undo takes them away.">
+            <input type="number" min={1} max={64} value={repeatN} className="neon-input !w-14 !py-0.5" aria-label="Times to repeat the clip" onChange={(e) => setRepeatN(Math.max(1, Math.min(64, Number(e.target.value) || 1)))} />
+            <button type="button" className="re-btn !w-auto px-2" onClick={() => commit((s) => repeatRegion(s, sel.region.id, repeatN))}>Repeat ×{repeatN}</button>
+          </span>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge earlier" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, -1))}><ChevronLeft size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2" aria-label="Nudge later" onClick={() => commit((s) => nudgeRegion(s, sel.region.id, 1))}><ChevronRight size={13} /></button>
           <button type="button" className="re-btn !w-auto px-2 text-mcz-ember" onClick={del}><Trash2 size={13} /> Delete</button>
@@ -1461,10 +1857,10 @@ export default function Workspace({ workflow }) {
             <audio src={bounced.url} controls className="w-full" />
             <KeyBadge url={bounced.url} auto />
             <div className="flex flex-wrap items-center gap-2">
-              <a className="re-btn !w-auto px-3" href={bounced.url} download={fileName()}><Download size={13} /> Download WAV ({mb.toFixed(1)} MB)</a>
+              <a className="re-btn !w-auto px-3" href={bounced.url} download={fileName()}><Download size={13} /> Download WAV ({bounceMb.toFixed(1)} MB)</a>
               {!upload && (
                 <button type="button" className="neon-btn-primary !w-auto px-3" disabled={!!busy} onClick={saveToFileZ}>
-                  <Save size={13} /> Save to FileZ <span className="text-white/60">· uses {mb.toFixed(1)} MB of your storage</span>
+                  <Save size={13} /> Save to FileZ <span className="text-white/60">· uses {bounceMb.toFixed(1)} MB of your storage</span>
                 </button>
               )}
               {upload && (
@@ -1478,7 +1874,7 @@ export default function Workspace({ workflow }) {
                 <p className="text-emerald-300">Saved to FileZ.</p>
                 <Doors item={{ title: session.name, url: upload.url, kind: "audio", uploadId: upload.id }} noPost />
                 <CoachMix url={upload.url} uploadId={upload.id} title={session.name} />
-                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={mb} />
+                <PostBounce url={upload.url} uploadId={upload.id} title={session.name} sizeMb={bounceMb} />
               </>
             )}
           </div>

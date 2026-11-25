@@ -3,6 +3,7 @@
 // screen says so before the press. StatZ chains show locked, with the way to try them, when the plan lacks them.
 import { useMemo, useState } from "react";
 import { STARTERS, chainToInserts } from "./tonePresets.js";
+import { PLUGINS } from "./plugins.js";
 import { roleOfTrack, searchChains, suitsRole } from "./chainSearch.js";
 
 const PAGE = 30;
@@ -11,6 +12,7 @@ export default function FxChainBrowser({ track, onInserts, statzOk = true }) {
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(PAGE);
   const [msg, setMsg] = useState("");
+  const [pct, setPct] = useState(100);     // StatZ: how much of the whole chain is heard (50 = half as present)
   const role = roleOfTrack(track);
   const [group, setGroup] = useState("");
   const found = useMemo(() => searchChains(STARTERS, q, role), [q, role]);
@@ -22,7 +24,12 @@ export default function FxChainBrowser({ track, onInserts, statzOk = true }) {
   }, [found, groups, group]);
   const apply = (s) => {
     if (s.statz && !statzOk) { setMsg(`🔒 ${s.name} is a StatZ chain. Try StatZ free from the sample, or pick another.`); return; }
-    onInserts(track.id, chainToInserts(s.chain()));
+    const amt = statzOk ? pct : 100;
+    onInserts(track.id, chainToInserts(s.chain()).map((i) => {
+      if (amt >= 100) return i;
+      // An effect with its own mix is blended by that mix, scaled; every other effect by the blend on the insert.
+      return PLUGINS[i.type]?.params?.mix ? { ...i, params: { ...i.params, mix: Math.round(i.params.mix * amt / 100) } } : { ...i, amount: amt };
+    }));
     setMsg(`${s.name} is on ${track.name}, in place of its effects (Undo brings them back).`);
   };
   return (
@@ -35,6 +42,12 @@ export default function FxChainBrowser({ track, onInserts, statzOk = true }) {
           <button key={g} type="button" aria-pressed={group === g} className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-xs ${group === g ? "border-mcz-gold text-mcz-gold" : "border-white/20 text-white/70"}`} onClick={() => { setGroup(g); setShown(PAGE); }}>{g} ({n})</button>
         ))}
       </div>
+      <label className={`flex items-center gap-2 text-xs ${statzOk ? "text-white/80" : "text-white/40"}`}
+             title={statzOk ? "How much of the whole chain is heard against the untouched sound when you apply it. 50% is half as present." : "StatZ: apply any chain at a set percentage"}>
+        Apply at {statzOk ? pct : 100}%{!statzOk && " 🔒 StatZ"}
+        <input type="range" min={0} max={100} step={5} value={statzOk ? pct : 100} disabled={!statzOk} aria-label="Chain amount" onChange={(e) => setPct(Number(e.target.value))} />
+        <span className="text-white/55">you can still change each effect after</span>
+      </label>
       <ul className="max-h-48 space-y-1 overflow-y-auto" aria-label="FX chains">
         {list.slice(0, shown).map((s, i, a) => (
           <li key={s.key}>

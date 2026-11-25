@@ -17,6 +17,7 @@ import { buildInsert, dbToGain } from "./plugins.js";
 import { encodeWav } from "../mastering/wav.js";
 import { laneOf, reads, schedule } from "./automation.js";
 import { limiterWorkletSource } from "./limiterDsp.js";
+import { duckWorkletSource } from "./duckDsp.js";
 import { cleanLatencyMode } from "./audioIO.js";
 
 const CAPTURE_WORKLET = `
@@ -34,13 +35,17 @@ registerProcessor("mcz-capture", Capture);`;
  *  fallback chain in place, never a silent session. Works on a live context and on an OfflineAudioContext, so
  *  the bounce is the same DSP as the speakers. */
 export async function loadDsp(ctx, session) {
-  const uses = (session.tracks || []).some((t) => (t.inserts || []).some((i) => i.type === "limiter" && i.on));
-  if (!uses || ctx.__mczLimiter || !ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return;
-  try {
-    const url = URL.createObjectURL(new Blob([limiterWorkletSource()], { type: "text/javascript" }));
-    try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
-    ctx.__mczLimiter = true;
-  } catch { /* fall back to the node chain */ }
+  if (!ctx.audioWorklet || typeof AudioWorkletNode === "undefined") return;
+  const all = [...(session.tracks || []).flatMap((t) => t.inserts || []), ...(session.masterInserts || []), ...(session.buses || []).flatMap((b) => b.inserts || [])];
+  const load = async (flag, source) => {
+    try {
+      const url = URL.createObjectURL(new Blob([source()], { type: "text/javascript" }));
+      try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
+      ctx[flag] = true;
+    } catch { /* fall back: the node chain for the limiter, a pass-through for the ducker */ }
+  };
+  if (all.some((i) => i.type === "limiter" && i.on) && !ctx.__mczLimiter) await load("__mczLimiter", limiterWorkletSource);
+  if (all.some((i) => i.type === "duck" && i.on) && !ctx.__mczDuck) await load("__mczDuck", duckWorkletSource);
 }
 
 let seq = 0;
@@ -79,17 +84,44 @@ export function computePeaks(buffer, n = 1000) {
 export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTime, live = false } = {}) {
   const master = ctx.createGain();
   master.gain.value = dbToGain(session.master);
-  master.connect(ctx.destination);
   const heard = new Set(audible(session).map((t) => t.id));
   const tracks = {};
   const sources = [];
   const disposers = [];     // effects that need telling they are finished (the worklet ones keep running until they are)
-  for (const t of live ? session.tracks : session.tracks.filter((x) => heard.has(x.id))) {
-    const sum = ctx.createGain();
+  // The master bus: the master fader, then the master track's own effects, then the speakers (and the bounce).
+  const masterNodes = [];
+  let out = master;
+  for (const ins of session.masterInserts || []) {
+    const node = buildInsert(ctx, ins, { bpm: session.bpm });
+    if (node.dispose) disposers.push(node.dispose);
+    out.connect(node.input); out = node.output; masterNodes.push(node.input, node.output);
+  }
+  out.connect(ctx.destination);
+  // Send buses: a shared effect (a reverb, a delay) that tracks feed by an amount, then back into the master fader.
+  const buses = {};
+  for (const b of session.buses || []) {
+    const input = ctx.createGain(); let tail = input;
+    for (const ins of b.inserts || []) {
+      const node = buildInsert(ctx, ins, { bpm: session.bpm });
+      if (node.dispose) disposers.push(node.dispose);
+      tail.connect(node.input); tail = node.output; masterNodes.push(node.input, node.output);
+    }
+    const lvl = ctx.createGain(); lvl.gain.value = dbToGain(b.level || 0);
+    tail.connect(lvl); lvl.connect(master);
+    buses[b.id] = input; masterNodes.push(input, lvl);
+  }
+  // A track that triggers another's ducker is built even when muted or not soloed (its fader is at zero, so it is not heard),
+  // so the ducking is the same live, in a solo and in the bounce.
+  const triggers = new Set(session.tracks.flatMap((t) => (t.inserts || []).filter((i) => i.type === "duck" && i.on && i.source).map((i) => i.source)));
+  const sums = {};
+  const building = live ? session.tracks : session.tracks.filter((x) => heard.has(x.id) || triggers.has(x.id));
+  for (const t of building) { sums[t.id] = ctx.createGain(); }
+  for (const t of building) {
+    const sum = sums[t.id];
     sum.gain.value = t.invert ? -1 : 1;   // polarity: the same sound upside down, set from the timing check
     let tail = sum;
     for (const ins of t.inserts || []) {
-      const node = buildInsert(ctx, ins, { bpm: session.bpm });
+      const node = buildInsert(ctx, ins, { bpm: session.bpm, sidechain: ins.type === "duck" ? sums[ins.source] || null : null });
       if (node.dispose) disposers.push(node.dispose);
       tail.connect(node.input);
       tail = node.output;
@@ -109,6 +141,11 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       pan.connect(meter);
     }
     pan.connect(master);
+    for (const [bid, amt] of Object.entries(t.sends || {})) {          // post-fader sends: the fader and mute move them too
+      if (!buses[bid] || !(amt > 0)) continue;
+      const sg = ctx.createGain(); sg.gain.value = amt / 100;
+      pan.connect(sg); sg.connect(buses[bid]); masterNodes.push(sg);
+    }
     tracks[t.id] = { fader, pan, meter, sum };
     for (const r of playlistOf(t).regions) {
       const buf = buffers.get(r.src);
@@ -145,7 +182,7 @@ export function buildGraph(ctx, session, buffers, { from = 0, t0 = ctx.currentTi
       sources.push(s);
     }
   }
-  return { master, tracks, sources, disposers };
+  return { master, out, masterNodes, tracks, sources, disposers };
 }
 
 /** Stop whatever a param was scheduled to do and keep it where it is now (no jump when a lane is switched off). */
@@ -177,6 +214,7 @@ export function createDaw() {
   let loopCtl = null;
   let rec = null;
   let masterMeter = null;
+  let recBoost = 0;          // dB added to the master only while a take runs (see startRecording)
   const scratch = new Float32Array(1024);
 
   const readMode = () => { try { return cleanLatencyMode(localStorage.getItem("mcz_daw_latency")); } catch { return "interactive"; } };
@@ -204,6 +242,7 @@ export function createDaw() {
     if (!g) return;
     g.sources.forEach((s) => { try { s.stop(); } catch { /* already ended */ } });
     try { g.master.disconnect(); } catch { /* gone */ }
+    for (const n of g.masterNodes || []) { try { n.disconnect(); } catch { /* gone */ } }
     g.disposers?.forEach((d) => d());
   }
   function stopSources() {
@@ -220,7 +259,7 @@ export function createDaw() {
       const q = L.queue.shift();
       const old = graph;
       graph = q.graph; playing = { from: q.from, t0: q.t0 }; L.endT = q.endT;
-      if (masterMeter) graph.master.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
+      if (masterMeter) graph.out.connect(masterMeter);                // the master meter (and the clip warning) follow the pass that is sounding
       setTimeout(() => disposeGraph(old), 1500);          // its effects' tails ring on over the new pass, then it is freed
     }
   }
@@ -268,11 +307,19 @@ export function createDaw() {
   }
 
   /** Click `bars` bars (accent on each downbeat), resolving when the last beat's bar is over. Nothing is recorded meanwhile. */
+  // resume() can sit unanswered for ever when the browser's audio output is held (another app, a device that is
+  // gone). A take must say so instead of waiting on it.
+  async function ensureRunning(c) {
+    if (c.state === "running") return;
+    await Promise.race([c.resume().catch(() => {}), new Promise((r) => setTimeout(r, 2500))]);
+    if (c.state !== "running") throw new Error("The browser's audio output didn't start (it says \"" + c.state + "\"). Click anywhere on the page and press Record again; if it keeps happening, another app may be holding your speakers or headphones — check the 🎧 output menu.");
+  }
+
   async function countIn(session, bars) {
     const plan = countInPlan(session, bars);
     if (!plan.beats.length) return;
     const c = audio();
-    if (c.state !== "running") await c.resume();
+    await ensureRunning(c);
     const t0 = c.currentTime + 0.1;
     for (const b of plan.beats) {
       const o = c.createOscillator(); const g = c.createGain();
@@ -294,7 +341,7 @@ export function createDaw() {
     graph = buildGraph(c, session, buffers, { from, t0, live: true });
     masterMeter = c.createAnalyser();
     masterMeter.fftSize = 1024;
-    graph.master.connect(masterMeter);
+    graph.out.connect(masterMeter);
     playing = { from, t0 };
     const lp = session.loop;
     const looping = !!(lp && lp.on && from < lp.end);
@@ -321,7 +368,7 @@ export function createDaw() {
     if (loopCtl) { loopCtl.session = session; loopCtl.loop = session.loop; }       // a loop edge dragged while it plays is the next pass's
     if (!graph) return;
     const heard = new Set(audible(session).map((t) => t.id));
-    graph.master.gain.setTargetAtTime(dbToGain(session.master), ctx.currentTime, 0.01);
+    graph.master.gain.setTargetAtTime(dbToGain(session.master + recBoost), ctx.currentTime, 0.01);
     for (const t of session.tracks) {
       const n = graph.tracks[t.id];
       if (!n) continue;
@@ -378,12 +425,24 @@ export function createDaw() {
    * | "right" of that stream. Every part is captured on the same AudioContext clock, so the takes line up
    * with each other and with the playback. `stopRecording()` resolves with one take per part.
    */
-  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null }) {
+  async function startRecording(session, from, { click = false, stream, inputs, punch = null, cycle = null, boostDb = 0 }) {
     const c = audio();
-    if (c.state !== "running") await c.resume();
+    await ensureRunning(c);
     const list = inputs || [{ key: "", stream, channel: "both" }];
     // A take never loops the transport, except a cycle: the loop plays seamlessly and the capture is cut at its pass boundaries on stop.
     const t0 = cycle ? await play({ ...session, loop: { start: cycle.start, end: cycle.end, on: true } }, cycle.start, { click }) : await play({ ...session, loop: null }, from, { click });
+    // Windows can turn everything else down by up to 80% the moment a mic opens, and no web page can switch that off.
+    // The member may lift the beat for the length of the take to make up for it; a limiter after it means a hot beat
+    // is held under 0 dB instead of clipping. Off (0) leaves the graph exactly as it was.
+    recBoost = Math.max(0, Math.min(18, Number(boostDb) || 0));
+    if (recBoost > 0 && graph) {
+      graph.master.gain.setValueAtTime(dbToGain(session.master + recBoost), c.currentTime);
+      try { graph.out.disconnect(c.destination); } catch { /* not connected there */ }
+      const lim = c.createDynamicsCompressor();
+      lim.threshold.value = -3; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = 0.002; lim.release.value = 0.12;
+      graph.out.connect(lim); lim.connect(c.destination);
+      graph.__recLimiter = lim;
+    }
     const startFrame = Math.round(t0 * c.sampleRate);
     const useWorklet = c.audioWorklet && typeof AudioWorkletNode !== "undefined";
     if (useWorklet && !rec?.workletReady) {
@@ -494,6 +553,7 @@ export function createDaw() {
   /** Stop recording. One take per part, each `{ key, ...take }` (null where nothing was captured). */
   async function stopRecording() {
     const r = rec;
+    recBoost = 0;
     stop();
     if (!r?.parts) return [];
     for (const p of r.parts) { try { p.node.disconnect(); p.sink.disconnect(); p.extra.forEach((x) => x.disconnect()); } catch { /* gone */ } }
