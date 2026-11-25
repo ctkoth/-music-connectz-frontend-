@@ -8,7 +8,7 @@ import { GAIN_DB } from "./session.js";
 import { EQ_GAIN, MAX_INSERTS, PLUGINS, newInsert } from "./plugins.js";
 import EqBands from "../components/EqBands.jsx";
 import { reads } from "./automation.js";
-import { StatzSample } from "../components/StatzSample.jsx";
+import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import TonePicker, { useTonePresets } from "./TonePresets.jsx";
 
 const fmtDb = (v) => (v <= GAIN_DB.min ? "−∞" : `${v > 0 ? "+" : ""}${v.toFixed(1)}`);
@@ -63,9 +63,13 @@ function InsertEditor({ insert, onChange, onClose, bands }) {
   );
 }
 
-function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
+function Strip({ name, color, gain, pan, mute, solo, invert, inserts, meter, onTrack, onInserts, master, auto = {}, tones, bands }) {
   const [open, setOpen] = useState(null);
   const pick = useRef(null);
+  // The plugin-grade effects (PLUGINS[k].statz) are StatZ's or the sample's to ADD; one already on the track plays.
+  const { s: st } = useStatzTrial();
+  const fxOk = !!(st?.is_statz || st?.active);
+  const [fxLocked, setFxLocked] = useState(false);
   const setInsert = (next) => onInserts(inserts.map((x) => (x.id === next.id ? next : x)));
   return (
     // A strip widens while its EQ is open: band rows need room for "2.8 kHz" and "−6.0 dB".
@@ -76,8 +80,8 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
       </div>
       {!master && (
         <>
-          {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} />}
-          <p className="uppercase tracking-wider text-white/40">Inserts</p>
+          {tones && <TonePicker tones={tones} inserts={inserts} onApply={onInserts} trackName={name} statzOk={fxOk} />}
+          <p className="uppercase tracking-wider text-white/55">Inserts</p>
           {inserts.map((ins) => (
             <div key={ins.id}>
               <div className="flex items-center gap-1 rounded bg-white/10 px-1 py-0.5">
@@ -86,7 +90,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
                 <button type="button" className="min-w-0 flex-1 truncate text-left text-white/80" onClick={() => setOpen(open === ins.id ? null : ins.id)}>
                   {PLUGINS[ins.type].emoji} {PLUGINS[ins.type].label}
                 </button>
-                <button type="button" aria-label={`Remove ${PLUGINS[ins.type].label}`} className="text-white/40 hover:text-mcz-ember"
+                <button type="button" aria-label={`Remove ${PLUGINS[ins.type].label}`} className="text-white/55 hover:text-mcz-ember"
                         onClick={() => onInserts(inserts.filter((x) => x.id !== ins.id))}><X size={11} /></button>
               </div>
               {open === ins.id && <InsertEditor insert={ins} onChange={setInsert} onClose={() => setOpen(null)} bands={bands} />}
@@ -94,11 +98,20 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
           ))}
           {inserts.length < MAX_INSERTS && (
             <select ref={pick} className="rounded bg-white/10 px-1 py-0.5 text-white/70" data-nomemo="true" value="" aria-label={`Add an effect to ${name}`}
-                    onChange={(e) => { const ins = newInsert(e.target.value); if (ins) { onInserts([...inserts, ins]); setOpen(ins.id); } }}>
-              <option value="">+ Add effect (free)</option>
-              {Object.entries(PLUGINS).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}
+                    onChange={(e) => {
+                      if (PLUGINS[e.target.value]?.statz && !fxOk) { setFxLocked(true); return; }
+                      const ins = newInsert(e.target.value); if (ins) { onInserts([...inserts, ins]); setOpen(ins.id); }
+                    }}>
+              <option value="">+ Add effect</option>
+              <optgroup label="Free">
+                {Object.entries(PLUGINS).filter(([, p]) => !p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}</option>)}
+              </optgroup>
+              <optgroup label={fxOk ? "StatZ" : "StatZ — try the free sample"}>
+                {Object.entries(PLUGINS).filter(([, p]) => p.statz).map(([k, p]) => <option key={k} value={k}>{p.emoji} {p.label}{fxOk ? "" : " 🔒"}</option>)}
+              </optgroup>
             </select>
           )}
+          {fxLocked && !fxOk && <StatzSample what="The pro effects (saturation, chorus, de-esser, limiter, glue compressor, pro reverb, pro delay, widener)" />}
           <label className="mt-1 block text-white/60">
             {auto.pan && <span className="mr-1 rounded bg-emerald-500/20 px-1 text-emerald-300" title="Pan follows its automation lane">auto</span>}
             Pan {pan === 0 ? "C" : pan < 0 ? `L${Math.round(-pan * 100)}` : `R${Math.round(pan * 100)}`}
@@ -118,6 +131,8 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
       {!master && (
         <div className="flex justify-center gap-1 font-bold">
           <button type="button" aria-pressed={solo} className={`rounded px-2 py-0.5 ${solo ? "bg-yellow-400 text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ solo: !solo })}>S</button>
+          {!master && <button type="button" aria-pressed={!!invert} title="Flip polarity (the same sound upside down)" aria-label="Flip polarity"
+                  className={`rounded px-2 py-0.5 ${invert ? "bg-mcz-cyan text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ invert: !invert })}>Ø</button>}
           <button type="button" aria-pressed={mute} className={`rounded px-2 py-0.5 ${mute ? "bg-sky-500 text-black" : "bg-white/10 text-white/60"}`} onClick={() => onTrack({ mute: !mute })}>M</button>
         </div>
       )}
@@ -125,7 +140,7 @@ function Strip({ name, color, gain, pan, mute, solo, inserts, meter, onTrack, on
   );
 }
 
-export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoAllowed = false, bands }) {
+export default function MixWindow({ session, daw, playing, onTrack, onInserts, onMaster, writeAuto, onWriteAuto, autoMode = "latch", onAutoMode, autoAllowed = false, bands }) {
   const meters = useMeters(daw, playing);
   const tones = useTonePresets();
   return (
@@ -142,9 +157,17 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
                   className={`rounded px-2 py-0.5 font-bold ${writeAuto ? "bg-red-600 text-white" : "bg-white/10 text-white/70"}`}>
             ✍️ Write automation {writeAuto ? "on" : "off"}
           </button>
+          {onAutoMode && (
+            <span className="flex items-center gap-1" role="group" aria-label="Automation write mode">
+              {[["latch", "Latch", "Keeps writing from your first move until you press Stop."], ["touch", "Touch", "Writes only while you hold the control; the lane takes over again when you let go."]].map(([k, label, tip]) => (
+                <button key={k} type="button" title={tip} aria-pressed={autoMode === k} onClick={() => onAutoMode(k)}
+                        className={`rounded px-2 py-0.5 ${autoMode === k ? "bg-white text-black" : "bg-white/10 text-white/70"}`}>{label}</button>
+              ))}
+            </span>
+          )}
           <span className="text-white/60">
             {writeAuto
-              ? "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass."
+              ? (autoMode === "touch" ? "Press play and move a fader or pan: only the part you hold is written; let go and the lane takes over again." : "Press play and move any fader or pan: the move is recorded on that track from the playhead. Stop to keep the pass.")
               : "Turn on, press play and ride the faders — every move becomes a line you can edit in Tracks."}
           </span>
         </div>
@@ -152,7 +175,7 @@ export default function MixWindow({ session, daw, playing, onTrack, onInserts, o
       <p className="text-[11px] text-white/50">Faders and pans move while it plays. Double-tap a fader or pan to reset it. Every effect is built in and free.</p>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {session.tracks.map((t) => (
-          <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} inserts={t.inserts}
+          <Strip key={t.id} name={t.name} color={t.color} gain={t.gain} pan={t.pan} mute={t.mute} solo={t.solo} invert={t.invert} inserts={t.inserts}
                  auto={{ volume: reads(t, "volume"), pan: reads(t, "pan") }} tones={tones} bands={bands}
                  meter={meters[t.id]} onTrack={(patch) => onTrack(t.id, patch)} onInserts={(list) => onInserts(t.id, list)} />
         ))}

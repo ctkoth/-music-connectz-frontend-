@@ -56,7 +56,7 @@ export default function TransactionModal() {
             )}
             <div>
               <h2 className="font-display text-lg font-extrabold">{resource.label}</h2>
-              <p className="text-xs text-white/45">Transaction history</p>
+              <p className="text-xs text-white/60">Transaction history</p>
             </div>
           </div>
           <button
@@ -97,7 +97,7 @@ export default function TransactionModal() {
 
           <div className="neon-frame divide-y divide-white/[0.06]">
             {entries.length === 0 ? (
-              <p className="flex items-center gap-2 p-4 text-sm text-white/45">
+              <p className="flex items-center gap-2 p-4 text-sm text-white/60">
                 No transactions yet.
               </p>
             ) : (
@@ -106,14 +106,14 @@ export default function TransactionModal() {
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex-1">
                       <p className="text-sm text-white">{entry.kind}</p>
-                      <p className="text-xs text-white/40 mt-0.5">{when(entry.at)}</p>
+                      <p className="text-xs text-white/55 mt-0.5">{when(entry.at)}</p>
                     </div>
                     <span className={`font-bold whitespace-nowrap ${entry.amount > 0 ? "text-emerald-300" : "text-mcz-ember"}`}>
                       {entry.display}
                     </span>
                   </div>
                   {entry.note && (
-                    <p className="text-xs text-white/35 mt-2 pl-2 border-l border-white/10">{entry.note}</p>
+                    <p className="text-xs text-white/50 mt-2 pl-2 border-l border-white/10">{entry.note}</p>
                   )}
                 </div>
               ))

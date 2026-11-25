@@ -43,13 +43,13 @@ export default function RatingsRoyalty() {
                 <li key={p.post_id} className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="truncate text-white/80">{p.title || `Post #${p.post_id}`}</span>
                   <span className={p.factor < 1 ? "text-mcz-ember" : "text-emerald-300"}>
-                    {p.factor < 1 ? "−" : p.factor > 1 ? "+" : ""}{p.factor === 1 ? "base rate" : `${Math.abs(p.pct - 100)}%`} <span className="text-white/40">· earns {p.pct}% of the base rate · {p.why}</span>
+                    {p.factor < 1 ? "−" : p.factor > 1 ? "+" : ""}{p.factor === 1 ? "base rate" : `${Math.abs(p.pct - 100)}%`} <span className="text-white/55">· earns {p.pct}% of the base rate · {p.why}</span>
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[11px] text-white/40">None of your tracks has {r.min_raters} outside ratings yet, so all earn the base rate.</p>
+            <p className="text-[11px] text-white/55">None of your tracks has {r.min_raters} outside ratings yet, so all earn the base rate.</p>
           )}
         </div>
       )}
@@ -57,7 +57,7 @@ export default function RatingsRoyalty() {
         <div className="space-y-1.5 border-t border-white/[0.06] pt-2">
           <p className="re-label">Let the <Term k="ai_coach">AI coach</Term> count toward my skill ratings</p>
           <p className="text-[12px] text-white/60">{coach.note}</p>
-          <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-white/45">
+          <ul className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-white/60">
             {coach.coaches.filter((c) => c.takes > 0).map((c) => (
               <li key={c.app_key}>{c.label}: {c.enough ? <><Term k="median">median</Term> {Number(c.median).toFixed(1)} from {c.takes} takes</> : `${c.takes} of ${coach.min_takes} takes needed`}</li>
             ))}

@@ -90,9 +90,9 @@ export default function NotificationsPanel({ isOpen, onClose }) {
               )}
             </div>
           </div>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="text-white/40 hover:text-white/70 transition"
+            className="text-white/55 hover:text-white/70 transition"
           >
             <X size={20} />
           </button>
@@ -135,7 +135,7 @@ export default function NotificationsPanel({ isOpen, onClose }) {
                       </span>
                     </div>
                     <p className="text-sm text-white break-words">{notif.text}</p>
-                    <p className="text-[11px] text-white/40 mt-1">
+                    <p className="text-[11px] text-white/55 mt-1">
                       {new Date(notif.created_at).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",

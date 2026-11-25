@@ -193,7 +193,7 @@ export default function Tour({ me, onRefreshMe }) {
             </p>
           )}
           {!rect && (
-            <p className="mt-2 text-[11px] text-white/40">
+            <p className="mt-2 text-[11px] text-white/55">
               Looking for that control… scroll a little if it hasn't appeared.
             </p>
           )}
@@ -211,7 +211,7 @@ export default function Tour({ me, onRefreshMe }) {
               {last ? "Finish" : satisfied ? "Next" : "Waiting on you…"}
             </button>
             <button onClick={() => setOpen(false)}
-              className="text-[11px] text-white/40 hover:text-white/70">Skip</button>
+              className="text-[11px] text-white/55 hover:text-white/70">Skip</button>
           </div>
         </div>
       </div>

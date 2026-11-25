@@ -73,6 +73,7 @@ import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
 import { PROMPTZ } from "../resources.js";
 import { IN_SHELL } from "../standalone.js";
+import WatchSteps from "../components/WatchSteps.jsx";
 import KeepOnScreen from "../components/KeepOnScreen.jsx";
 import { useSessionHold } from "../useSessionHold.js";
 import { againLabelFor, lastLogged, setRest } from "../sessionHold.js";
@@ -86,7 +87,7 @@ const useUnit = () => useContext(UnitCtx);
 function Field({ label, className = "w-20", hint = "", ...props }) {
   return (
     <label className={`flex flex-col gap-0.5 ${className}`}>
-      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-white/55">
         {label}{hint && <span className="ml-1 font-normal normal-case tracking-normal text-mcz-cyan/70">{hint}</span>}
       </span>
       <input className="neon-input !py-2 w-full text-sm" {...props} />
@@ -142,7 +143,7 @@ const BODYMAP_STATUS = {
   balanced: { color: "text-mcz-cyan bg-mcz-cyan/10 ring-mcz-cyan/30", said: "Balanced" },
   overworked: { color: "text-mcz-ember bg-mcz-ember/10 ring-mcz-ember/30", said: "Overworked" },
   undertrained: { color: "text-amber-300 bg-amber-500/10 ring-amber-400/30", said: "Undertrained" },
-  untrained: { color: "text-white/40 bg-white/5 ring-white/10", said: "Never trained" },
+  untrained: { color: "text-white/55 bg-white/5 ring-white/10", said: "Never trained" },
 };
 
 const TABS = [
@@ -669,12 +670,12 @@ export default function BodieZ() {
         <IconImg icon="bodiez.png" alt="BodieZ" className="h-11 w-11 rounded-xl" />
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-xl font-extrabold">BodieZ</h2>
-          <p className="text-xs text-white/45">Strength training and workout planning.</p>
+          <p className="text-xs text-white/60">Strength training and workout planning.</p>
         </div>
         <div className="flex shrink-0 rounded-full bg-white/5 p-0.5 ring-1 ring-white/10" role="group" aria-label="Weight unit">
           {["lb", "kg"].map((u) => (
             <button key={u} onClick={() => setUnit(u)} aria-pressed={unit === u}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${unit === u ? "bg-mcz-cyan/20 text-mcz-cyan" : "text-white/45"}`}>
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${unit === u ? "bg-mcz-cyan/20 text-mcz-cyan" : "text-white/60"}`}>
               {u}
             </button>
           ))}
@@ -723,6 +724,7 @@ export default function BodieZ() {
               keepOnScreen={keepOnScreen}
               session={session} routines={routines} exercises={exercises} pickable={usable}
               onStart={startSession} onFinish={finishSession} onLogSet={logSet} onUndoSet={undoSet} onReorderSets={reorderSets} onPairs={saveSessionPairs}
+              onSaveRoutineExercises={saveRoutineExercises}
               goals={coach?.goals}
               initialExerciseId={prefillGoalExercise} onInitialExerciseConsumed={() => setPrefillGoalExercise(null)}
             />
@@ -826,7 +828,7 @@ function useSide(exerciseId) {
 function SidePick({ value, onChange }) {
   return (
     <div className="flex items-center gap-1" role="group" aria-label="Done with">
-      <span className="text-[11px] text-white/40">Done with</span>
+      <span className="text-[11px] text-white/55">Done with</span>
       {Object.entries(SIDE_LABEL).map(([k, label]) => (
         <button key={k || "both"} onClick={() => onChange(k)} aria-pressed={value === k}
                 className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
@@ -947,7 +949,7 @@ function AICoachRead({ sessionId }) {
         {spec && (spec.cost.free_today
           ? <span className="text-[11px] text-emerald-300">free today</span>
           : <span className="text-[11px] text-mcz-ember">−{spec.cost.amount} {PROMPTZ}</span>)}
-        <span className="text-[11px] text-white/40">A failed read is not charged.</span>
+        <span className="text-[11px] text-white/55">A failed read is not charged.</span>
       </div>
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
       {text && (
@@ -1018,7 +1020,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           <p className="re-label text-emerald-300">✓ Session ended</p>
           <p className="text-sm font-semibold text-white">{sm.routine_title || "Ad-hoc session"}{sm.duration_seconds != null ? ` · ${clock(sm.duration_seconds)}` : " · logged afterwards"}</p>
         </div>
-        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
+        <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close summary">
           <X size={16} />
         </button>
       </div>
@@ -1037,7 +1039,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
                 </span>{" "}
                 vs {againstWhat(vs)}
               </p>
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 Then: {Math.round(fromKg(vs.volume_kg, unit)).toLocaleString()} {unit} · {vs.sets} sets · {vs.reps} reps.
                 {vs.sets_delta !== 0 ? ` ${vs.sets_delta > 0 ? "+" : "−"}${Math.abs(vs.sets_delta)} sets` : ""}
                 {vs.duration_delta_seconds != null && Math.abs(vs.duration_delta_seconds) >= 60
@@ -1045,7 +1047,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
                 {vs.volume_delta_kg < 0 ? " A lighter session isn't a worse one — deloads and short days look like this." : ""}
               </p>
               {asList(vs.not_repeated).length > 0 && (
-                <p className="text-[11px] text-white/45">Not done this time: {vs.not_repeated.join(", ")}.</p>
+                <p className="text-[11px] text-white/60">Not done this time: {vs.not_repeated.join(", ")}.</p>
               )}
             </>
           ) : (
@@ -1073,7 +1075,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
         // A session that sat open with nothing logged — the most likely story
         // behind a 0-set, hours-long "workout" — has no record to report and
         // nothing honest to share. Say so, and lead with the fix.
-        <p className="text-xs text-white/45">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
+        <p className="text-xs text-white/60">Nothing was logged. Edit it to add what you actually did, or delete it below.</p>
       ) : sm.records.length > 0 ? (
         <div className="space-y-1">
           <p className="re-label text-amber-200">🏆 {sm.records.length} new record{sm.records.length === 1 ? "" : "s"}</p>
@@ -1084,12 +1086,12 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           ))}
         </div>
       ) : (
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/60">
           No new records this time{sm.firsts.length ? ` — first time logging ${sm.firsts.join(", ")}, so that's your starting mark` : ""}.
         </p>
       )}
       {sm.records.length > 0 && sm.firsts.length > 0 && (
-        <p className="text-[11px] text-white/40">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
+        <p className="text-[11px] text-white/55">First time logging {sm.firsts.join(", ")} — that's your starting mark.</p>
       )}
       {sm.routine_id != null && sm.sets > 0 && onImprove && improveCta(routinePlan) && (
         <div className="space-y-1.5 rounded-xl border border-mcz-cyan/25 bg-mcz-cyan/[0.05] p-2.5 text-xs" data-testid="improve-routine">
@@ -1107,10 +1109,10 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
                 Update the routine from this session
               </button>
             )}
-            <span className="text-white/40">Free · you see every change before anything is saved.</span>
+            <span className="text-white/55">Free · you see every change before anything is saved.</span>
           </div>
           {onUpdateRoutine && !updated && (
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-white/55">
               Updating: the lifts you did take today's sets, reps and top-set weight{asList(sm.superset_pairs).length ? " and today's supersets" : ""}; lifts you skipped stay as they were.
             </p>
           )}
@@ -1141,7 +1143,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
                 <button type="button" className="neon-btn-primary !w-auto px-3 py-1.5 text-xs" disabled={saving} onClick={saveRoutine}>
                   Save to RoutineZ
                 </button>
-                <span className="text-white/40">Free · the workout stays as logged.</span>
+                <span className="text-white/55">Free · the workout stays as logged.</span>
               </div>
             </>
           )}
@@ -1153,7 +1155,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
         {sm.exercises.map((e) => (
           <p key={e.exercise_id} className="text-[11px] text-white/55">
             {e.name}: {e.sets} {e.sets === 1 ? "set" : "sets"}, {e.reps} reps{e.top_weight_kg != null ? `, top ${fmtWeight(e.top_weight_kg, unit)}` : ""}
-            {liftChange(e, fmt) && <span className={liftChange(e, fmt).includes("▲") ? " text-emerald-300/80" : " text-white/45"}> · {liftChange(e, fmt)}</span>}
+            {liftChange(e, fmt) && <span className={liftChange(e, fmt).includes("▲") ? " text-emerald-300/80" : " text-white/60"}> · {liftChange(e, fmt)}</span>}
           </p>
         ))}
       </div>
@@ -1188,7 +1190,7 @@ function SessionSummary({ summary: sm, onClose, onEdit, onSaveRoutine, onOpenRou
           <MapPin size={13} /> Train in person · VenueZ
         </button>
       </div>
-      <p className="text-[11px] text-white/35">
+      <p className="text-[11px] text-white/50">
         PostZ shows what posting costs before you post; sending a DM is free. “Coach” always means the AI coach —
         a person you message is named as a person.
         {coaches.length === 0 && " You have no one linked in CoachZ yet, so pick who to message."}
@@ -1314,14 +1316,14 @@ function RestAlertsControl({ prefs }) {
           {prefs.rawNotify && prefs.perm === "denied" && (
             <p className="text-[11px] text-mcz-ember">Notifications are blocked for this site. Allow them in your browser's site settings.</p>
           )}
-          {prefs.perm === "unsupported" && <p className="text-[11px] text-white/45">This browser can't show notifications.</p>}
+          {prefs.perm === "unsupported" && <p className="text-[11px] text-white/60">This browser can't show notifications.</p>}
           <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
             <input type="checkbox" checked={prefs.rawAwake} disabled={!wakeOk}
                    onChange={(e) => prefs.setAwake(e.target.checked)} />
             Keep my screen on during the workout
           </label>
-          {!wakeOk && <p className="text-[11px] text-white/45">This browser can't keep the screen on.</p>}
-          <p className="text-[11px] text-white/35">
+          {!wakeOk && <p className="text-[11px] text-white/60">This browser can't keep the screen on.</p>}
+          <p className="text-[11px] text-white/50">
             A locked phone pauses a web page, which nothing here can prevent. Keeping the screen on keeps the
             rest clock running; the notification covers switching to another app.
           </p>
@@ -1431,7 +1433,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
     <>
       {goalList.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] text-white/40">
+          <span className="text-[11px] text-white/55">
             {routineGoal && goalKey === routineGoal ? "This routine's goal:" : "Recommended for:"}
           </span>
           {goalList.map(([k, g]) => (
@@ -1443,12 +1445,12 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         </div>
       )}
       {goal && (
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           {goal.label}: {goal.sets} sets of {goal.reps_low}-{goal.reps_high}, {clock(goal.rest_seconds)} rest. {goal.why}
         </p>
       )}
       <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] text-white/40">Or:</span>
+        <span className="text-[11px] text-white/55">Or:</span>
         {REST_PRESETS.map((t) => (
           <button key={t} onClick={() => pick(t)}
                   className={`pill !py-1 text-[11px] ${!goal && t === target ? "ring-1 ring-mcz-cyan text-mcz-cyan" : ""}`}>
@@ -1457,11 +1459,11 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         ))}
         <button type="button" className="pill !py-1 text-[11px]"
                 onClick={() => { primeRestBeep(); restBeep(); try { navigator.vibrate?.(80); } catch { /* unsupported */ } }}>Test beep</button>
-        <span className="text-[11px] text-white/40">{note}</span>
+        <span className="text-[11px] text-white/55">{note}</span>
         {beepState() === "ready"
           ? <span className="text-[11px] text-emerald-300/80">Sound on</span>
           : beepState() === "unsupported"
-            ? <span className="text-[11px] text-white/45">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
+            ? <span className="text-[11px] text-white/60">This browser can't play the beep — watch the clock{typeof navigator !== "undefined" && navigator.vibrate ? " or feel for the buzz" : ""}.</span>
             : <span className="text-[11px] text-amber-300/90">Sound is off until you tap once — press Test beep (and check your phone isn't on silent).</span>}
       </div>
     </>
@@ -1478,7 +1480,7 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
         <p className="re-label">Rest after {last.exercise_name || "last set"}</p>
         <p className={`font-mono text-2xl font-bold ${done ? "text-emerald-300" : "text-white"}`}
            aria-label={done ? "Rest is over" : `${clock(left)} of rest left`}>
-          {clock(left)} <span className="text-sm font-normal text-white/40">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
+          {clock(left)} <span className="text-sm font-normal text-white/55">{done ? (over > 0 ? `over by ${clock(over)}` : "rest over") : `left of ${clock(target)}`}</span>
         </p>
       </div>
       <div className="h-1.5 rounded-full bg-white/10">
@@ -1490,8 +1492,10 @@ function RestTimer({ sets, goals, routineGoal, hold = "", nextName = "", alerts 
 }
 
 function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", isNext = false, onSwap = null, swapFrom = [], allExercises = [],
-                     grip = null, onReorder = null, pair = null }) {
+                     grip = null, onReorder = null, pair = null, onTarget = null, onSaveTarget = null }) {
   const unit = useUnit();
+  const [targetOpen, setTargetOpen] = useState(false);
+  const [targetNote, setTargetNote] = useState("");
   const dndSets = useDragReorder(`live-${planned.exercise_id}`, (from, to) => onReorder?.(from, to));
   const [swapOpen, setSwapOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
@@ -1540,7 +1544,7 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
             {planned.name}
             {isNext && <span className="ml-1.5 text-[11px] font-normal text-emerald-300">next</span>}
           </p>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             {MUSCLE_LABEL[planned.muscle_group] || planned.muscle_group}
             {planned.equipment && ` · ${EQUIPMENT_LABEL[planned.equipment] || planned.equipment}`}
             {" · "}Target {targetSets} sets
@@ -1560,12 +1564,49 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
             {swapOpen ? "Done" : "Change"}
           </button>
         )}
-        <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
-          done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
-                              : "bg-white/5 text-white/50 ring-white/10"}`}>
-          {done}/{targetSets} sets
-        </span>
+        {onTarget ? (
+          <button type="button" aria-expanded={targetOpen} onClick={() => { setTargetOpen(!targetOpen); setTargetNote(""); }}
+                  title="Change how many sets this lift is for"
+                  className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
+            done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                                : "bg-white/5 text-white/60 ring-white/15 hover:text-white"}`}>
+            {done}/{targetSets} sets ✎
+          </button>
+        ) : (
+          <span className={`shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold ring-1 ${
+            done >= targetSets ? "bg-emerald-500/15 text-emerald-300 ring-emerald-400/30"
+                                : "bg-white/5 text-white/50 ring-white/10"}`}>
+            {done}/{targetSets} sets
+          </span>
+        )}
       </div>
+      {targetOpen && onTarget && (
+        <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-2.5" data-testid="target-sets">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[12px] text-white/70">Sets of {planned.name}:</span>
+            <button type="button" className="h-8 w-8 rounded-full bg-white/10 text-white disabled:opacity-30" aria-label="One set fewer"
+                    disabled={targetSets <= 1} onClick={() => onTarget(targetSets - 1)}>−</button>
+            <span className="w-6 text-center text-base font-bold text-white">{targetSets}</span>
+            <button type="button" className="h-8 w-8 rounded-full bg-white/10 text-white disabled:opacity-30" aria-label="One set more"
+                    disabled={targetSets >= 20} onClick={() => onTarget(targetSets + 1)}>+</button>
+            {done > 0 && done !== targetSets && (
+              <button type="button" className="pill" onClick={() => onTarget(done)}>Make it {done}/{done}</button>
+            )}
+          </div>
+          <p className="text-[11px] leading-relaxed text-white/55">
+            For today only{planned.routine_sets != null && planned.routine_sets !== targetSets ? ` — your routine still says ${planned.routine_sets}` : ""}.
+            {" "}The end-of-session report counts against the routine, so save it there if this is the new plan.
+          </p>
+          {onSaveTarget && planned.routine_sets !== targetSets && (
+            <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-[11px]"
+                    onClick={async () => setTargetNote((await onSaveTarget(targetSets))
+                      ? `Saved — the routine now says ${targetSets} sets.` : "Couldn't save it to the routine; today's target still stands.")}>
+              Also save {targetSets} sets to the routine · free
+            </button>
+          )}
+          {targetNote && <p className="text-[11px] text-mcz-cyan">{targetNote}</p>}
+        </div>
+      )}
       {demoOpen && planned.demo_url && (
         <video src={demoSrc(planned.demo_url)} controls autoPlay loop muted playsInline preload="metadata"
                className="max-h-64 w-full rounded-lg bg-black" aria-label={`${planned.name} demonstration`} />
@@ -1614,7 +1655,7 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
               {onReorder && doneSets.length > 1 && <DragGrip label="Drag this set" size={11} {...dndSets.grip(si)} />}
               {s.reps}{s.weight_kg != null ? `@${fmtWeight(s.weight_kg, unit)}` : ""}
               {s.one_sided && <span className="text-mcz-cyan/70"> · {SIDE_LABEL[s.one_sided].toLowerCase()}</span>}
-              {s.rest_seconds != null && <span className="text-white/35"> · {clock(s.rest_seconds)} rest</span>}
+              {s.rest_seconds != null && <span className="text-white/50"> · {clock(s.rest_seconds)} rest</span>}
               {onUndoSet && (
                 <button type="button" className="ml-1 rounded p-0.5 text-white/30 hover:text-mcz-ember" aria-label={`Remove this ${planned.name} set`}
                         title="Remove this set" onClick={() => removeSet(s)}>
@@ -1629,7 +1670,7 @@ function LoggerRow({ planned, doneSets, onLogSet, onUndoSet = null, tag = "", is
   );
 }
 
-function TodayView({ keepOnScreen = null, session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs,
+function TodayView({ keepOnScreen = null, session, routines, exercises, pickable, onStart, onFinish, onLogSet, onUndoSet, goals, onReorderSets, onPairs, onSaveRoutineExercises = null,
                       initialExerciseId = null, onInitialExerciseConsumed }) {
   const unit = useUnit();
   const restPrefs = useRestAlertPrefs();
@@ -1655,6 +1696,19 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
   const setOrder = (ids) => {
     setOrderState(ids);
     try { localStorage.setItem(orderKey, JSON.stringify(ids)); } catch { /* blocked */ }
+  };
+  // Today-only target sets per planned lift (routine exercise id -> sets), kept for this
+  // session on this device like the order. The routine changes only when the member says so.
+  const setsKey = session ? `mcz_bodiez_sets_${session.id}` : "";
+  const [setsOver, setSetsOverState] = useState({});
+  useEffect(() => {
+    if (!setsKey) return;
+    try { setSetsOverState(JSON.parse(localStorage.getItem(setsKey) || "{}")); } catch { setSetsOverState({}); }
+  }, [setsKey]);
+  const setTargetSets = (origId, n) => {
+    const next = { ...setsOver, [origId]: Math.max(1, Math.min(20, n)) };
+    setSetsOverState(next);
+    try { localStorage.setItem(setsKey, JSON.stringify(next)); } catch { /* blocked */ }
   };
   const planBlocksRef = useRef([]);
   const dndPlan = useDragReorder("today-ex", (from, to) => {
@@ -1688,7 +1742,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
                 onClick={() => onStart(null)}>
           <Play size={14} /> Start a custom session
         </button>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Log it lift by lift. When you end it, you can save it to RoutineZ to run again.
         </p>
         {routines.length > 0 && (
@@ -1697,7 +1751,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
             <div className="flex flex-wrap gap-2">
               {routines.map((r) => (
                 <button key={r.id} className="pill" onClick={() => onStart(r.id)}>
-                  {r.title} <span className="text-white/40">({asList(r.exercises).length})</span>
+                  {r.title} <span className="text-white/55">({asList(r.exercises).length})</span>
                 </button>
               ))}
             </div>
@@ -1716,7 +1770,8 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     .map((e) => {
       const id = swaps[e.exercise_id] ?? e.exercise_id;
       const ex = exercises.find((x) => x.id === id);
-      return { ...e, orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
+      return { ...e, sets: setsOver[e.exercise_id] ?? e.sets, routine_sets: e.sets ?? 3,
+               orig_id: e.exercise_id, exercise_id: id, name: ex?.name || `Exercise #${id}`,
                muscle_group: ex?.muscle_group, equipment: ex?.equipment, demo_url: ex?.demo_url };
     }) : [];
   const setsByExercise = {};
@@ -1747,6 +1802,9 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     swapFrom: (pickable || exercises).filter((x) => x.id === p.exercise_id || !planned.some((q) => q.exercise_id === x.id)),
     allExercises: exercises,
     onSwap: (id) => setSwaps((cur) => ({ ...cur, [p.orig_id]: id })),
+    onTarget: (n) => setTargetSets(p.orig_id, n),
+    onSaveTarget: onSaveRoutineExercises && routine ? (n) => onSaveRoutineExercises(routine.id,
+      asList(routine.exercises).map((e) => (e.exercise_id === p.orig_id ? { ...e, sets: n } : e))) : null,
   });
   // The most recent set, and the lift a rest alert should point at when it fires.
   const lastLogged = asList(session.sets).reduce(
@@ -1786,7 +1844,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
           <p className="text-sm font-semibold text-white">
             {session.routine_title || "Ad-hoc session"}
           </p>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Started {new Date(session.started_at).toLocaleTimeString()} ·{" "}
             <span className="font-mono text-mcz-cyan"><Elapsed since={session.started_at} /></span>
           </p>
@@ -1808,7 +1866,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
 
       {planned.length > 0 && (
         <div className="space-y-2">
-          <p className="re-label">Your plan <span className="font-normal normal-case text-white/35">— drag ⋮⋮ to change today's order</span></p>
+          <p className="re-label">Your plan <span className="font-normal normal-case text-white/50">— drag ⋮⋮ to change today's order</span></p>
           {(planBlocksRef.current = blocks(planned)).map((b, bi) => {
             const grip = <DragGrip label="Drag this exercise" {...dndPlan.grip(bi)} />;
             if (b.single) {
@@ -1858,7 +1916,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
       <div className="re-card space-y-2">
         <p className="re-label">{routine ? "Add an unplanned exercise" : "Pick a lift to log"}</p>
         {!routine && asList(session.sets).length === 0 && (
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             A custom session: pick a lift, log its sets, then the next. End it when you're done and save it to RoutineZ.
           </p>
         )}
@@ -1938,10 +1996,10 @@ function WorkoutWrite({ sessionId, onClose }) {
     <div className="re-card space-y-2">
       <div className="flex items-center justify-between">
         <p className="re-label">Write about this workout</p>
-        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close"><X size={16} /></button>
+        <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close"><X size={16} /></button>
       </div>
       {loadErr && <p role="alert" className="text-[11px] text-mcz-ember">{loadErr}</p>}
-      {!spec && !loadErr && <p className="text-[11px] text-white/40">Checking the price…</p>}
+      {!spec && !loadErr && <p className="text-[11px] text-white/55">Checking the price…</p>}
       {spec && (
         <>
           <div className="flex flex-wrap gap-1.5">
@@ -1987,7 +2045,7 @@ function SupersetPick({ id, pairs, lifts, nameOf, onChange }) {
   if (others.length === 0) return null;
   const partner = pairOf(pairs, id);
   return (
-    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/45">
+    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-white/60">
       <span className={partner != null ? "font-semibold text-fuchsia-200" : ""}>{partner != null ? "⇄ Superset with" : "Superset with"}</span>
       <select data-nomemo="true" aria-label={`Superset ${nameOf(id)} with`} value={partner ?? ""}
               className="min-w-0 flex-1 rounded border border-white/[0.08] bg-black/40 px-1.5 py-1 text-[11px] text-white outline-none"
@@ -2129,7 +2187,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
     <div className="re-card space-y-3">
       <div className="flex items-center justify-between">
         <p className="re-label">{editing ? `Edit workout — ${editing.routine_title || "Workout"}` : "Log a past workout"}</p>
-        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
+        <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white" onClick={() => setOpen(false)} aria-label="Close"><X size={16} /></button>
       </div>
       <div className="flex flex-wrap items-end gap-2">
         <Field label="Date" className="w-44" type="date" max={todayStr} value={date} onChange={(e) => setDate(e.target.value)}
@@ -2154,7 +2212,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
             <p className="min-w-0 flex-1 text-xs font-semibold text-white">
               {nameOf(g.exercise_id)}
               {exercises.find((e) => e.id === g.exercise_id)?.equipment && (
-                <span className="ml-1.5 font-normal text-white/40">
+                <span className="ml-1.5 font-normal text-white/55">
                   · {EQUIPMENT_LABEL[exercises.find((e) => e.id === g.exercise_id).equipment] || exercises.find((e) => e.id === g.exercise_id).equipment}
                 </span>
               )}
@@ -2189,7 +2247,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
                        className="w-20 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                        value={r.weight_kg != null ? String(fromKg(r.weight_kg, unit)) : ""}
                        onChange={(e) => patchSet(r.i, { weight_kg: e.target.value === "" ? null : toKg(Number(e.target.value), unit) })} />
-                <span className="text-white/35">{unit} ×</span>
+                <span className="text-white/50">{unit} ×</span>
                 <input aria-label="Reps" type="number" min="1" max="1000" inputMode="numeric"
                        className="w-16 rounded border border-white/[0.08] bg-black/40 px-2 py-1 text-xs text-white outline-none"
                        value={r.reps} onChange={(e) => patchSet(r.i, { reps: Number(e.target.value) || "" })} />
@@ -2228,7 +2286,7 @@ function PastWorkout({ exercises, pickable, routines = [], onSaved, editing = nu
       <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-50" disabled={busy || sets.length === 0 || sets.some((st) => !st.reps)} onClick={save}>
         {busy ? <Loader2 className="animate-spin" size={14} /> : `${editing ? "Save changes" : "Save workout"} (${sets.length} set${sets.length === 1 ? "" : "s"})`}
       </button>
-      <p className="text-[11px] text-white/40">
+      <p className="text-[11px] text-white/55">
         {editing
           ? "Your records, body map and goals are recounted from the edited sets. Sets you keep keep their measured rest; new ones have none."
           : "Counts toward your records, body map and goals like any workout. Rest times and duration aren't recorded for one you log afterwards."}
@@ -2273,7 +2331,7 @@ function AccessPanel({ access, onChange, shown, total }) {
           What I can do
           {restricted && <span className="ml-2 text-[11px] font-normal text-mcz-cyan">showing {shown} of {total} exercises</span>}
         </span>
-        <span className="text-[11px] text-white/40">{open ? "Hide" : restricted ? "Change" : "Set up"}</span>
+        <span className="text-[11px] text-white/55">{open ? "Hide" : restricted ? "Change" : "Set up"}</span>
       </button>
       {open && (
         <div className="space-y-1.5">
@@ -2283,11 +2341,11 @@ function AccessPanel({ access, onChange, shown, total }) {
                      onChange={(e) => onChange(r.set(e.target.checked))} />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm text-white">{r.label}</span>
-                <span className="block text-[11px] text-white/40">{r.hint}</span>
+                <span className="block text-[11px] text-white/55">{r.hint}</span>
               </span>
             </label>
           ))}
-          <p className="text-[11px] text-white/35">
+          <p className="text-[11px] text-white/50">
             This only changes which exercises you are offered. It never changes a rating, a score or a goal.
             Past sessions keep their exercises either way.
           </p>
@@ -2398,7 +2456,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
     <div className="re-card space-y-3 border-fuchsia-400/30">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-white">Editing "{routine.title}"</p>
-        <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close">
+        <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white" onClick={onClose} aria-label="Close">
           <X size={16} />
         </button>
       </div>
@@ -2412,7 +2470,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
       <RoutineTime items={rows} restSeconds={restSeconds} />
 
       {rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-white/55">
           No exercises yet — add some from the library below.
         </p>
       )}
@@ -2437,7 +2495,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                 {ex?.name || `#${r.exercise_id}`}
                 {r.added && <span className="ml-1.5 text-[10px] font-normal text-mcz-cyan/80">added by the Planner</span>}
               </p>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/55">
                 {MUSCLE_LABEL[ex?.muscle_group] || ex?.muscle_group}
                 {ex?.equipment && ` · ${EQUIPMENT_LABEL[ex.equipment] || ex.equipment}`}
                 {ex?.demo_url && <> · <DemoLink url={ex.demo_url} /></>}
@@ -2507,7 +2565,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
 
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="re-label">Add from the library</p>
-        {demoCredit && <p className="text-[11px] text-white/35">{demoCredit}</p>}
+        {demoCredit && <p className="text-[11px] text-white/50">{demoCredit}</p>}
         <select aria-label="Muscle group" className="max-w-full rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-xs text-white outline-none"
                 value={muscle} onChange={(e) => setMuscle(e.target.value)}>
           <option value="">All muscle groups</option>
@@ -2537,7 +2595,7 @@ function RoutineDesigner({ routine, exercises, pickable, demoCredit, onSave, onC
                 <span className="flex items-center gap-1.5">
                   <Dumbbell size={12} className="shrink-0 text-white/30" /> {ex.name}
                 </span>
-                <span className="text-white/35">
+                <span className="text-white/50">
                   {MUSCLE_LABEL[ex.muscle_group]} · {EQUIPMENT_LABEL[ex.equipment]}
                 </span>
               </button>
@@ -2602,7 +2660,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
       <ImportWorkouts exercises={exercises} onImported={onImported} muscles={MUSCLE_LABEL} equipment={EQUIPMENT_LABEL} />
       <section className="space-y-2">
         <p className="re-label">Have the Planner build one</p>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Pick the criteria — muscles (or the whole body), equipment, goal, how many exercises per muscle, how long you
           have — and it builds from the library and your own BodyMap. Free: no 🏷️, no AI, just your data. What it
           saves is yours to edit like any other routine.
@@ -2619,7 +2677,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
                           onBuildSplit={onBuildSplit} />
           </>
         ) : (
-          <p className="text-xs text-white/40">The Planner needs the exercise library to load first.</p>
+          <p className="text-xs text-white/55">The Planner needs the exercise library to load first.</p>
         )}
       </section>
 
@@ -2640,13 +2698,13 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
                 <button key={k || "all"} onClick={() => setFilter(k)}
                         className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
                           filter === k ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
-                  {label} <span className="text-white/35">{n}</span>
+                  {label} <span className="text-white/50">{n}</span>
                 </button>
               ))}
           </div>
         )}
         {shown.length === 0 && (
-          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+          <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/55">
             No routines yet — have the Planner build one above, make your own, or turn a logged workout below into one.
           </p>
         )}
@@ -2662,19 +2720,19 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
                       {SOURCE_LABEL[sourceOf(r)]}
                     </span>
                   </div>
-                  <p className="text-xs text-white/45">
+                  <p className="text-xs text-white/60">
                     {items.length} exercise{items.length === 1 ? "" : "s"}
                     {items.length > 0 && <>: {items.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0)).slice(0, 4).map((e) => nameOf(e.exercise_id)).join(", ")}{items.length > 4 ? "…" : ""}</>}
                   </p>
-                  {r.description && <p className="text-[11px] text-white/40">{r.description}</p>}
+                  {r.description && <p className="text-[11px] text-white/55">{r.description}</p>}
                   <p className="text-[11px]" title={bodymap?.rating_caveat}>
                     {r.coach_rating != null
                       ? <span className="font-semibold text-emerald-200">Thorough {r.coach_rating}/10</span>
-                      : <span className="text-white/35">Thorough: not rated yet</span>}
-                    {r.coach_why && <span className="text-white/40"> — {r.coach_why}</span>}
+                      : <span className="text-white/50">Thorough: not rated yet</span>}
+                    {r.coach_why && <span className="text-white/55"> — {r.coach_why}</span>}
                   </p>
                   {asList(r.coach_exercises).length > 0 && (
-                    <p className="text-[10px] text-white/40">
+                    <p className="text-[10px] text-white/55">
                       {asList(r.coach_exercises).map((e) => `${nameOf(e.exercise_id)} ${e.rating ?? "–"}`).join(" · ")}
                     </p>
                   )}
@@ -2749,7 +2807,7 @@ function RoutineZView({ routines, exercises, pickable, demoCredit, coach, bodyma
 
       <section className="space-y-2">
         <p className="re-label">Logged workouts</p>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Every workout you have logged — to fix a set, make it a routine, or delete it — lives in SessionZ.
         </p>
         <button className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs inline-flex items-center gap-1" onClick={onOpenSessionZ}>
@@ -2882,7 +2940,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
           )}
         </div>
         {startable.length === 0 ? (
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             No routines yet.{" "}
             <button className="text-mcz-cyan hover:underline" onClick={onOpenRoutineZ}>Have the Planner build one in RoutineZ</button>
           </p>
@@ -2911,10 +2969,10 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
                 </button>
               </div>
               {items.length === 0 ? (
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/60">
                   No lifts in this one yet. <button className="text-mcz-cyan hover:underline" onClick={onOpenRoutineZ}>Add some in RoutineZ</button>
                 </p>
-              ) : gear.length > 0 && <p className="text-[11px] text-white/40">{gear.join(", ")}</p>}
+              ) : gear.length > 0 && <p className="text-[11px] text-white/55">{gear.join(", ")}</p>}
               {fitId === picked.id && (
                 <EquipmentFit key={picked.id} routine={picked} exercises={exercises} pickable={pickable} sessionOpen={sessionOpen}
                               onApply={(list) => onSaveExercises(picked.id, list)}
@@ -2929,7 +2987,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
       <section className="re-card space-y-2">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="re-label">SessionZ — every workout you've logged</p>
-          {meta.totals && <p className="text-[11px] text-white/45">{totalsLine(meta.totals, fmt)}, all time</p>}
+          {meta.totals && <p className="text-[11px] text-white/60">{totalsLine(meta.totals, fmt)}, all time</p>}
         </div>
         <Field label="Search" className="w-full" placeholder="a lift or a routine" value={q}
                onChange={(e) => setQ(e.target.value)} />
@@ -2962,7 +3020,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
         <p className="flex items-center gap-2 text-xs text-white/50"><Loader2 className="animate-spin" size={14} /> Loading your sessions…</p>
       )}
       {!loading && rows.length === 0 && !err && (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/55">
           {narrowed ? "No sessions match that." : "Nothing logged yet. Finish a session on Today, or log a past one."}
         </p>
       )}
@@ -2984,7 +3042,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
           <div key={h.id} className={`re-card !p-3 space-y-2 ${h.check?.length ? "border-amber-400/30" : ""}`}>
             <div className="flex items-start gap-3">
               <div className="w-12 shrink-0 rounded-lg bg-white/5 py-1.5 text-center leading-tight">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/45">{when.toLocaleDateString(undefined, { month: "short" })}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-white/60">{when.toLocaleDateString(undefined, { month: "short" })}</p>
                 <p className="font-display text-lg font-bold text-white">{when.getDate()}</p>
               </div>
               <div className="min-w-0 flex-1">
@@ -2992,13 +3050,13 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
                 <p className="text-[11px] text-white/50">
                   {[durationText(h.duration_seconds, clock), `${sets.length} set${sets.length === 1 ? "" : "s"}`,
                     h.reps ? `${h.reps} reps` : ""].filter(Boolean).join(" · ")}
-                  {h.backfilled && <span className="ml-1.5 text-white/35">logged afterwards</span>}
+                  {h.backfilled && <span className="ml-1.5 text-white/50">logged afterwards</span>}
                 </p>
-                {names.length > 0 && <p className="truncate text-[11px] text-white/35">{names.slice(0, 4).join(", ")}{names.length > 4 ? ` +${names.length - 4}` : ""}</p>}
+                {names.length > 0 && <p className="truncate text-[11px] text-white/50">{names.slice(0, 4).join(", ")}{names.length > 4 ? ` +${names.length - 4}` : ""}</p>}
               </div>
               <div className="shrink-0 text-right">
                 <p className="font-display text-lg font-bold leading-tight text-white">{h.volume_kg ? fmt(h.volume_kg) : "—"}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/40">lifted</p>
+                <p className="text-[10px] uppercase tracking-wide text-white/55">lifted</p>
               </div>
             </div>
             {(h.done_pct != null || routine?.coach_rating != null) && (
@@ -3033,7 +3091,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
               </button>
             </div>
             {!routine && sets.length > 0 && !sessionOpen && (
-              <p className="text-[10px] text-white/35">Save &amp; begin keeps this workout as a routine in RoutineZ, then starts it. Free.</p>
+              <p className="text-[10px] text-white/50">Save &amp; begin keeps this workout as a routine in RoutineZ, then starts it. Free.</p>
             )}
             {asList(h.check).map((note, i) => <p key={i} className="text-[11px] text-amber-200">⚠ {note}</p>)}
             {moreId === h.id && (
@@ -3075,7 +3133,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
       {meta.has_more && (
         <button className="neon-btn-ghost !w-auto px-4 py-2 text-xs inline-flex items-center gap-1" disabled={more} onClick={loadMore}>
           {more ? <Loader2 className="animate-spin" size={13} /> : null}
-          Show {Math.min(LOG_PAGE, meta.total - rows.length)} more <span className="text-white/40">({rows.length} of {meta.total})</span>
+          Show {Math.min(LOG_PAGE, meta.total - rows.length)} more <span className="text-white/55">({rows.length} of {meta.total})</span>
         </button>
       )}
       {!meta.has_more && rows.length > 0 && <p className="text-center text-[11px] text-white/30">That's all {meta.total} {narrowed ? "that match" : "of them"}.</p>}
@@ -3146,7 +3204,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
 
       <div className="re-card space-y-2">
         <p className="re-label">My days</p>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           Name your own days (Leg day, Gym with Sam) and tag routines with them next to Mon–Sun.
         </p>
         {customDays.length > 0 && (
@@ -3178,7 +3236,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
               bucket === b.key ? "bg-fuchsia-500/20 text-fuchsia-200 ring-1 ring-fuchsia-400/40"
                                : "bg-white/5 text-white/60 hover:bg-white/10"}`}>
             {b.label}
-            <span className="text-white/35">{asList(buckets[b.key]).length}</span>
+            <span className="text-white/50">{asList(buckets[b.key]).length}</span>
           </button>
         ))}
       </div>
@@ -3194,7 +3252,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
             <button key={d.key} onClick={() => setDayFilter(dayFilter === d.key ? "" : d.key)}
                     className={`rounded-full px-2.5 py-1 text-[11px] transition-all ${
                       dayFilter === d.key ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40" : "bg-white/5 text-white/50 hover:bg-white/10"}`}>
-              {d.label} <span className="text-white/35">{dayCounts[d.key]}</span>
+              {d.label} <span className="text-white/50">{dayCounts[d.key]}</span>
             </button>
           ))}
         </div>
@@ -3208,7 +3266,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
       )}
 
       {rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/55">
           Nothing in here.
         </p>
       )}
@@ -3224,7 +3282,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                   </span>
                 )}
               </div>
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-white/60">
                 {asList(r.exercises).length} exercise{asList(r.exercises).length === 1 ? "" : "s"}
                 {r.scheduled_for && (
                   <span className="ml-2 inline-flex items-center gap-1 text-mcz-cyan">
@@ -3232,7 +3290,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                   </span>
                 )}
               </p>
-              {r.description && <p className="text-[11px] text-white/40 mt-0.5">{r.description}</p>}
+              {r.description && <p className="text-[11px] text-white/55 mt-0.5">{r.description}</p>}
             </div>
             <div className="flex gap-2">
               {bucket !== "trash" && (
@@ -3265,7 +3323,7 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                         const d = window.prompt("Schedule for (YYYY-MM-DD):", "");
                         if (d) onSchedule(r.id, d);
                       }}
-                      className="text-[11px] text-white/40 hover:text-white/70 inline-flex items-center gap-1">
+                      className="text-[11px] text-white/55 hover:text-white/70 inline-flex items-center gap-1">
                 <CalendarDays size={12} /> Schedule
               </button>
             )}
@@ -3284,12 +3342,12 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
                       const d = window.prompt("Routine description:", r.description || "");
                       if (d != null) onEditMeta(r.id, routineDay(r), d);
                     }}
-                    className="text-[11px] text-white/40 hover:text-white/70">
+                    className="text-[11px] text-white/55 hover:text-white/70">
               {r.description ? "Edit note" : "Add note"}
             </button>
             {otherBuckets.map((b) => (
               <button key={b.key} onClick={() => onMove(r.id, b.key)}
-                      className="text-[11px] text-white/40 hover:text-white/70">
+                      className="text-[11px] text-white/55 hover:text-white/70">
                 Move to {b.label}
               </button>
             ))}
@@ -3322,7 +3380,7 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
   const muscles = applyMuscles(allMuscles, (m) => m.muscle_group, pick);
   return (
     <div className="space-y-3">
-      <p className="text-xs text-white/45">
+      <p className="text-xs text-white/60">
         Trailing {bodymap.window_days} days. "Overworked" counts separate training
         days, not sets — five sets in one session isn't five sessions. Tap a
         muscle for your score and every exercise the library has for it.
@@ -3358,13 +3416,13 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                           Thorough {m.coach_rating}/10
                         </span>
                       ) : (
-                        <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/35 ring-1 ring-white/10"
+                        <span className="rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-white/50 ring-1 ring-white/10"
                               title={m.coach_why}>
                           Thorough: not rated yet
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-white/45">
+                    <p className="text-xs text-white/60">
                       {m.last_trained
                         ? `Last trained ${new Date(m.last_trained).toLocaleDateString()}`
                         : "Never trained"}
@@ -3403,12 +3461,12 @@ function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
                     <p className="text-[10px] text-white/30">{bodymap.rating_caveat}</p>
                     {m.coach_rating != null && <AskAI scope="muscle" id={m.muscle_group} />}
                   </div>
-                  <p className="text-[11px] text-white/35">
+                  <p className="text-[11px] text-white/50">
                     Score = {m.sets_last_7d} set{m.sets_last_7d === 1 ? "" : "s"} logged this week ÷{" "}
                     {bodymap.target_weekly_sets}-set weekly target, capped at 10. {bodymap.volume_citation}
                   </p>
                   {pool.length === 0 ? (
-                    <p className="text-xs text-white/40">No exercises in the library for {m.label} yet.</p>
+                    <p className="text-xs text-white/55">No exercises in the library for {m.label} yet.</p>
                   ) : (
                     <div className="space-y-1">
                       {pool.map((ex) => (
@@ -3456,7 +3514,7 @@ function RoutineTime({ items, restSeconds, className = "" }) {
   return (
     <p className={`text-[11px] text-white/55 ${className}`}>
       <span className="font-semibold text-mcz-cyan">{label}</span>{" "}
-      <span className="text-white/35">{routineTimeNote(restSeconds)}</span>
+      <span className="text-white/50">{routineTimeNote(restSeconds)}</span>
     </p>
   );
 }
@@ -3534,11 +3592,11 @@ function BuildRoutine({ bodymap, exercises, pickable, goals, onBuildRoutine }) {
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
           <Wand2 size={14} className="text-fuchsia-300" /> Build a routine from BodyMap
         </span>
-        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+        {open ? <ChevronUp size={16} className="text-white/55" /> : <ChevronDown size={16} className="text-white/55" />}
       </button>
       {open && (
         <div className="space-y-2 pt-1">
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Picks up to six muscle groups and the number of exercises you choose for each, starting with whatever BodyMap
             calls untrained or undertrained — real training-load data, not a guess.
           </p>
@@ -3558,15 +3616,15 @@ function BuildRoutine({ bodymap, exercises, pickable, goals, onBuildRoutine }) {
                 {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest
               </p>
               <p className="mt-0.5">{goal.why}</p>
-              <p className="mt-1 text-white/35">{goal.citation}</p>
+              <p className="mt-1 text-white/50">{goal.citation}</p>
             </div>
           )}
           {shortNote(picks, [...new Set(picks.map((e) => e.muscle_group))], perMuscle) && (
-            <p className="text-[11px] text-white/45">{shortNote(picks, [...new Set(picks.map((e) => e.muscle_group))], perMuscle)}</p>
+            <p className="text-[11px] text-white/60">{shortNote(picks, [...new Set(picks.map((e) => e.muscle_group))], perMuscle)}</p>
           )}
           <RoutineTime items={goalItems(picks, goal)} restSeconds={goal?.rest_seconds} />
           {picks.length === 0 ? (
-            <p className="text-xs text-white/40">Not enough BodyMap data yet — log a session first.</p>
+            <p className="text-xs text-white/55">Not enough BodyMap data yet — log a session first.</p>
           ) : (
             <div className="space-y-1">
               {picks.map((ex, i) => (
@@ -3637,11 +3695,11 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
           <CalendarDays size={14} className="text-mcz-cyan" /> Build a week — split by training days
         </span>
-        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+        {open ? <ChevronUp size={16} className="text-white/55" /> : <ChevronDown size={16} className="text-white/55" />}
       </button>
       {open && (
         <div className="space-y-2 pt-1">
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Pick how many days a week you train and BodieZ builds one real routine
             per day — full body, upper/lower, push/pull/legs or a body-part split,
             each covering every muscle group across the week.
@@ -3671,7 +3729,7 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                 {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest — every day
               </p>
               <p className="mt-0.5">{goal.why}</p>
-              <p className="mt-1 text-white/35">{goal.citation}</p>
+              <p className="mt-1 text-white/50">{goal.citation}</p>
             </div>
           )}
           {preview.length > 0 && (
@@ -3692,12 +3750,12 @@ function SplitBuilder({ bodymap, exercises, goals, splits, onBuildSplit }) {
                   )}
                   <RoutineTime items={goalItems(day.picks, goal)} restSeconds={goal?.rest_seconds} className="mt-0.5" />
                   {shortNote(day.picks, day.muscles, perMuscle) && (
-                    <p className="text-[11px] text-white/40">{shortNote(day.picks, day.muscles, perMuscle)}</p>
+                    <p className="text-[11px] text-white/55">{shortNote(day.picks, day.muscles, perMuscle)}</p>
                   )}
                 </div>
               ))}
               {days > 1 && (
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-white/50">
                   "Arms" appears on more than one day above where the split names a Push and a
                   Pull day — the library doesn't separate biceps from triceps, so the whole arms
                   bucket rides on both rather than being silently dropped from one.
@@ -3796,11 +3854,11 @@ function MuscleDayBuilder({ exercises, pickable, goals, dayTagLabels, initialMus
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
           <Dumbbell size={14} className="text-emerald-300" /> Build a day — pick the muscles yourself
         </span>
-        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+        {open ? <ChevronUp size={16} className="text-white/55" /> : <ChevronDown size={16} className="text-white/55" />}
       </button>
       {open && (
         <div className="space-y-2 pt-1">
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             No named split — just the muscles this day trains. Good for training around what
             you can do, not what a textbook split assumes: e.g. biceps + triceps + forearms +
             shoulders one day, chest + back + abs the next, however many days a week suits you.
@@ -3854,20 +3912,20 @@ function MuscleDayBuilder({ exercises, pickable, goals, dayTagLabels, initialMus
                 {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest
               </p>
               <p className="mt-0.5">{goal.why}</p>
-              <p className="mt-1 text-white/35">{goal.citation}</p>
+              <p className="mt-1 text-white/50">{goal.citation}</p>
             </div>
           )}
           {shortNote(allPicks, muscles, perMuscle) && (
-            <p className="text-[11px] text-white/45">{shortNote(allPicks, muscles, perMuscle)}</p>
+            <p className="text-[11px] text-white/60">{shortNote(allPicks, muscles, perMuscle)}</p>
           )}
           {trimmed > 0 && (
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               {trimmed} exercise{trimmed === 1 ? "" : "s"} left out to fit {minutes} min — pick a longer time to keep {trimmed === 1 ? "it" : "them"}.
             </p>
           )}
           <RoutineTime items={goalItems(picks, goal)} restSeconds={goal?.rest_seconds} />
           {muscles.length === 0 ? (
-            <p className="text-xs text-white/40">Pick at least one muscle group above.</p>
+            <p className="text-xs text-white/55">Pick at least one muscle group above.</p>
           ) : picks.length === 0 ? (
             <p className="text-xs text-mcz-ember">No exercises match that equipment for these muscles.</p>
           ) : (
@@ -3910,7 +3968,7 @@ function CoachView({ coach, onOpenRoutineZ }) {
   const labels = asDict(coach.labels);
   return (
     <div className="space-y-3">
-      <p className="text-xs text-white/45 inline-flex items-center gap-1">
+      <p className="text-xs text-white/60 inline-flex items-center gap-1">
         <Activity size={12} /> Built from your own logged sets — no AI, no guessing.
         An exercise untouched {coach.stale_after_days}+ days gets flagged to reintroduce or swap.
       </p>
@@ -3922,7 +3980,7 @@ function CoachView({ coach, onOpenRoutineZ }) {
       </button>
 
       {rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/55">
           Log a couple of sessions and Insights will have something to say.
         </p>
       )}
@@ -3946,7 +4004,7 @@ function CoachView({ coach, onOpenRoutineZ }) {
 // `untrained` status makes for a muscle group nothing has touched.
 function GoalBar({ pct }) {
   if (pct == null) {
-    return <p className="text-[11px] text-white/40">No data logged toward this yet.</p>;
+    return <p className="text-[11px] text-white/55">No data logged toward this yet.</p>;
   }
   return (
     <div className="h-2 overflow-hidden rounded-full bg-white/10">
@@ -4037,7 +4095,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
               Log
             </button>
             {weightLogs[0] && (
-              <span className="text-[11px] text-white/40">
+              <span className="text-[11px] text-white/55">
                 Last: {fmtWeight(weightLogs[0].weight_kg, unit)} on {new Date(weightLogs[0].logged_at).toLocaleDateString()}
               </span>
             )}
@@ -4046,7 +4104,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
       )}
 
       {rows.length === 0 && (
-        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/40">
+        <p className="rounded-xl border border-dashed border-white/10 px-3 py-6 text-center text-xs text-white/55">
           No goals set yet.
         </p>
       )}
@@ -4057,7 +4115,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
               <p className="flex items-center gap-1.5 text-sm font-semibold text-white">
                 <Target size={13} className="shrink-0 text-fuchsia-300" /> {g.title}
               </p>
-              <p className="text-xs text-white/45">
+              <p className="text-xs text-white/60">
                 {g.exercise_name ? `${g.exercise_name} — ` : ""}
                 target {g.kind === "strength" || g.kind === "bodyweight" ? fmtWeight(g.target_value, unit) : g.target_value}
                 {g.target_reps ? ` x${g.target_reps}` : ""}
@@ -4089,7 +4147,7 @@ function GoalsView({ goals, exercises, weightLogs, onCreate, onDelete, onLogWeig
           </div>
           <GoalBar pct={g.pct} />
           {g.current_value != null && (
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-white/55">
               Currently {g.kind === "strength" || g.kind === "bodyweight" ? fmtWeight(g.current_value, unit) : g.current_value}
               {g.pct != null && ` · ${g.pct}%`}
             </p>
@@ -4166,7 +4224,7 @@ function RecoveryView({ recovery, onLog }) {
       </div>
 
       <div className="space-y-1">
-        {logs.length === 0 && <p className="text-xs text-white/40">No check-ins yet.</p>}
+        {logs.length === 0 && <p className="text-xs text-white/55">No check-ins yet.</p>}
         {logs.map((l) => (
           <div key={l.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-xs">
             <span className="text-white/70">{new Date(l.logged_at).toLocaleDateString()}</span>
@@ -4252,6 +4310,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
 
   return (
     <div className="space-y-5">
+      <WatchSteps />
       <div className="re-card">
         <div className="flex items-end justify-between gap-3">
           <div>
@@ -4283,7 +4342,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
               <Sparkles size={16} className="text-fuchsia-300" />
               <span className="font-semibold">Step Quality Coach</span>
             </span>
-            {showCoach ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+            {showCoach ? <ChevronUp size={16} className="text-white/55" /> : <ChevronDown size={16} className="text-white/55" />}
           </button>
 
           {showCoach && (
@@ -4316,7 +4375,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
                 )
               ))}
 
-              <p className="text-xs text-white/40 pt-2">{coachCaveat}</p>
+              <p className="text-xs text-white/55 pt-2">{coachCaveat}</p>
             </div>
           )}
         </div>
@@ -4367,14 +4426,14 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
             {isLogging ? <Loader2 className="animate-spin" size={16} /> : "Log"}
           </button>
         </div>
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-white/55">
           Log steps from your smartwatch or type them in. Each entry adds to today's total.
         </p>
         {stepCoach?.total_steps > 0 && (
           <p className="text-xs text-white/50">
             Last 7 days: <span className="font-semibold text-emerald-300">{stepCoach.total_steps.toLocaleString()}</span> steps
             {stepCoach.avg_per_logged_day != null && <> · {stepCoach.avg_per_logged_day.toLocaleString()} on the days you logged</>}
-            {stepCoach.caveat && <span className="block pt-1 text-white/40">{stepCoach.caveat}</span>}
+            {stepCoach.caveat && <span className="block pt-1 text-white/55">{stepCoach.caveat}</span>}
           </p>
         )}
       </div>
@@ -4382,7 +4441,7 @@ function StepZView({ steps, stepCoach, bodymap, onLogSteps }) {
       <div className="space-y-2">
         <p className="text-xs font-semibold text-white/70">Recent logs</p>
         {stepList.length === 0 && (
-          <p className="text-xs text-white/40">No steps logged yet today.</p>
+          <p className="text-xs text-white/55">No steps logged yet today.</p>
         )}
         {stepList.map((log) => (
           <div key={log.id} className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">

@@ -127,7 +127,7 @@ function MembershipZInner() {
         <IconImg icon="money.png" alt="MembershipZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">MembershipZ</h2>
-          <p className="text-xs text-white/45">Upgrade your tier for lower fees, more energy and more AI prompts.</p>
+          <p className="text-xs text-white/60">Upgrade your tier for lower fees, more energy and more AI prompts.</p>
         </div>
       </header>
 
@@ -169,8 +169,8 @@ function MembershipZInner() {
             </button>
           </div>
         )}
-        {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
-        <p className="text-[11px] text-white/45"><Term k="statz">What is StatZ?</Term></p>
+        {!stripeOn && <p className="text-[11px] text-white/60">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
+        <p className="text-[11px] text-white/60"><Term k="statz">What is StatZ?</Term></p>
         {mine === "statz" && <p className="text-[11px] text-emerald-300">You're already on StatZ — thank you! 🎉</p>}
       </div>
 
@@ -182,7 +182,7 @@ function MembershipZInner() {
       <div className="re-card overflow-x-auto" data-tour="membershipz-plans">
         <table className="w-full min-w-[420px] text-sm">
           <thead>
-            <tr className="text-left text-white/45">
+            <tr className="text-left text-white/60">
               <th className="py-2 font-medium">Perk</th>
               <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Star size={14} /> Free <TierBadge k="free">Free</TierBadge></div></th>
               <th className="py-2 text-center font-medium"><div className="flex flex-col items-center gap-1"><Zap size={14} className="text-mcz-cyan" /> Premium <TierBadge k="premium">{ladder ? `${money(price("premium", "month"))}/mo` : "Premium"}</TierBadge></div></th>
@@ -230,7 +230,7 @@ function MembershipZInner() {
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[420px] text-left text-[11px]">
-            <thead className="text-white/40">
+            <thead className="text-white/55">
               <tr><th className="py-1">&nbsp;</th><th className="py-1 text-center">Free</th>
                   <th className="py-1 text-center">Premium</th><th className="py-1 text-center">StatZ</th></tr>
             </thead>
@@ -260,7 +260,7 @@ function MembershipZInner() {
                 </p>
                 {TIER_ORDER.map((t) => a[t] === "—" ? null : (
                   <p key={t} className="pl-6 text-[11px] leading-relaxed text-white/55">
-                    <span className={`mr-1 font-semibold ${t === mine ? "text-mcz-ember" : "text-white/40"}`}>
+                    <span className={`mr-1 font-semibold ${t === mine ? "text-mcz-ember" : "text-white/55"}`}>
                       {t === "statz" ? "StatZ" : t === "premium" ? "Premium" : "Free"}
                     </span>
                     {a[t]}
@@ -312,7 +312,7 @@ function MembershipZInner() {
           </div>
         ))}
       </div>
-      {!stripeOn && <p className="text-[11px] text-white/45">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
+      {!stripeOn && <p className="text-[11px] text-white/60">Card payments are being switched on — buttons go live once Stripe is configured.</p>}
 
       {/* The owner's test switch. The server answers 403 to anybody else, and
           only sends `switchable` to the owner, so this renders for nobody else. */}
@@ -331,7 +331,7 @@ function MembershipZInner() {
         </div>
       )}
 
-      <p className="flex items-center gap-1.5 text-[11px] text-white/40">
+      <p className="flex items-center gap-1.5 text-[11px] text-white/55">
         <Sparkles size={12} /> Prices are grandfathered — founding members keep their rate even after public prices rise.
       </p>
     </div>

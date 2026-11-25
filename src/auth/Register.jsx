@@ -195,7 +195,7 @@ export default function Register() {
       {!STANDALONE && <p className="text-sm font-semibold text-white">Sign up in one tap</p>}
       <OAuthButtons first onSuccess={() => navigate("/")} onError={setError} />
       {!STANDALONE && (
-        <div className="flex items-center gap-3 text-xs text-white/40">
+        <div className="flex items-center gap-3 text-xs text-white/55">
           <span className="h-px flex-1 bg-white/10" /> or sign up with email <span className="h-px flex-1 bg-white/10" />
         </div>
       )}
@@ -213,7 +213,7 @@ export default function Register() {
               {handle.available ? `${form.username.trim()} is free.` : handle.reason}
             </p>
           )}
-          {!handle && handleRule && <p className="mt-1 text-[11px] text-white/35">{handleRule}</p>}
+          {!handle && handleRule && <p className="mt-1 text-[11px] text-white/50">{handleRule}</p>}
         </div>
         <Field icon={AtSign} type="email" placeholder="Email" value={form.email} onChange={set("email")} autoComplete="email" />
         <PasswordField placeholder="Password (8+ characters)" value={form.password} onChange={set("password")} autoComplete="new-password" />
@@ -225,12 +225,12 @@ export default function Register() {
         <div className="relative">
           <input type="date" className="neon-input" value={form.birthday} onChange={set("birthday")}
                  aria-label="Birthday (for ZodiacZ)" />
-          <p className="mt-1 text-[11px] text-white/35">{STANDALONE ? "Birthday (optional)" : "Birthday (optional) — unlocks your ZodiacZ sign"}</p>
+          <p className="mt-1 text-[11px] text-white/50">{STANDALONE ? "Birthday (optional)" : "Birthday (optional) — unlocks your ZodiacZ sign"}</p>
         </div>
           </div>
         ) : (
           <button type="button" onClick={() => setShowOptional(true)}
-                  className="text-xs text-white/45 hover:text-white/75">
+                  className="text-xs text-white/60 hover:text-white/75">
             {STANDALONE ? "+ Add phone or birthday (optional)" : "+ Add phone or birthday (optional — birthday unlocks your ZodiacZ sign)"}
           </button>
         )}
@@ -312,7 +312,7 @@ function Field({ icon: Icon, required = true, ...props }) {
   // nothing here can make a field required by accident again.
   return (
     <div className="relative">
-      <Icon size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+      <Icon size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
       <input className="neon-input pl-10" {...props} required={required} />
     </div>
   );

@@ -117,16 +117,16 @@ export default function PortfolioLinks() {
   return (
     <div className="space-y-3" data-tour="portfolio-links">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/60">
           <Link2 size={12} className="mr-1 inline" /> Your portfolio — links that say who you are
         </p>
         {known && (
-          <span className={`text-[11px] ${full ? "text-mcz-ember" : "text-white/45"}`}>
+          <span className={`text-[11px] ${full ? "text-mcz-ember" : "text-white/60"}`}>
             {rows.length} / {limit} links
           </span>
         )}
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         Tracks, videos, your site, your shop. They show on your profile, and visitors can open them right on
         the screen instead of leaving it.
       </p>
@@ -154,12 +154,12 @@ export default function PortfolioLinks() {
                    maxLength={80} value={r.label} onChange={(e) => edit(i, { label: e.target.value })} />
             <input className="neon-input !py-1.5 min-w-0 flex-[2] basis-48 text-sm" aria-label={`Link ${i + 1} address`}
                    maxLength={500} value={r.url} onChange={(e) => edit(i, { url: e.target.value })} />
-            {how(r.url) && <span className="text-[10px] text-white/40">{how(r.url)}</span>}
-            <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-20" aria-label={`Move link ${i + 1} up`}
+            {how(r.url) && <span className="text-[10px] text-white/55">{how(r.url)}</span>}
+            <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white disabled:opacity-20" aria-label={`Move link ${i + 1} up`}
                     disabled={i === 0} onClick={() => setRows(moveRow(rows, i, -1))}><ArrowUp size={14} /></button>
-            <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-white disabled:opacity-20" aria-label={`Move link ${i + 1} down`}
+            <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-white disabled:opacity-20" aria-label={`Move link ${i + 1} down`}
                     disabled={i === rows.length - 1} onClick={() => setRows(moveRow(rows, i, 1))}><ArrowDown size={14} /></button>
-            <button className="rounded p-1.5 text-white/40 hover:bg-white/10 hover:text-mcz-ember" aria-label={`Remove link ${i + 1}`}
+            <button className="rounded p-1.5 text-white/55 hover:bg-white/10 hover:text-mcz-ember" aria-label={`Remove link ${i + 1}`}
                     onClick={() => setRows(rows.filter((_, k) => k !== i))}><Trash2 size={14} /></button>
           </li>
         ))}
@@ -194,7 +194,7 @@ export default function PortfolioLinks() {
         <button className="neon-btn-primary !w-auto px-4 py-2 text-xs disabled:opacity-40" disabled={!dirty || busy} onClick={save}>
           {busy ? <Loader2 className="animate-spin" size={13} /> : "Save links"}
         </button>
-        {dirty && !busy && <span className="text-[11px] text-white/45">Not saved yet.</span>}
+        {dirty && !busy && <span className="text-[11px] text-white/60">Not saved yet.</span>}
       </div>
       {note && <p role="status" className="text-[11px] text-white/65">{note}</p>}
       {err && <p role="alert" className="text-xs text-mcz-ember">{err}</p>}

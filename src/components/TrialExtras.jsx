@@ -32,7 +32,7 @@ export function ExampleCard({ example, open: startOpen = false, title }) {
       </button>
       {open && (
         <div className="mt-2 space-y-1.5">
-          <p className="text-[11px] text-white/45">{who} own take, scored by this same coach. Yours gets the same read.</p>
+          <p className="text-[11px] text-white/60">{who} own take, scored by this same coach. Yours gets the same read.</p>
           {/* The real recording that earned the number, when it was kept — hear it, then
               read what the coach said about it. Never a stand-in: no recording, no player. */}
           {example.audio && !gone && (example.audio_kind === "video"
@@ -123,7 +123,7 @@ export function PracticeBeat({ vocal }) {
                   className={`pill !text-[11px] ${beat.bpm === t ? "pill-on" : ""}`}>{l} · {t} BPM</button>
         ))}
       </div>
-      <p className="text-[11px] text-white/40">Headphones if you have them — otherwise the beat ends up in your recording too.</p>
+      <p className="text-[11px] text-white/55">Headphones if you have them — otherwise the beat ends up in your recording too.</p>
     </div>
   );
 }
@@ -132,10 +132,10 @@ export function EmailMe({ remind, value, onChange }) {
   if (!remind?.ready) return null;
   return (
     <label className="block space-y-1">
-      <span className="text-[12px] text-white/70">Email me the score <span className="text-white/40">(optional)</span></span>
+      <span className="text-[12px] text-white/70">Email me the score <span className="text-white/55">(optional)</span></span>
       <input type="email" inputMode="email" autoComplete="email" placeholder="you@example.com" maxLength={254}
              className="neon-input !py-2 w-full text-sm" value={value} onChange={(e) => onChange(e.target.value)} />
-      <span className="block text-[11px] text-white/40">
+      <span className="block text-[11px] text-white/55">
         So you can close this tab while the coach listens. {remind.schedule}
       </span>
     </label>

@@ -95,7 +95,7 @@ export function HoroscopeLayer() {
             <StatzSample what="The advanced horoscope" />
           </div>
         )}
-        <p className="mt-3 text-[11px] text-white/40">
+        <p className="mt-3 text-[11px] text-white/55">
           For fun. A reading never changes any rating, median or skill level. Your sign does decide which action a ZodiacZ bonus nudges you toward.
         </p>
         {d?.about && <p className="mt-3 text-sm italic leading-relaxed text-white/75">{d.about}</p>}
@@ -125,13 +125,13 @@ export function HoroscopeLayer() {
               ["money_earning", "Money · earning", "💵"], ["money_spending", "Money · spending", "🧾"],
               ["career", "Your music career", "🎵"]].map(([k, label, icon]) => (
               <div key={k}>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">{icon} {label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{icon} {label}</p>
                 <p className="text-sm leading-relaxed text-white/85">{r[k]}</p>
               </div>
             ))}
             {r.collab_signs?.length > 0 && (
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">🤝 Create with today</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">🤝 Create with today</p>
                 <div className="mt-1 flex flex-wrap gap-2">
                   {r.collab_signs.map((x) => (
                     <button key={x} className="pill hover:text-mcz-gold" onClick={() => { setSign(null); try { sessionStorage.setItem("mcz_zodiacz_sign", x); } catch { /* opens ZodiacZ anyway */ } goToTab("zodiacz"); }}>
@@ -147,15 +147,15 @@ export function HoroscopeLayer() {
               {r.friction_sign && <span className="pill">🌀 Go gently with {r.friction_sign}</span>}
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">📅 The week ahead</p>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">📅 The week ahead</p>
               <ol className="mt-1 space-y-1 text-sm text-white/80">
                 {r.week.map((line, i) => {
                   const day = new Date((d.day || "") + "T12:00"); day.setDate(day.getDate() + i);
-                  return <li key={i}><span className="mr-2 text-white/45">{day.toLocaleDateString([], { weekday: "short" })}</span>{line}</li>;
+                  return <li key={i}><span className="mr-2 text-white/60">{day.toLocaleDateString([], { weekday: "short" })}</span>{line}</li>;
                 })}
               </ol>
             </div>
-            <p className="text-sm text-white/85"><span className="text-white/45">🎯 Challenge · </span>{r.challenge}</p>
+            <p className="text-sm text-white/85"><span className="text-white/60">🎯 Challenge · </span>{r.challenge}</p>
             <p className="text-sm italic text-mcz-gold">“{r.affirmation}”</p>
           </div>
         )}
@@ -164,7 +164,7 @@ export function HoroscopeLayer() {
           <div className="mt-4 space-y-3">
             {SECTIONS.map(([k, label, icon]) => r[k] && (
               <div key={k}>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">{icon} {label}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">{icon} {label}</p>
                 <p className="text-sm leading-relaxed text-white/85">{r[k]}</p>
               </div>
             ))}
@@ -190,7 +190,7 @@ export function HoroscopeLayer() {
           }} />
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-[11px] text-white/45">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/10 pt-3 text-[11px] text-white/60">
           <span>{level === "basic" ? <span className="text-emerald-300">Free</span> : <span className="text-mcz-gold">StatZ</span>}
             {d?.reading?.source === "house" ? " · Corey's house reading for today" : ""} · {d?.note || "A reading for today, not a forecast."}</span>
           <button className="re-link" onClick={() => { setSign(null); try { sessionStorage.setItem("mcz_zodiacz_sign", sign); } catch { /* still opens ZodiacZ */ } goToTab("zodiacz"); }}>

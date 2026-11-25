@@ -40,7 +40,7 @@ function KindCard({ kind, value, count, children }) {
         <p className="font-semibold">{kind?.name}</p>
         {value != null && <p className="font-display text-2xl font-extrabold text-mcz-cyan">{value}</p>}
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         Of {kind?.of} · {kind?.how}{count != null ? ` · ${count} rating${count === 1 ? "" : "s"}` : ""}
       </p>
       {kind?.desc && <p className="text-xs text-white/60">{kind.desc}</p>}
@@ -54,15 +54,15 @@ function Dashboard({ d }) {
   const a = d.attractiveness || {};
   return (
     <>
-    <p className="mb-2 text-[11px] text-white/45">Every number here is a <Term k="median">median</Term>.</p>
+    <p className="mb-2 text-[11px] text-white/60">Every number here is a <Term k="median">median</Term>.</p>
     <div className="grid gap-3 md:grid-cols-2">
       <KindCard kind={kinds.post} value={fmt(d.post.median)} count={null}>
-        <p className="text-[11px] text-white/45">{d.post.rated} of {d.post.total} posts rated</p>
+        <p className="text-[11px] text-white/60">{d.post.rated} of {d.post.total} posts rated</p>
         <ul className="max-h-48 space-y-1 overflow-y-auto pr-1 text-xs">
           {d.post.posts.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-2">
               <a className="re-link truncate" href={p.url}>{p.title || "Untitled"} <ExternalLink size={10} className="inline" /></a>
-              <span className="shrink-0 text-white/60">{fmt(p.rating)} <span className="text-white/35">({p.count})</span></span>
+              <span className="shrink-0 text-white/60">{fmt(p.rating)} <span className="text-white/50">({p.count})</span></span>
             </li>
           ))}
         </ul>
@@ -78,7 +78,7 @@ function Dashboard({ d }) {
               {d.skill.skills.map((s) => (
                 <li key={s.skill} className="flex justify-between gap-2">
                   <span className="truncate">{s.skill}</span>
-                  <span className="text-white/60">{fmt(s.rating)} <span className="text-white/35">({s.count})</span></span>
+                  <span className="text-white/60">{fmt(s.rating)} <span className="text-white/50">({s.count})</span></span>
                 </li>
               ))}
             </ul>
@@ -87,7 +87,7 @@ function Dashboard({ d }) {
 
       {d.contribution && (
         <KindCard kind={kinds.contribution} value={fmt(d.contribution.median)} count={d.contribution.count}>
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             across {d.contribution.deals} deal{d.contribution.deals === 1 ? "" : "s"} ·{" "}
             <button className="re-link" onClick={() => goToTab("collabz")}>CollabZ</button>
           </p>
@@ -99,7 +99,7 @@ function Dashboard({ d }) {
       <KindCard kind={kinds.attractiveness} value={a.locked ? <Lock size={18} /> : fmt(a.median)}>
         {a.locked
           ? <p className="text-xs text-mcz-ember">{a.locked}</p>
-          : a.note && <p className="text-[11px] text-white/45">{a.note}</p>}
+          : a.note && <p className="text-[11px] text-white/60">{a.note}</p>}
       </KindCard>
     </div>
     </>
@@ -158,7 +158,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
           </p>
         </div>
         {/* The gain, on the card, before anything is pressed. */}
-        <span className={`shrink-0 text-xs ${reward.amount ? "text-emerald-300" : "text-white/40"}`}>
+        <span className={`shrink-0 text-xs ${reward.amount ? "text-emerald-300" : "text-white/55"}`}>
           +{reward.amount} {ENERGY}
         </span>
       </div>
@@ -198,7 +198,7 @@ function QueueRow({ p, reward, onRated, onSkip }) {
         </div>
       )}
       <div className="flex justify-end">
-        <button type="button" onClick={() => onSkip(p.id)} className="text-[11px] text-white/40 hover:text-white/70">
+        <button type="button" onClick={() => onSkip(p.id)} className="text-[11px] text-white/55 hover:text-white/70">
           Skip for now
         </button>
       </div>
@@ -291,7 +291,7 @@ export default function RateConnectZ() {
           </h3>
           <form className="flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); setAsked(who.trim().replace(/^@/, "")); }}>
             <input className="neon-input !py-1 text-sm" placeholder="@member" value={who} onChange={(e) => setWho(e.target.value)} />
-            <button className="re-btn !w-auto px-2 py-1 text-xs" type="submit"><Search size={12} /></button>
+            <button aria-label="Search" className="re-btn !w-auto px-2 py-1 text-xs" type="submit"><Search size={12} /></button>
             {asked && <button type="button" className="re-link text-xs" onClick={() => { setWho(""); setAsked(""); }}>mine</button>}
           </form>
         </div>

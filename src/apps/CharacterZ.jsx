@@ -8,6 +8,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
+import PlansLink from "../components/PlansLink.jsx";
 import { onHandoff } from "../handoff.js";
 import LoadGate from "../components/LoadGate.jsx";
 import Empty from "../components/Empty.jsx";
@@ -67,7 +68,7 @@ function Editor({ d, start, onSaved, onCancel }) {
       </div>
       <div className="space-y-2">
         <p className="re-label">Hobbies</p>
-        <p className="text-[11px] text-white/45">What they like doing. Their lines in MangaZ can lean on it. It is flavour — nothing here is scored.</p>
+        <p className="text-[11px] text-white/60">What they like doing. Their lines in MangaZ can lean on it. It is flavour — nothing here is scored.</p>
         <input className="neon-input !py-2 text-sm" placeholder="street racing, pottery, night markets" maxLength={400}
                value={(f.hobbies || []).join(", ")}
                onChange={(e) => set("hobbies", e.target.value.split(",").map((s) => s.trimStart()).filter((s, i, a) => s !== "" || i === a.length - 1))}
@@ -85,8 +86,11 @@ function Editor({ d, start, onSaved, onCancel }) {
         <p className="re-label">Voice</p>
         <textarea className="neon-input text-sm" rows={2} placeholder="Who they are, how they talk" maxLength={1200}
                   value={f.bio} onChange={(e) => set("bio", e.target.value)} aria-label="Who they are" />
-        {d.dials.filter((x) => x.type === "choice").map((dl) => (
+        {d.dials.filter((x) => x.type === "choice" || x.group).map((dl, i, all) => (
           <div key={dl.key} className="flex flex-wrap items-center gap-1.5">
+            {dl.group_label && dl.group !== all[i - 1]?.group && dl.group !== "tone" && (
+              <p className="w-full pt-1 text-[11px] font-semibold text-mcz-cyan">{dl.group_label}</p>
+            )}
             <span className="w-28 text-[11px] text-white/50">{dl.label}</span>
             {dl.options.map((o) => (
               <button key={o.key} type="button" title={o.result}
@@ -132,8 +136,8 @@ export default function CharacterZ() {
           <IconImg icon="characterz.png" alt="" className="h-11 w-11 rounded-xl" /> CharacterZ
         </h2>
         <p className="text-sm text-white/60">A face, a personality and a voice. MangaZ draws them and writes their lines in that voice.</p>
-        <p className="text-[11px] text-white/40">{d.characters.length} / {d.limit} on your plan
-          {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}</p>
+        <p className="text-[11px] text-white/55">{d.characters.length} / {d.limit} on your plan
+          {d.tiers?.statz > d.limit ? ` · StatZ holds ${d.tiers.statz}` : ""}{d.tiers?.statz > d.limit && <> <PlansLink /></>}</p>
       </div>
       {edit ? (
         <Editor d={d} start={edit === "new" ? null : edit} onCancel={() => setEdit(null)} onSaved={() => { setEdit(null); load(); }} />
@@ -153,13 +157,13 @@ export default function CharacterZ() {
             {c.image ? <img src={c.image} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
                      : <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-white/5 text-2xl">🎭</div>}
             <div className="min-w-0 flex-1 space-y-1">
-              <p className="font-semibold">{c.name} {c.personality && <span className="text-[11px] text-white/40">{c.personality.replace(/-/g, "·")}</span>}</p>
+              <p className="font-semibold">{c.name} {c.personality && <span className="text-[11px] text-white/55">{c.personality.replace(/-/g, "·")}</span>}</p>
               <p className="text-[12px] text-white/55">{c.voice_summary}</p>
-              {c.bio && <p className="line-clamp-2 text-[12px] text-white/45">{c.bio}</p>}
-              {c.hobbies?.length > 0 && <p className="line-clamp-1 text-[11px] text-white/45">🎯 {c.hobbies.join(", ")}</p>}
+              {c.bio && <p className="line-clamp-2 text-[12px] text-white/60">{c.bio}</p>}
+              {c.hobbies?.length > 0 && <p className="line-clamp-1 text-[11px] text-white/60">🎯 {c.hobbies.join(", ")}</p>}
               <div className="flex gap-3 text-xs">
                 <button className="re-link" onClick={() => setEdit(c)}>Edit</button>
-                <button className="text-white/40 hover:text-mcz-ember" onClick={() => remove(c)} aria-label={`Delete ${c.name}`}><Trash2 size={12} /></button>
+                <button className="text-white/55 hover:text-mcz-ember" onClick={() => remove(c)} aria-label={`Delete ${c.name}`}><Trash2 size={12} /></button>
               </div>
             </div>
           </div>

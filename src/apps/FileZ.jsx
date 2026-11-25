@@ -21,11 +21,13 @@ import { Link } from "react-router-dom";
 import { FileAudio, FileVideo, Image as ImageIcon, File as FileIcon, Loader2, Search, Send, Trash2, UserCircle2 } from "lucide-react";
 import { api } from "../api.js";
 import { handOff } from "../handoff.js";
+import { listCloud } from "../daw/cloud.js";
 import { goToSpot } from "../goto.js";
 import { storageNote } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
 import { sizeLabel } from "../recorder.js";
 import { isGone, goneCount, checkSummary } from "../fileStatus.js";
+import DeviceCopy from "../components/DeviceCopy.jsx";
 
 const KINDS = [
   ["all", "All"], ["audio", "Audio"], ["video", "Video"], ["image", "Images"], ["other", "Other"],
@@ -63,6 +65,10 @@ export default function FileZ() {
   // Files whose player errored on this device. A hint only — "it would not play" is
   // not "it is not there" — so it offers the check and never marks anything itself.
   const [failed, setFailed] = useState(() => new Set());
+  // DAW sessions kept on the account (Arsenal's Save does this by default): listed here so they are visible in
+  // FileZ and open on any device. A failed fetch just shows none.
+  const [dawSessions, setDawSessions] = useState([]);
+  useEffect(() => { listCloud().then(setDawSessions).catch(() => setDawSessions([])); }, []);
   const [checking, setChecking] = useState(false);
   const [checked, setChecked] = useState("");
 
@@ -146,12 +152,29 @@ export default function FileZ() {
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div className={`h-full ${pct > 90 ? "bg-mcz-ember" : "bg-mcz-cyan"}`} style={{ width: `${pct}%` }} />
             </div>
-            <p className="mt-1 text-[11px] text-white/45">
+            <p className="mt-1 text-[11px] text-white/60">
               {used.toFixed(1)}MB used. {storageNote(data)} Up to {data.upload_mb}MB a file.
             </p>
           </div>
         )}
       </div>
+
+      {dawSessions.length > 0 && (
+        <div className="re-card space-y-2" data-tour="filez-sessions">
+          <h3 className="font-semibold">DAW sessions <span className="text-xs font-normal text-white/55">— kept on your account, open on any device</span></h3>
+          <ul className="space-y-1">
+            {dawSessions.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate">🎼 {r.name}{r.bpm ? ` · ${r.bpm} BPM` : ""}{r.key ? ` · ${r.key}` : ""}</span>
+                <span className="text-xs text-white/55">{r.updated ? new Date(r.updated).toLocaleDateString() : ""}</span>
+                <button type="button" className="re-btn !w-auto px-3 !py-0.5 text-xs"
+                        onClick={() => handOff(r.app, `${r.app}:main`, { sessionId: r.id })}>Open in {r.app === "arsenal" ? "Arsenal" : "the DAW"}</button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-white/55">Their sounds are in the file list below and count against your storage. Remove a session's copy from the DAW with "On my other devices ✓".</p>
+        </div>
+      )}
 
       {data && files.length > 0 && (
         <div className="re-card space-y-2" data-tour="filez-check">
@@ -167,7 +190,7 @@ export default function FileZ() {
               {checking ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />} Check my files{" "}
               <span className="text-emerald-300">Free</span>
             </button>
-            <span className="text-[11px] text-white/45">
+            <span className="text-[11px] text-white/60">
               Looks for each file on the server and marks the ones that are gone. Nothing is deleted.
             </span>
           </div>
@@ -209,7 +232,7 @@ export default function FileZ() {
               <p className="flex items-center gap-2 text-sm">
                 <Icon size={15} className="shrink-0 text-white/50" />
                 <span className="truncate font-semibold text-white" title={u.name}>{u.name}</span>
-                <span className="ml-auto shrink-0 text-[11px] text-white/40">{sizeLabel(u.size_bytes)}</span>
+                <span className="ml-auto shrink-0 text-[11px] text-white/55">{sizeLabel(u.size_bytes)}</span>
               </p>
               <Preview u={u} onFail={() => setFailed((f) => new Set(f).add(u.id))} />
               {isGone(u) && (
@@ -219,6 +242,7 @@ export default function FileZ() {
                   <button className="re-link" onClick={() => goToSpot("postz", "post-compose")}>Upload it again</button>
                 </p>
               )}
+              {isGone(u) && <DeviceCopy kind="upload" id={u.id} name={u.name} onRestored={load} />}
               {!isGone(u) && failed.has(u.id) && (
                 <p className="rounded-lg bg-white/5 p-3 text-sm text-white/75" role="status">
                   This didn't load on your device. That can be a slow connection or a file that is gone from the
@@ -243,7 +267,7 @@ export default function FileZ() {
                     <UserCircle2 size={12} /> Use as profile picture <span className="text-emerald-300">Free</span>
                   </button>
                 )}
-                <button className="ml-auto text-white/45 hover:text-mcz-ember" disabled={busy === u.id}
+                <button className="ml-auto text-white/60 hover:text-mcz-ember" disabled={busy === u.id}
                         onClick={() => remove(u)} title="Delete this file" aria-label={`Delete ${u.name}`}>
                   <Trash2 size={14} />
                 </button>

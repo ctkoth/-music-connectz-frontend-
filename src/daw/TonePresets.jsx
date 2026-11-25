@@ -6,7 +6,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Save, Trash2 } from "lucide-react";
 import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
-import { KIND_LABEL, STARTERS, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
+import { StatzSample } from "../components/StatzSample.jsx";
+import { KIND_LABEL, STARTERS, chainNeedsStatz, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
 
 export function useTonePresets() {
   const [state, setState] = useState(null);     // GET /tonez/: { presets, count, limit, full, ladder, who }
@@ -15,7 +16,7 @@ export function useTonePresets() {
   // `value` is a DAW insert list for "tone" / "fx", or the object itself for "master" (Mix ConnectZ's
   // settings) and "strip" (a TrackZ channel strip).
   const save = useCallback(async (name, value, id, kind = "tone") => {
-    const chain = kind === "master" || kind === "strip" ? value : insertsToChain(value);
+    const chain = kind === "master" || kind === "strip" || kind === "vst" || kind === "synth" ? value : insertsToChain(value);
     const d = await api("/api/economy/tonez/", { method: "POST", body: { kind, name, chain, ...(id ? { id } : {}) } });
     setState(d);
     return d.preset;
@@ -24,26 +25,37 @@ export function useTonePresets() {
   return { state, failed, save, remove };
 }
 
-export default function TonePicker({ tones, inserts, onApply, trackName }) {
+export default function TonePicker({ tones, inserts, onApply, trackName, statzOk = true, compact = false, placeholder = "🎛️ Tone…", ariaLabel }) {
   const { state, failed, save, remove } = tones;
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("tone");      // save as a track TONE or a track FX chain — each has its own ceiling
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [lock, setLock] = useState("");        // a StatZ chain chosen without StatZ: shown with the offer to try it or upgrade
+  // In the narrow track header the confirmation is one trimmed line that clears itself: a paragraph there grows the block
+  // and pushes the FX button out of the track's visible height (found when a picked tone made FX vanish).
+  useEffect(() => {
+    if (!compact || (!msg && !err)) return undefined;
+    const t = setTimeout(() => { setMsg(""); setErr(""); }, 7000);
+    return () => clearTimeout(t);
+  }, [compact, msg, err]);
   const room = presetRoom(state, kind);
   const all = (state?.presets || []).filter((p) => p.kind === "tone" || p.kind === "fx");
   const mine = all.filter((p) => p.kind === kind);
   const same = mine.find((p) => p.name.toLowerCase() === name.trim().toLowerCase());
 
   const pick = (value) => {
-    setErr(""); setMsg("");
+    setErr(""); setMsg(""); setLock("");
     const [kind, key] = value.split(":");
+    const locked = (name) => { if (compact) setErr(`🔒 ${name} is a StatZ chain. Open FX to try it free.`); else setLock(name); };
     if (kind === "s") {
       const s = STARTERS.find((x) => x.key === key);
+      if (s && s.statz && !statzOk) { locked(s.name); return; }
       if (s) { onApply(chainToInserts(s.chain())); setMsg(`${s.name}: ${s.what} It replaced this track's effects (Undo brings them back).`); }
     } else if (kind === "m") {
       const p = all.find((x) => String(x.id) === key);
+      if (p && chainNeedsStatz(p.chain) && !statzOk) { locked(p.name); return; }
       if (p) { onApply(chainToInserts(p.chain)); setMsg(`${p.name} is on ${trackName}, in place of its effects (Undo brings them back).`); }
     }
   };
@@ -58,19 +70,21 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
 
   return (
     <div className="space-y-1">
-      <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80" data-nomemo="true" value=""
-              aria-label={`Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
-        <option value="">🎛️ Tone…</option>
+      <select className="w-full rounded bg-white/10 px-1 py-0.5 text-white/80 [color-scheme:dark]" data-nomemo="true" value=""
+              aria-label={ariaLabel || `Put a tone on ${trackName}`} title="Replaces this track's effects — Undo brings them back" onChange={(e) => pick(e.target.value)}>
+        <option value="">{placeholder}</option>
         {["tone", "fx"].map((k) => all.some((p) => p.kind === k) && (
           <optgroup key={k} label={`Your ${KIND_LABEL[k].toLowerCase()} presets`}>
             {all.filter((p) => p.kind === k).map((p) => <option key={p.id} value={`m:${p.id}`}>{p.name}</option>)}
           </optgroup>
         ))}
-        <optgroup label="Voice starters (built in)">
-          {STARTERS.map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}</option>)}
-        </optgroup>
+        {[...new Set(STARTERS.map((s) => s.group))].map((g) => (
+          <optgroup key={g} label={`${g} starters (built in)`}>
+            {STARTERS.filter((s) => s.group === g).map((s) => <option key={s.key} value={`s:${s.key}`}>{s.name}{s.statz && !statzOk ? " 🔒" : ""}</option>)}
+          </optgroup>
+        ))}
       </select>
-      {!failed && (saving ? (
+      {!failed && !compact && (saving ? (
         <div className="space-y-1 rounded bg-black/40 p-1">
           <div className="flex gap-1" role="radiogroup" aria-label="Save as">
             {["tone", "fx"].map((k) => (
@@ -79,7 +93,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
                       onClick={() => setKind(k)}>{KIND_LABEL[k]}</button>
             ))}
           </div>
-          <p className="text-white/45">{presetRoom(state, kind).line} — each kind has its own room.</p>
+          <p className="text-white/60">{presetRoom(state, kind).line} — each kind has its own room.</p>
           <input className="w-full rounded bg-white/10 px-1 py-0.5 text-white" placeholder="Name, e.g. My vocal" maxLength={60} autoFocus
                  value={name} onChange={(e) => setName(e.target.value)} aria-label="Preset name"
                  onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) doSave(); if (e.key === "Escape") setSaving(false); }} />
@@ -103,8 +117,14 @@ export default function TonePicker({ tones, inserts, onApply, trackName }) {
           <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button>
         </p>
       )}
-      {msg && <p className="text-emerald-300">{msg}</p>}
-      {err && <p className="text-mcz-ember">{err}</p>}
+      {lock && (
+        <div className="space-y-1">
+          <p className="text-mcz-gold">🔒 {lock} uses StatZ's plugin-grade effects (de-esser, saturation, glue, limiter, pro reverb and delay). It's free to try, and the free chains have no lock.</p>
+          <StatzSample what={`${lock} (a StatZ chain)`} />
+        </div>
+      )}
+      {msg && <p className={`text-emerald-300 ${compact ? "truncate" : ""}`} title={compact ? msg : undefined} role="status">{msg}</p>}
+      {err && <p className={`text-mcz-ember ${compact ? "truncate" : ""}`} title={compact ? err : undefined} role="alert">{err}</p>}
       {saving && mine.length > 0 && (
         <ul className="space-y-0.5">
           {mine.map((p) => (

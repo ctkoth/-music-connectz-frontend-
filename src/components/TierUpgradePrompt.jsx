@@ -95,7 +95,7 @@ function TierUpgradePromptInner({ limit, current, userTier = "free",
               {tier.limit === Infinity ? "Unlimited" : tier.limit.toLocaleString()}
             </p>
             {tier.price && <p className="text-[10px] text-white/50 mt-1">{tier.price}</p>}
-            {tier.current && <p className="text-[10px] text-white/40 mt-1">Your plan</p>}
+            {tier.current && <p className="text-[10px] text-white/55 mt-1">Your plan</p>}
           </div>
         ))}
       </div>

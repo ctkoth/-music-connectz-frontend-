@@ -63,7 +63,7 @@ function Skill({ k, have, onToggle, onDate, onPrice, onGenres, personaKey }) {
             {(have.genres || []).map((g) => (
               <span key={g} className="pill !py-0.5">
                 {genreLabel(g)}
-                <button type="button" className="ml-1 text-white/40 hover:text-white" aria-label={`Remove ${g}`}
+                <button type="button" className="ml-1 text-white/55 hover:text-white" aria-label={`Remove ${g}`}
                         onClick={() => onGenres((have.genres || []).filter((x) => x !== g))}>✕</button>
               </span>
             ))}
@@ -213,7 +213,7 @@ export default function PersonaZ() {
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-bold">{label}</h3>
                       {mine && <span className="pill !border-mcz-cyan/50 !text-mcz-cyan text-[10px]">yours · {mine.skills.length} skill{mine.skills.length === 1 ? "" : "s"}</span>}
-                      <span className="text-[11px] text-white/40">{total} skills</span>
+                      <span className="text-[11px] text-white/55">{total} skills</span>
                     </div>
                     {PERSONA_READ[key] && <p className="mt-0.5 text-[13px] leading-relaxed text-white/75">{say(PERSONA_READ[key], voice)}</p>}
                     <div className="mt-2 flex flex-wrap gap-2">
@@ -235,7 +235,7 @@ export default function PersonaZ() {
                     {!mine && <p className="text-xs text-white/50">Press “This is me” to add skills and their start dates.</p>}
                     {Object.entries(tree).map(([cat, skills]) => (
                       <div key={cat}>
-                        <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/45">{cat}</p>
+                        <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-white/60">{cat}</p>
                         <div className="grid gap-1.5 sm:grid-cols-2">
                           {Object.keys(skills).map((sk) => (
                             mine ? (
@@ -268,7 +268,7 @@ export default function PersonaZ() {
                                   {labelForSkill(s.name)}{skillDurationShown(s) ? ` · ${skillDurationShown(s)}` : ""}
                                 </span>
                               ))}
-                              {!theirs?.skills?.length && <span className="text-[11px] text-white/40">No skills listed yet.</span>}
+                              {!theirs?.skills?.length && <span className="text-[11px] text-white/55">No skills listed yet.</span>}
                             </div>
                           </div>
                         );

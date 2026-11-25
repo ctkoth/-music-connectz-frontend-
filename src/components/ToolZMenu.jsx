@@ -1,5 +1,6 @@
+import { purposeOf } from '../appPurpose.js';
 import VersionBadge from "./VersionBadge.jsx";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import NeedsView from './NeedsView.jsx';
 import { goToSpot } from '../goto.js';
 import { presetDirectzFormat } from '../directzPreset.js';
@@ -7,8 +8,9 @@ import { canMini, pathFor } from '../App.jsx';
 import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
-import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds } from '../yourApps.js';
-import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT } from '../focus.js';
+import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds, readChosen, writeChosen, toggleChosen } from '../yourApps.js';
+import { loadLimits } from '../limits.js';
+import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS, HOME_FEATURED } from '../focus.js';
 import './ToolZMenu.css';
 
 // Each tile draws through the SAME registry key the tab strip uses (App.jsx
@@ -32,8 +34,8 @@ const ICON_KEY = {
   instrumentalconnectz: "instrumentalconnectz.png", sentenceconnectz: "sentencez.png",
   membershipz: "money.png", preferencez: "preferencez.png", substancez: "substancez.png", zodiacz: "zodiacz.png", facez: "facez.png", personaz: "personaz.png", distributez: "distributez.png", ratez: "ratez.png", sonday: "sonday.png", parcel: "parcel.png", royaltiez: "royaltiez.png",
   reelz: "reelz.png", episodez: "episodez.png", moviez: "moviez.png",
-  mangaz: "mangaz.png", animez: "animez.png", animeconnectz: "animeconnectz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
-  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png",
+  mangaz: "mangaz.png", designz: "designz.png", mixez: "mixez.png", animez: "animez.png", animeconnectz: "animeconnectz.png", characterz: "characterz.png", voicezstylez: "voicezstylez.png",
+  sentencez: "sentencez_editor.png", videoz: "videoz.png", imagez: "imagez.png", arsenal: "arsenal.png", witchcraft: "witchcraft.png", azrael: "azrael.png", dawz: "dawz.png", gamez: "gamez.png", lookmaxz: "lookmaxz.png",
   // FileZ had art registered in App.jsx's ICONS and no entry here, so its home tile fell back to a
   // music note and the raw key — the registry knowing a picture is not this menu knowing it.
   filez: "filez.png",
@@ -47,7 +49,7 @@ const EMOJI = {
   membershipz: "💳", metz: "🎚️", tunerz: "🎯", chordz: "🎼", breathz: "🫁", viewz: "👁️",
   intelligencez: "🧠", mixconnectz: "🎛️", imageconnectz: "🖼️", videoconnectz: "🎬", instrumentalconnectz: "🎹", sentenceconnectz: "✍️",
   preferencez: "💞", substancez: "🧠", zodiacz: "♈", reelz: "🎞️", episodez: "📺", moviez: "🎥",
-  mangaz: "📚", animez: "🌸", animeconnectz: "🌸", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", witchcraft: "🔮", azrael: "☠️", dawz: "🎛️",
+  mangaz: "📚", designz: "🎨", mixez: "🎚️", animez: "🌸", animeconnectz: "🌸", characterz: "🦁", voicezstylez: "🗣️", sentencez: "✍️", videoz: "🎞️", imagez: "🖼️", arsenal: "⚔️", witchcraft: "🔮", azrael: "☠️", dawz: "🎛️", gamez: "🎮",
   filez: "🗂️",
 };
 
@@ -153,7 +155,7 @@ const TOOLZ_MENU = {
     { key: 'groupz', label: 'GroupZ', color: 'cyan', desc: 'Belong & grow together' },
   ],
   'ToolZ': [
-    ...COACH_GROUPS,
+    // The coaches live in SkillZ (Corey: "SkillZ has the coaches"); ToolZ is the tools around them.
     {
       group: 'Practice Tools',
       apps: [
@@ -170,6 +172,7 @@ const TOOLZ_MENU = {
       apps: [
         { key: 'sentencez', label: 'SentenceZ', color: 'cyan', desc: 'Text editor — write, and the writing coach scores your lyrics' },
         { key: 'videoz', label: 'VideoZ', color: 'magenta', desc: 'Multitrack video editor like Sony Vegas — your videos, photos & audio in order, filters, FX, titles, free; lip-sync is StatZ' },
+        IMAGEZ,
         IMAGEZ,
         { key: 'arsenal', label: 'Arsenal', color: 'yellow', desc: 'Multitrack DAW like Pro Tools — record takes, playlists, edit, mix with built-in effects, bounce a WAV; free' },
         { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW we are building — open one, vote for the next' },
@@ -198,7 +201,6 @@ const TOOLZ_MENU = {
     {
       group: 'Progress & Analytics',
       apps: [
-        { key: 'sonday', label: 'Sonday', color: 'gold', desc: 'Boards for your projects — drafts to released, shared with your team' },
         { key: 'logz', label: 'LogZ', color: 'yellow', desc: 'Transaction history & ledger' },
         { key: 'viewz', label: 'ViewZ', color: 'cyan', desc: 'Who viewed your posts & profile — a DAW timeline (StatZ)' },
       ]
@@ -210,9 +212,24 @@ const TOOLZ_MENU = {
         { key: 'keyconnectz', label: 'KeyConnectZ', color: 'green', desc: 'Transcribe & read-aloud' },
       ]
     },
+    {
+      group: 'Plan & train',
+      apps: [
+        { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
+        { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
+        { key: 'sonday', label: 'Sonday', color: 'gold', desc: 'Boards for your projects — drafts to released, shared with your team' },
+      ],
+    },
   ],
   'SkillZ': [
     ...COACH_GROUPS,
+    {
+      // Designers' skill is shown by the work: DesignZ is where it is put up to be rated, reacted to and commented on.
+      group: 'Designers',
+      apps: [
+        { key: 'designz', label: 'DesignZ', color: 'magenta', desc: 'Post your design work — members rate it, react and comment' },
+      ]
+    },
     {
       group: 'Progression',
       apps: [
@@ -234,10 +251,10 @@ const TOOLZ_MENU = {
         { key: 'sentenceconnectz', label: 'Sentence ConnectZ', color: 'magenta', desc: 'Resumes, cover letters, lyrics, poems, bios, posts & essays' },
         { key: 'instrumentalconnectz', label: 'Instrumental ConnectZ', color: 'yellow', desc: 'MIDI loops by genre, instruments, BPM & key — StatZ searches keys by mood' },
         { key: 'mixconnectz', label: 'Mix ConnectZ', color: 'cyan', desc: 'Master a finished song on your device — measured loudness, tone and peaks, free' },
+        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
         { key: 'facez', label: 'FaceZ', color: 'cyan', desc: 'The faces Video ConnectZ can star' },
         { key: 'videoconnectz', label: 'Video ConnectZ', color: 'cyan', desc: 'Music, bio & promo videos, starring your FaceZ' },
         { key: 'animeconnectz', label: 'Anime ConnectZ', color: 'magenta', desc: 'AI anime from your CharacterZ: PromptZ, ReelZ, EpisodeZ chapters and MovieZ scenes' },
-        { key: 'imageconnectz', label: 'Image ConnectZ', color: 'magenta', desc: 'Covers, profile & promo pictures, banners and backgrounds from your FaceZ' },
       ]
     },
     {
@@ -283,7 +300,8 @@ const TOOLZ_MENU = {
       apps: [
         IMAGEZ,
         { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
-        { key: 'animez', label: 'AnimeZ', color: 'cyan', desc: 'Episodes from your manga pages and anime pieces — subtitles, camera moves, cut in VideoZ' },
+        { key: 'mixez', label: 'MixEZ', color: 'yellow', desc: 'Mix-engineer ear training — find the boosted frequency, match a hidden EQ; free, on your device' },
+    { key: 'animez', label: 'AnimeZ', color: 'cyan', desc: 'Episodes from your manga pages and anime pieces — subtitles, camera moves, cut in VideoZ' },
         CHARACTERZ,
         VOICEZ_STYLEZ,
       ]
@@ -293,10 +311,16 @@ const TOOLZ_MENU = {
     { key: 'venuez', label: 'VenueZ', color: 'orange', desc: 'Discover venues' },
   ],
   'MercheZ': [
-    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — legal goods only' },
+    { key: 'merchz', label: 'MercheZ', color: 'magenta', desc: 'Sell and buy from other creators — and design your own towels, shirts, hoodies, bandanas, wave caps, durags, baseball caps, mugs, phone cases, stickers, posters, tote bags, hats and beanies' },
   ],
   'Lilith': [
     { key: 'lilith', label: 'Lilith', color: 'magenta', desc: 'Apple Things-style productivity with XP-based streaks' },
+  ],
+  // Corey: DawZ, MangaZ and AnimeZ on one screen — make music, draw it, animate it.
+  'StudioZ': [
+    { key: 'dawz', label: 'DawZ', color: 'cyan', desc: 'Every DAW on one engine — tap an icon to open it as a tab, split window or new window' },
+    { key: 'mangaz', label: 'MangaZ', color: 'magenta', desc: 'Manga pages from your CharacterZ and your idea' },
+    { key: 'animez', label: 'AnimeZ', color: 'cyan', desc: 'Episodes from your manga pages and anime pieces — subtitles, camera moves, cut in VideoZ' },
   ],
   'BodieZ': [
     { key: 'bodiez', label: 'BodieZ', color: 'orange', desc: 'Strength training, body transformation & workout planning' },
@@ -308,7 +332,7 @@ const CATEGORY_ICON_KEY = {
   SocialiZeZ: "social_connectz.png", CollabZ: "collabz.png", BattleZ: "battlez.png",
   GroupZ: "groupz.png", SkillZ: "skillz.png", ToolZ: "toolz.png", IntelligenceZ: "intelligencez.png",
   ProfileZ: "profilez.png", DesignZ: "designz.png", VenueZ: "venuez.png", MercheZ: "merchz.png",
-  Lilith: "lilithz.png", BodieZ: "bodiez.png",
+  Lilith: "lilithz.png", BodieZ: "bodiez.png", StudioZ: "dawz.png",
 };
 
 // Category info for the main grid
@@ -326,6 +350,7 @@ const CATEGORIES = [
   { key: 'MercheZ', label: 'MercheZ', color: 'magenta' },
   { key: 'Lilith', label: 'Lilith', color: 'magenta' },
   { key: 'BodieZ', label: 'BodieZ', color: 'orange' },
+  { key: 'StudioZ', label: 'StudioZ', color: 'cyan' },
 ];
 
 // Labels for the focus tiles that no ToolZ category names (see focus.js).
@@ -334,19 +359,22 @@ const FOCUS_LABEL = {
   drumz: 'DrumZ', producez: 'ProduceZ', violinz: 'ViolinZ', flutez: 'FluteZ', saxz: 'SaxZ', clarinetz: 'ClarinetZ', trumpetz: 'TrumpetZ', postz: 'PostZ', profilez: 'ProfileZ',
   messagez: 'MessageZ', battlez: 'BattleZ', metz: 'MetZ', tunerz: 'TunerZ',
   chordz: 'ChordZ', breathz: 'BreathZ', membershipz: 'MembershipZ', onboardz: 'OnboardZ', logz: 'LogZ',
-  bodiez: 'BodieZ', healthz: 'HealthZ', filez: 'FileZ', lilith: 'Lilith',
+  bodiez: 'BodieZ', healthz: 'HealthZ', filez: 'FileZ', lilith: 'Lilith', imagez: 'ImageZ', mangaz: 'MangaZ', animez: 'AnimeZ', dawz: 'DawZ', gamez: 'GameZ', lookmaxz: 'LookZMaxZ',
 };
 
 function FocusTile({ appKey, onOpen, big }) {
   return (
-    <button className={`category-card ${big ? 'cyan' : 'magenta'}`} onClick={() => onOpen(appKey)}>
+    <button className={`category-card ${big ? 'cyan coach-card' : 'magenta'}`} onClick={() => onOpen(appKey)}>
       {ICON_KEY[appKey] ? (
         <IconImg icon={ICON_KEY[appKey]} alt={FOCUS_LABEL[appKey]} className="category-icon-img"
                  fallback={<span>{EMOJI[appKey] || '🎵'}</span>} />
       ) : (
         <span style={{ fontSize: 28 }}>{EMOJI[appKey] || '🎵'}</span>
       )}
-      <div className="category-label">{FOCUS_LABEL[appKey] || appKey}</div>
+      <div className="category-text">
+        <div className="category-label">{FOCUS_LABEL[appKey] || appKey}</div>
+        {big && purposeOf(appKey) && <div className="category-tag">{purposeOf(appKey)}</div>}
+      </div>
     </button>
   );
 }
@@ -355,9 +383,51 @@ function FocusTile({ appKey, onOpen, big }) {
 // app. Same card the "More apps" grid draws, lifted to the front.
 // "Your apps": the member's own, from what they pin and open (yourApps.js, kept on the device).
 function yourAppsNow() {
-  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [],
+  const opts = { usage: readStore(USAGE_KEY) || {}, last: readStore(LAST_KEY) || {}, pins: readStore(PINS_KEY) || [], chosen: readChosen(),
                  seeds: readSeeds(), exclude: ['toolz'], valid: tabKeys() };
   return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
+}
+
+// Edit "Your apps": tick any app, up to the plan's count (Free 3, Premium 6, StatZ unlimited — the
+// served `imagez_layers`, the same count tracks and layers use). Free to do; nothing is charged.
+// Most-used apps still fill the rest of the row on their own.
+function EditYourApps({ chosen, onChange, onDone }) {
+  const [cap, setCap] = useState(undefined);          // undefined = not loaded, null = unlimited
+  const [q, setQ] = useState('');
+  const [note, setNote] = useState('');
+  useEffect(() => { loadLimits().then((l) => setCap(l && 'imagez_layers' in l ? l.imagez_layers : 3)).catch(() => setCap(3)); }, []);
+  const effCap = cap === undefined ? 3 : cap;         // never offer more than the lowest plan until the server answers
+  const all = [...tabKeys()].filter((k) => k !== 'toolz').map((k) => ({ k, m: tabMeta(k) })).filter((x) => x.m)
+    .sort((a, b) => String(a.m.label).localeCompare(String(b.m.label)));
+  const shown = all.filter((x) => !q.trim() || String(x.m.label).toLowerCase().includes(q.trim().toLowerCase()));
+  const toggle = (k) => {
+    const r = toggleChosen(chosen, k, effCap);
+    if (r.refused) { setNote(`Your plan holds ${effCap} picked apps. Untick one to swap, or upgrade for more.`); return; }
+    setNote(''); onChange(r.list);
+  };
+  return (
+    <div className="re-card" style={{ margin: '8px 0 14px', padding: 12 }}>
+      <p style={{ fontWeight: 700 }}>
+        Pick your apps — {chosen.length}{effCap == null ? '' : ` of ${effCap}`} <span className="text-emerald-300">free to change</span>
+      </p>
+      <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 8px' }}>
+        Free 3 · Premium 6 · StatZ unlimited. The apps you open most still fill the rest of the row.
+      </p>
+      <input className="neon-input" placeholder="Search apps" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search apps" />
+      {note && <p role="status" className="text-mcz-ember" style={{ fontSize: 12, margin: '6px 0' }}>{note}</p>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0', maxHeight: 220, overflowY: 'auto' }}>
+        {shown.map(({ k, m }) => (
+          <label key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 10,
+                                  border: `1px solid ${chosen.includes(k) ? '#6ee7b7' : 'rgba(255,255,255,.2)'}` }}>
+            <input type="checkbox" checked={chosen.includes(k)} onChange={() => toggle(k)} />
+            <span style={{ fontSize: 13 }}>{m.label}</span>
+          </label>
+        ))}
+        {shown.length === 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>No app matches.</span>}
+      </div>
+      <button type="button" className="toolz-more-button" onClick={onDone}>Done</button>
+    </div>
+  );
 }
 
 function YourAppTile({ appKey, onOpen }) {
@@ -372,16 +442,45 @@ function YourAppTile({ appKey, onOpen }) {
   );
 }
 
-function ParentTile({ categoryKey, onOpen }) {
+function ParentTile({ categoryKey, onOpen, big }) {
   const c = CATEGORIES.find((x) => x.key === categoryKey);
   if (!c) return null;
   return (
-    <button className={`category-card ${c.color}`} onClick={() => onOpen(categoryKey)}>
+    <button className={`category-card ${c.color}${big ? ' coach-card' : ''}`} onClick={() => onOpen(categoryKey)}>
       <IconImg icon={CATEGORY_ICON_KEY[categoryKey]} alt={c.label} className="category-icon-img" />
-      <div className="category-label">{c.label}</div>
+      {big ? (
+        <div className="category-text">
+          <div className="category-label">{c.label}</div>
+          {c.desc && <div className="category-tag">{c.desc}</div>}
+        </div>
+      ) : <div className="category-label">{c.label}</div>}
     </button>
   );
 }
+
+function FeaturedSkillZ({ onOpen }) {
+  const c = CATEGORIES.find((x) => x.key === HOME_FEATURED);
+  if (!c) return null;
+  const coaches = FOCUS_COACHES.filter((k) => ['singz', 'rapz', 'guitarz', 'drumz', 'keyz', 'bassz'].includes(k));
+  return (
+    <button type="button" data-tour="home-skillz" onClick={() => onOpen(HOME_FEATURED)}
+            aria-label="SkillZ — every coach and its skill tree"
+            className="category-card magenta"
+            style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 16, width: '100%', textAlign: 'left', padding: 14, marginBottom: 14 }}>
+      <IconImg icon={CATEGORY_ICON_KEY[HOME_FEATURED]} alt="" className="category-icon-img !h-24 !w-24 shrink-0 !rounded-2xl sm:!h-36 sm:!w-36" />
+      <span style={{ minWidth: 0 }}>
+        <span className="category-label" style={{ display: 'block', fontSize: '1.5rem' }}>{c.label}</span>
+        <span style={{ display: 'block', fontSize: 13, opacity: 0.8, margin: '4px 0 8px' }}>
+          Every coach and its skill tree — score a take, watch the number move.
+        </span>
+        <span style={{ display: 'block', fontSize: 12, opacity: 0.65 }}>
+          {coaches.map((k) => TABS_LABEL[k] || k).join(' · ')} and more →
+        </span>
+      </span>
+    </button>
+  );
+}
+const TABS_LABEL = { singz: 'SingZ', rapz: 'RapZ', guitarz: 'GuitarZ', drumz: 'DrumZ', keyz: 'KeyZ', bassz: 'BassZ' };
 
 export default function ToolZMenu() {
   const { user } = useAuth();
@@ -389,18 +488,15 @@ export default function ToolZMenu() {
   // Focus mode: the coach leads and the thirteen categories wait behind one
   // tap. They are all still here — see focus.js for why they are not offered.
   const [showMore, setShowMore] = useState(!FOCUS_MODE);
-  // Two ways into the same apps: by the instrument you play, or by what you need.
-  // The choice is a per-device convenience, so storage failing changes nothing.
-  const [lens, setLens] = useState(() => {
-    try { return localStorage.getItem('mcz-home-lens') === 'need' ? 'need' : 'instrument'; } catch { return 'instrument'; }
-  });
-  const pickLens = (v) => {
-    setLens(v);
-    try { localStorage.setItem('mcz-home-lens', v); } catch { /* not remembered */ }
-  };
+  // "What I need" is an alternative way in, not a second layout: one icon home
+  // for everybody, and a collapsed search beside it. Per-device, so storage failing changes nothing.
+  const [showNeeds, setShowNeeds] = useState(false);
   const openFocus = (key) => goToSpot(key, `${key}:main`);
   // Read once per visit to the home screen: what this member uses leads, the rest folds away.
-  const [mine] = useState(yourAppsNow);
+  const [mine, setMine] = useState(yourAppsNow);
+  const [editing, setEditing] = useState(false);
+  const [chosen, setChosen] = useState(readChosen);
+  const saveChosen = (list) => { setChosen(list); writeChosen(list); setMine(yourAppsNow()); };
   const [showAll, setShowAll] = useState(false);
   const [hoveredApp, setHoveredApp] = useState(null);
 
@@ -528,63 +624,52 @@ export default function ToolZMenu() {
       <div className="toolz-header">
         <img src="/logo.png?v=2" alt="Music ConnectZ" className="toolz-mcz-logo" />
         <h1>MusicConnectZ.Net</h1>
-        <p className="toolz-subtitle">✨ AI Coaching & Gamified👾 way to make professional💲 portfolio📑 of your music🎶 related work❓</p>
         <p className="toolz-subtitle">
           {FOCUS_MODE ? '🎤 Score a take. Send it again. Watch the number move.' : '🧰 Every app, one place'}
         </p>
       </div>
 
       {FOCUS_MODE && (
-        <div role="tablist" aria-label="How to find an app" className="toolz-lens"
-             style={{ display: 'flex', gap: 8, justifyContent: 'center', margin: '0 0 14px' }}>
-          {/* Corey's art carries the words, so the alt text says them too. */}
-          {[['instrument', 'By what I do', '/icons/what.i.do.jpg'],
-            ['need', 'By what I need', '/icons/what.i.need.jpg']].map(([k, text, art]) => (
-            <button key={k} role="tab" aria-selected={lens === k} aria-label={text} title={text}
-              className={`category-card ${lens === k ? 'cyan' : ''}`}
-              style={{ padding: 4, opacity: lens === k ? 1 : 0.55, width: 'min(42vw, 190px)' }}
-              onClick={() => pickLens(k)}>
-              <img src={art} alt={text} style={{ width: '100%', aspectRatio: '1 / 1', borderRadius: 10, display: 'block' }} />
-            </button>
-          ))}
-        </div>
-      )}
-
-      {FOCUS_MODE && lens === 'need' && (
-        <NeedsView onOpen={openFocus} />
-      )}
-
-      {FOCUS_MODE && mine.apps.length > 0 && (
         <>
-          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">Your apps</p>
-          <div className="category-grid">
-            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
-          </div>
-          {mine.own && (
-            <button className="toolz-more-button" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
-              {showAll ? 'Hide the coaches & tools' : 'All coaches & tools'}
-            </button>
-          )}
+          <button className="toolz-more-button" aria-expanded={showNeeds} onClick={() => setShowNeeds((v) => !v)}>
+            {showNeeds ? 'Hide: find an app by what I need' : '🔎 Find an app by what I need'}
+          </button>
+          {showNeeds && <NeedsView onOpen={openFocus} />}
         </>
       )}
 
-      {FOCUS_MODE && lens === 'instrument' && (!mine.own || showAll) && (
+      {/* One home: your apps (once you have some), then every coach and tool in one grid.
+          Everything else is one tap behind More apps. */}
+      {FOCUS_MODE && (mine.apps.length > 0 || editing) && (
         <>
-          <p className="toolz-subtitle" style={{ marginBottom: 8 }}>Your coach — pick an instrument</p>
+          <p className="toolz-subtitle" style={{ marginBottom: 8 }} data-tour="your-apps">
+            Your apps{' '}
+            <button type="button" className="toolz-more-button" style={{ fontSize: 12, marginLeft: 8 }}
+                    aria-expanded={editing} onClick={() => setEditing((v) => !v)}>
+              {editing ? 'Close' : '✎ Edit'}
+            </button>
+          </p>
+          {editing && <EditYourApps chosen={chosen} onChange={saveChosen} onDone={() => setEditing(false)} />}
           <div className="category-grid">
-            {FOCUS_COACHES.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} big />)}
-            {/* SkillZ is the coaches' own skill tree: a coach app, so it sits with them. */}
-            {FOCUS_COACH_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+            {mine.apps.map((k) => <YourAppTile key={k} appKey={k} onOpen={openFocus} />)}
           </div>
-          <p className="toolz-subtitle" style={{ margin: '20px 0 8px' }}>Around the coach</p>
-          <div className="category-grid">
-            {FOCUS_PARENTS.map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
-            {FOCUS_SUPPORT.map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+        </>
+      )}
+
+      {FOCUS_MODE && (
+        <>
+          <div className="category-grid coach-grid" data-tour="home-pinned" style={{ margin: '14px 0' }}>
+            {/* ToolZ and DawZ lead. The coaches live in SkillZ now (a tab on the profile), so they are not tiles here. */}
+            <ParentTile categoryKey="ToolZ" onOpen={setSelectedCategory} big />
+            <FocusTile appKey="dawz" onOpen={openFocus} big />
+            <ParentTile categoryKey="IntelligenceZ" onOpen={setSelectedCategory} big />
           </div>
-          <button
-            className="toolz-more-button"
-            onClick={() => setShowMore((v) => !v)}
-          >
+          <div className="category-grid" style={{ margin: '14px 0' }}>
+            {FOCUS_PARENTS.filter((k) => k !== "ToolZ" && k !== "IntelligenceZ").map((k) => <ParentTile key={k} categoryKey={k} onOpen={setSelectedCategory} />)}
+            {/* Lilith and BodieZ are in ToolZ ("Plan & train"), so they are not tiles here. */}
+            {FOCUS_SUPPORT.filter((k) => !["dawz", "bodiez", "lilith"].includes(k)).map((k) => <FocusTile key={k} appKey={k} onOpen={openFocus} />)}
+          </div>
+          <button className="toolz-more-button" aria-expanded={showMore} onClick={() => setShowMore((v) => !v)}>
             {showMore ? 'Hide the other apps' : `More apps (${CATEGORIES.length} categories)`}
           </button>
         </>
@@ -606,23 +691,6 @@ export default function ToolZMenu() {
       </div>
       )}
 
-      {/* Quick Stats */}
-      {showMore && (
-      <div className="toolz-stats">
-        <div className="stat-item">
-          <span className="stat-icon">🎵</span>
-          <span>{CATEGORIES.length} Categories</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-icon">👥</span>
-          <span>{countLine(Object.values(TOOLZ_MENU).flatMap((c) => flattenApps(c)), true)}</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-icon">⭐</span>
-          <span>Explore & Create</span>
-        </div>
-      </div>
-      )}
       <p className="mt-6 pb-2 text-center"><VersionBadge /></p>
     </div>
   );

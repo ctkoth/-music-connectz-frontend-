@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Volume2 } from "lucide-react";
+import { SCALES, scaleNotes, diatonicChords, noteFreq } from "../scales.js";
+import { onHandoff } from "../handoff.js";
 
 const NOTES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
@@ -143,6 +145,42 @@ function ChordZ() {
   const [chordType, setChordType] = useState("major");
   const audioContextRef = useRef(null);
   const oscillatorsRef = useRef([]);
+  // ScaleZ: the notes of the key, from the same root as the chord. Heard on the same audio context.
+  const [scaleKey, setScaleKey] = useState("major");
+  const notesInKey = scaleNotes(rootNote, scaleKey);
+  const chordsInKey = diatonicChords(rootNote, scaleKey);
+  const [lit, setLit] = useState(-1);
+  // The key of a song somebody handed over (from PostZ, the coaches, a DAW bounce or Mix ConnectZ): shown in
+  // letters at the very top, and the chord root and scale follow it so everything below is already in that key.
+  const [songKey, setSongKey] = useState(null);
+  useEffect(() => onHandoff("chordz", (d) => {
+    if (!d?.root || !["major", "minor"].includes(d.mode) || !NOTES.includes(d.root)) return;
+    setSongKey({ root: d.root, mode: d.mode });
+    setRootNote(d.root); setScaleKey(d.mode); setChordType(d.mode === "minor" ? "minor" : "major");
+  }), []);
+  const playNotes = (names) => {
+    if (!audioContextRef.current) audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = audioContextRef.current;
+    ctx.resume();
+    const t0 = ctx.currentTime;
+    // Walk up from the root: a name that comes earlier in the alphabet of the octave than the one before it
+    // is in the next octave, so the scale rises instead of jumping back down.
+    let octave = 4, prev = -1;
+    names.forEach((n, i) => {
+      const idx = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"].indexOf(n);
+      if (prev >= 0 && idx < prev) octave += 1;
+      prev = idx;
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.type = "sine"; osc.frequency.value = noteFreq(n, octave);
+      const at = t0 + i * 0.45;
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + 0.42);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(at); osc.stop(at + 0.45);
+      setTimeout(() => setLit(names.length === 1 ? -1 : i), i * 450);
+    });
+    setTimeout(() => setLit(-1), names.length * 450 + 50);
+  };
 
   const currentChord = GUITAR_CHORDS[rootNote]?.[chordType] || [];
   const chordName = `${rootNote}${CHORD_TYPES[chordType]?.suffix || ""}`;
@@ -185,11 +223,23 @@ function ChordZ() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-800 p-3 sm:p-8">
       <div className="mx-auto max-w-3xl">
+        {songKey && (
+          <div className="mb-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-center" data-tour="chordz-songkey" role="status">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-300">Key of your song · estimated</p>
+            <p className="mt-1 text-3xl font-extrabold text-white">{songKey.root} {songKey.mode}</p>
+            <p className="mt-1 flex flex-wrap justify-center gap-1.5">
+              {scaleNotes(songKey.root, songKey.mode).map((n, i) => (
+                <span key={n} className={`rounded px-2 py-0.5 text-sm font-bold ${i === 0 ? "bg-cyan-400 text-slate-900" : "bg-slate-700 text-slate-100"}`}>{n}</span>
+              ))}
+            </p>
+            <button type="button" className="mt-1 text-[11px] text-slate-400 underline" onClick={() => setSongKey(null)}>Clear</button>
+          </div>
+        )}
         {/* Header */}
-        <div className="mb-12 text-center">
-          <h1 className="mb-2 text-5xl font-bold text-white">ChordZ</h1>
+        <div className="mb-6 text-center sm:mb-12">
+          <h1 className="mb-2 text-3xl font-bold text-white sm:text-5xl">ChordZ</h1>
           <p className="text-lg text-slate-400">(chord library)</p>
         </div>
 
@@ -233,6 +283,36 @@ function ChordZ() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* ScaleZ — the notes of the key, like TunerZ names the note being played. Same root as above. */}
+        <div className="mb-8 rounded-xl bg-slate-800/50 p-4 backdrop-blur sm:p-6" data-tour="scalez">
+          <label className="mb-1 block text-sm font-semibold text-slate-300">ScaleZ — the notes of the key of {rootNote}</label>
+          <p className="mb-3 text-xs text-slate-400">Every note below belongs in {rootNote} {SCALES[scaleKey].name.toLowerCase()}. Tap one to hear it, or play the whole scale.</p>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {Object.entries(SCALES).map(([k, sc]) => (
+              <button key={k} onClick={() => setScaleKey(k)}
+                      className={`rounded px-2.5 py-1.5 text-xs font-semibold transition-all ${scaleKey === k ? "bg-emerald-500 text-slate-900" : "bg-slate-700 text-slate-200 hover:bg-slate-600"}`}>
+                {sc.name}
+              </button>
+            ))}
+          </div>
+          <div className="mb-3 flex flex-wrap gap-2" role="list" aria-label={`Notes in ${rootNote} ${SCALES[scaleKey].name}`}>
+            {notesInKey.map((n, i) => (
+              <button key={`${n}${i}`} role="listitem" onClick={() => playNotes([n])} aria-label={`Play ${n}`}
+                      className={`min-w-[2.75rem] rounded-lg border px-3 py-2 text-base font-bold transition-all ${lit === i ? "scale-110 border-emerald-300 bg-emerald-400 text-slate-900"
+                        : i === 0 ? "border-cyan-400 bg-cyan-500/20 text-cyan-300" : "border-slate-600 bg-slate-700/60 text-slate-100 hover:bg-slate-600"}`}>
+                {n}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => playNotes([...notesInKey, notesInKey[0]])}
+                  className="mb-3 inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-emerald-600 active:scale-95">
+            <Volume2 size={16} /> Play the scale
+          </button>
+          {chordsInKey.length > 0 && (
+            <p className="text-xs text-slate-400">Chords in this key: <span className="font-semibold text-slate-200">{chordsInKey.join(" · ")}</span></p>
+          )}
         </div>
 
         {/* Chord Type Selection */}

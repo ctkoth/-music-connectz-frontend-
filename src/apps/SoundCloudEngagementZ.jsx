@@ -31,21 +31,21 @@ export default function SoundCloudEngagementZ() {
             <div className="space-y-2 text-sm text-white/70">
               <div>
                 <p className="font-semibold text-white/90">👍 Likes</p>
-                <p className="text-xs text-white/40">Up to 20 per day</p>
+                <p className="text-xs text-white/55">Up to 20 per day</p>
               </div>
 
               <div>
                 <p className="font-semibold text-white/90">🔁 Reposts</p>
-                <p className="text-xs text-white/40">Up to 2 per day</p>
+                <p className="text-xs text-white/55">Up to 2 per day</p>
               </div>
 
               <div>
                 <p className="font-semibold text-white/90">💬 Comments</p>
-                <p className="text-xs text-white/40">Up to 5 per day</p>
+                <p className="text-xs text-white/55">Up to 5 per day</p>
               </div>
             </div>
 
-            <div className="rounded bg-white/[0.03] p-3 text-xs text-white/40 space-y-1">
+            <div className="rounded bg-white/[0.03] p-3 text-xs text-white/55 space-y-1">
               <p>✓ One reward per track per kind per member</p>
               <p>• You report it and we don't check it with SoundCloud yet, so it pays a little ⚡ and no 🍥 — the amount is on the button</p>
               <p>✓ Daily caps reset at midnight UTC</p>

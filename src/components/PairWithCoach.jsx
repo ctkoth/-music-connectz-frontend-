@@ -76,7 +76,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
             <input type="radio" name="pair-mode" className="mt-0.5" checked={mode === m.key}
                    onChange={() => setMode(m.key)} />
             <span><span className="font-semibold text-white/90">{m.label}</span> — {m.what}{" "}
-              <span className="text-white/40">e.g. {m.example}</span></span>
+              <span className="text-white/55">e.g. {m.example}</span></span>
           </label>
         ))}
       </div>
@@ -92,7 +92,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />} Pair these
           </button>
           {/* No resource moves, so there is no price to state — only that nothing is saved yet. */}
-          <span className="text-[11px] text-white/45">
+          <span className="text-[11px] text-white/60">
             {s?.active && !s?.is_statz ? "Using your StatZ sample. " : ""}
             Nothing is saved until you press Save routine.
           </span>
@@ -100,7 +100,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
       ) : (
         <div className="space-y-1">
           <StatzSample what="Planner supersets" />
-          <p className="text-[11px] text-white/45">{offer.manual} Use the link button on a lift's row.</p>
+          <p className="text-[11px] text-white/60">{offer.manual} Use the link button on a lift's row.</p>
         </div>
       )}
 
@@ -114,7 +114,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
           {result.pairs.map((p) => (
             <p key={p.group}>
               <span className="font-semibold text-fuchsia-300">{p.group}</span>{" "}
-              {p.names.join(" + ")} <span className="text-white/40">— {p.why}</span>
+              {p.names.join(" + ")} <span className="text-white/55">— {p.why}</span>
             </p>
           ))}
           {result.added.length > 0 && (
@@ -123,7 +123,7 @@ export default function PairWithCoach({ rows, equipment, nameOf, onApply }) {
             </p>
           )}
           {result.left_single.length > 0 && result.pairs.length > 0 && (
-            <p className="text-white/40">
+            <p className="text-white/55">
               Left as they were: {result.left_single.map((id) => nameOf(id)).join(", ")}.
             </p>
           )}

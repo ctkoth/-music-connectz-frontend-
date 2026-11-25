@@ -46,7 +46,7 @@ export default function PostTake({ appKey, take, onClose }) {
           <a href={done.url} target="_blank" rel="noreferrer" className="text-mcz-cyan underline">Open the post</a>
           <button type="button" onClick={share} className="rounded-md bg-mcz-cyan/10 px-2 py-1 text-mcz-cyan hover:bg-mcz-cyan/20">Share the link</button>
           {msg && <span className="text-emerald-300">{msg}</span>}
-          <button type="button" onClick={onClose} className="text-white/45 underline">Close</button>
+          <button type="button" onClick={onClose} className="text-white/60 underline">Close</button>
         </div>
       </div>
     );
@@ -61,7 +61,7 @@ export default function PostTake({ appKey, take, onClose }) {
         <input type="checkbox" checked={recording && kept} disabled={!kept} onChange={(e) => setRecording(e.target.checked)} />
         The recording — {kept ? "so it plays on the post" : "not kept, so there is nothing to play"}
       </label>
-      {!kept && info.file?.why && <p className="text-[11px] text-white/40">{info.file.why}</p>}
+      {!kept && info.file?.why && <p className="text-[11px] text-white/55">{info.file.why}</p>}
       <label className="flex items-center gap-2 text-[12px] text-white/60">
         Who sees it
         <select data-nomemo="true" aria-label="Who sees this post" value={vis} onChange={(e) => setVis(e.target.value)} className="neon-input !w-auto !py-1 text-[11px]">
@@ -71,8 +71,8 @@ export default function PostTake({ appKey, take, onClose }) {
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={post} disabled={busy} className="re-btn !w-auto px-3 text-[12px]">{busy ? "Posting…" : "Post it"}</button>
-        <span className="text-[11px] text-emerald-300">Free <span className="text-white/45">— counts as 1 of today's {s.cap} submissions ({s.used} used)</span></span>
-        <button type="button" onClick={onClose} className="text-[11px] text-white/45 underline">Cancel</button>
+        <span className="text-[11px] text-emerald-300">Free <span className="text-white/60">— counts as 1 of today's {s.cap} submissions ({s.used} used)</span></span>
+        <button type="button" onClick={onClose} className="text-[11px] text-white/60 underline">Cancel</button>
       </div>
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
     </div>

@@ -23,7 +23,7 @@ export default function ReachGates() {
   return (
     <div className="re-card space-y-2">
       <p className="text-sm font-semibold text-white">Who can reach me</p>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         {any ? "Messages and calls from members outside these ranges are refused, and they're told why."
              : "Anyone can message or call you. Set ranges below if you'd rather not hear from everyone."}
         {" "}People you follow can always reach you.

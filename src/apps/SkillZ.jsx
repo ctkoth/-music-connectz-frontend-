@@ -53,14 +53,14 @@ function Price({ price, daily }) {
   if (price.free_today) {
     return (
       <span className="text-emerald-300">
-        Free today <span className="text-white/45">— a take uses 1 of your {left} free {left === 1 ? "prompt" : "prompts"}</span>
+        Free today <span className="text-white/60">— a take uses 1 of your {left} free {left === 1 ? "prompt" : "prompts"}</span>
       </span>
     );
   }
   return (
     <span className="text-mcz-ember">
       −{price.cost_cents} {PROMPTZ}
-      <span className="text-white/45">
+      <span className="text-white/60">
         {left > 0
           ? " a take — this costs more than a free prompt covers"
           : IN_SHELL
@@ -106,7 +106,7 @@ function CoachCard({ app, daily, priced }) {
         <p className="text-xs text-white/50">
           {count.toLocaleString()} {count === 1 ? "take" : "takes"} scored
           {Number(app.xp) > 0 && Number.isFinite(Number(app.level)) && (
-            <> · level {Number(app.level)} <span className="text-white/35">({Number(app.xp).toLocaleString()} {XP})</span></>
+            <> · level {Number(app.level)} <span className="text-white/50">({Number(app.xp).toLocaleString()} {XP})</span></>
           )}
         </p>
       )}
@@ -235,8 +235,8 @@ export default function SkillZ() {
               className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
               <IconImg icon={iconOf(r.app)} alt="" className="h-8 w-8 shrink-0 rounded-lg" />
               <span className="min-w-0 flex-1 truncate text-white/85">{r.label}</span>
-              <span className="shrink-0 text-[11px] text-white/45">{day(r.created_at)}</span>
-              <ArrowRight size={14} className="shrink-0 text-white/40" />
+              <span className="shrink-0 text-[11px] text-white/60">{day(r.created_at)}</span>
+              <ArrowRight size={14} className="shrink-0 text-white/55" />
             </button>
           ))}
         </section>

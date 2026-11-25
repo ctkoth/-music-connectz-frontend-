@@ -2,6 +2,7 @@
 // invite, the other person gets THEIR OWN reading, and only they can choose to show it to you.
 // Every word of the rules is the server's (/api/economy/lookmaxz/invite/, /share/); a share is made
 // from the server-signed reading the coach answered with, never from anything typed here.
+import { pathFor } from "../App.jsx";
 import { useEffect, useState } from "react";
 import { Copy, Loader2, Trash2 } from "lucide-react";
 import { api } from "../api.js";
@@ -26,7 +27,7 @@ export function InviteRate({ username }) {
         <code className="min-w-0 flex-1 truncate rounded bg-white/5 px-2 py-1 text-[11px] text-white/70">{link}</code>
         <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={copy}><Copy size={12} /> {copied ? "Copied" : "Copy invite"}</button>
       </div>
-      <p className="text-[11px] text-white/40">Free to send. They pay for their own reading, and if they join from it you get the usual invite credit.</p>
+      <p className="text-[11px] text-white/55">Free to send. They pay for their own reading, and if they join from it you get the usual invite credit.</p>
     </section>
   );
 }
@@ -48,8 +49,8 @@ export function ShareReading({ reading, note, prefillTo = "", photoKept = false,
     return (
       <section className="neon-frame space-y-1 p-4" role="status">
         <p className="text-sm text-emerald-300">Shared{done.to ? ` with @${done.to} — they've been notified` : ""}.</p>
-        {!done.to && <p className="text-[12px] text-white/60">Link for any verified adult: <code>{`${window.location.origin}/lookmaxz?look=${done.token}`}</code></p>}
-        <p className="text-[11px] text-white/40">Take it down any time under "Your shared readings".</p>
+        {!done.to && <p className="text-[12px] text-white/60">Link for any verified adult: <code>{`${window.location.origin}${pathFor("lookmaxz")}?look=${done.token}`}</code></p>}
+        <p className="text-[11px] text-white/55">Take it down any time under "Your shared readings".</p>
       </section>
     );
   }
@@ -98,7 +99,7 @@ function PostIt({ token, hasPhoto }) {
         </label>
       )}
       <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={busy} onClick={post}>Post my results</button>
-      <span className="text-white/40">Free · the numbers and the coach's words{hasPhoto ? ", and the photo if ticked" : ""}</span>
+      <span className="text-white/55">Free · the numbers and the coach's words{hasPhoto ? ", and the photo if ticked" : ""}</span>
       {err && <span role="alert" className="text-mcz-ember">{err}</span>}
     </div>
   );
@@ -107,7 +108,7 @@ function PostIt({ token, hasPhoto }) {
 export function SharedLook({ s, onDelete }) {
   return (
     <section className="neon-frame space-y-2 p-4">
-      <p className="text-[11px] uppercase tracking-widest text-white/45">
+      <p className="text-[11px] uppercase tracking-widest text-white/60">
         {s.mine ? (s.to ? `You shared this with @${s.to}` : "You shared this by link") : `@${s.username} shared their reading`}
       </p>
       {s.photo_url && <img src={s.photo_url} alt={`The photo @${s.username} had read`} className="max-h-72 rounded-lg" />}
@@ -119,7 +120,7 @@ export function SharedLook({ s, onDelete }) {
         ))}
       </div>
       {s.working?.length > 0 && <ul className="list-disc pl-5 text-[12px] text-emerald-200/90">{s.working.map((w, i) => <li key={i}>{w}</li>)}</ul>}
-      <p className="text-[11px] leading-snug text-white/40">{s.caveat} Their own photo, their own choice to share — the photo shows only when they chose to show it.</p>
+      <p className="text-[11px] leading-snug text-white/55">{s.caveat} Their own photo, their own choice to share — the photo shows only when they chose to show it.</p>
       {s.mine && <PostIt token={s.token} hasPhoto={!!s.photo_url} />}
       {s.mine && onDelete && (
         <button type="button" className="re-link inline-flex items-center gap-1 text-[12px] text-mcz-ember" onClick={() => onDelete(s.token)}>

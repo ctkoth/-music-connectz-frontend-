@@ -113,7 +113,7 @@ export default function SpecZ() {
         <IconImg icon="specz.png" alt="SpecZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">SpecZ</h2>
-          <p className="text-xs text-white/45">User metadata &amp; UGC you attach to any app — a StatZ perk.</p>
+          <p className="text-xs text-white/60">User metadata &amp; UGC you attach to any app — a StatZ perk.</p>
         </div>
       </header>
 
@@ -123,7 +123,7 @@ export default function SpecZ() {
         <span className="re-label flex items-center gap-2">
           <Download size={13} className="text-mcz-cyan" /> Get Music ConnectZ on your device
         </span>
-        <p className="text-[11px] leading-relaxed text-white/45">
+        <p className="text-[11px] leading-relaxed text-white/60">
           The desktop and Android builds load the live site, so they are always
           whatever the web app is — there is no version to keep up to date.
           <span className="text-emerald-300"> Free</span>, and no account action:
@@ -134,13 +134,13 @@ export default function SpecZ() {
             <a key={b.key} href={b.href} target="_blank" rel="noreferrer"
                className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-2.5 transition hover:border-mcz-cyan/50">
               <p className="text-[13px] font-semibold text-white">{b.emoji} {b.label}</p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{b.note}</p>
+              <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">{b.note}</p>
             </a>
           ))}
         </div>
         {/* Said before the download, not discovered at the warning — the same
             rule the rest of this app follows about prices. */}
-        <p className="text-[11px] leading-relaxed text-white/35">
+        <p className="text-[11px] leading-relaxed text-white/50">
           Neither Windows build is code-signed yet, so SmartScreen shows
           "unrecognised app" the first time: <b className="text-white/60">More info → Run anyway</b>.
         </p>
@@ -156,7 +156,7 @@ export default function SpecZ() {
             and never charged for. They're listed below so you can write the ones
             you still want; they'd have vanished on your next device either way.
           </p>
-          <ul className="pt-1 text-white/45">
+          <ul className="pt-1 text-white/60">
             {stranded.slice(0, 8).map((o, i) => (
               <li key={i} className="truncate">· {o.app} — {o.label}: {o.value}</li>
             ))}
@@ -174,7 +174,7 @@ export default function SpecZ() {
               typed — not discovered by pressing the button. */}
           <span className="flex items-center gap-2 text-sm font-bold">
             <span className="text-mcz-ember">−{price} {SPINAZ}</span>
-            <span className="text-[11px] font-normal text-white/40">
+            <span className="text-[11px] font-normal text-white/55">
               you have {data.spinaz} {SPINAZ}
             </span>
           </span>
@@ -246,7 +246,7 @@ export default function SpecZ() {
       <div>
         <p className="re-label mb-2">Your SpecZ · {specs.length}</p>
         {specs.length === 0 ? (
-          <p className="text-sm text-white/45">No SpecZ yet. Make one above.</p>
+          <p className="text-sm text-white/60">No SpecZ yet. Make one above.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {specs.map((sp) => {
@@ -258,7 +258,7 @@ export default function SpecZ() {
                   <div className="min-w-0 flex-1">
                     {/* Nothing is a dead end: a SpecZ describes an app, so it
                         opens that app rather than only naming it. */}
-                    <button className="flex items-center gap-1.5 text-[11px] text-white/45 hover:text-mcz-ember"
+                    <button className="flex items-center gap-1.5 text-[11px] text-white/60 hover:text-mcz-ember"
                             onClick={() => goToTab(sp.app_key)}>
                       <Tag size={11} /> {meta?.name || sp.app_key} · {when(sp.created_at)}
                       <ArrowRight size={10} />
@@ -266,7 +266,7 @@ export default function SpecZ() {
                     <div className="truncate text-sm font-bold text-white">{sp.label}</div>
                     <div className="text-sm text-white/75">{sp.value}</div>
                   </div>
-                  <button className="shrink-0 text-[11px] text-white/40 hover:text-mcz-ember"
+                  <button className="shrink-0 text-[11px] text-white/55 hover:text-mcz-ember"
                           title="Remove — this does not refund the SpinaZ"
                           disabled={busy} onClick={() => remove(sp.id)}>✕</button>
                 </div>

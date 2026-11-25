@@ -73,7 +73,7 @@ export default function RetakeRemind({ claimToken, remind, appKey }) {
         </button>
       </div>
       {/* The price of the button, before it is pressed. */}
-      <p className="mt-2 text-[11px] text-white/45">Free · {remind.schedule}</p>
+      <p className="mt-2 text-[11px] text-white/60">Free · {remind.schedule}</p>
       {err && <p role="alert" className="mt-2 text-[12px] text-mcz-ember">{err}</p>}
     </form>
   );

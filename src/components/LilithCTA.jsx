@@ -41,7 +41,7 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
     if (!rows.length) return null;
     return (
       <div key={c} className="space-y-1.5">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">
           {CADENCE[c].emoji} {CADENCE[c].label}
         </p>
         {rows.map((r) => (
@@ -51,7 +51,7 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
               <span className="text-[12px] text-mcz-ember">🔥 {r.streak}{CADENCE[c].unit}</span>
               {r.verified && <span className="text-[11px] text-mcz-cyan" title="Lilith keeps this one from your real activity">✨ verified</span>}
               {r.next_milestone && (
-                <span className="text-[11px] text-white/45">
+                <span className="text-[11px] text-white/60">
                   {r.next_milestone.away} {r.next_milestone.unit}{r.next_milestone.away === 1 ? "" : "s"} →{" "}
                   <Rung m={r.next_milestone} />
                 </span>
@@ -65,7 +65,7 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
               {move && <MoveMenu entry={r} kind="routine" buckets={buckets} move={move} />}
               {r.verified ? (
                 <span className={`rounded-md border px-2 py-1 text-[11px] ${r.done_period
-                  ? "border-emerald-400/40 text-emerald-300" : "border-white/10 text-white/40"}`}>
+                  ? "border-emerald-400/40 text-emerald-300" : "border-white/10 text-white/55"}`}>
                   {r.done_period ? `Kept ${r.period_now}` : "Lilith keeps it"}
                 </span>
               ) : (
@@ -75,7 +75,7 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
                 </button>
               )}
             </div>
-            {r.note && <p className="text-[11px] text-white/40">{r.note}</p>}
+            {r.note && <p className="text-[11px] text-white/55">{r.note}</p>}
             {r.verified && <Progress p={r.progress} cadence={c} />}
           </div>
         ))}
@@ -112,7 +112,7 @@ export function Suggested({ items, add, busyKey }) {
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1 text-sm font-semibold">
           {s.kind === "task" ? "✅" : CADENCE[s.cadence]?.emoji} {s.title}
-          {s.kind !== "task" && <span className="ml-2 text-[11px] font-normal text-white/40">{CADENCE[s.cadence]?.label}</span>}
+          {s.kind !== "task" && <span className="ml-2 text-[11px] font-normal text-white/55">{CADENCE[s.cadence]?.label}</span>}
           {s.action && <span className="ml-2 text-[11px] font-normal text-mcz-cyan" title="Lilith keeps it from your real activity">✨</span>}
         </span>
         {s.app_key && (
@@ -127,9 +127,9 @@ export function Suggested({ items, add, busyKey }) {
         </button>
       </div>
       <p className="text-[11px] text-fuchsia-200/80">
-        <span className="text-white/40">Because {BECAUSE[s.because] || "of you"} — </span>{s.why}
+        <span className="text-white/55">Because {BECAUSE[s.because] || "of you"} — </span>{s.why}
       </p>
-      <p className="text-[11px] text-white/40">{s.note}</p>
+      <p className="text-[11px] text-white/55">{s.note}</p>
     </div>
   );
   return (
@@ -137,10 +137,10 @@ export function Suggested({ items, add, busyKey }) {
       <h3 className="flex items-center gap-2 font-display text-sm font-bold text-fuchsia-200">
         <Sparkles size={15} /> Recommended for you
       </h3>
-      <p className="text-[11px] text-white/45">From your profile and what you actually do. Nothing is added until you tap it.</p>
-      {tasks.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">✅ Tasks</p>}
+      <p className="text-[11px] text-white/60">From your profile and what you actually do. Nothing is added until you tap it.</p>
+      {tasks.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">✅ Tasks</p>}
       {tasks.map(row)}
-      {routines.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">🔥 Routines</p>}
+      {routines.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">🔥 Routines</p>}
       {routines.map(row)}
     </section>
   );
@@ -154,7 +154,7 @@ export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "wee
   return (
     <span className="relative" onClick={(e) => e.stopPropagation()}>
       <button onClick={() => setOpen((o) => !o)} title="Move"
-              className="shrink-0 text-[11px] text-white/40 hover:text-white/70">⇄ Move</button>
+              className="shrink-0 text-[11px] text-white/55 hover:text-white/70">⇄ Move</button>
       {open && (
         <span className="absolute right-0 z-20 mt-1 flex w-56 flex-wrap gap-1 rounded-xl border border-white/10 bg-[#120a1d] p-2 shadow-neon">
           {kind === "task" && buckets.filter((b) => b.key !== "logbook" && b.key !== entry.bucket).map((b) => (
@@ -195,12 +195,12 @@ export function Starters({ starters: all, add, busyKey }) {
         <div className="space-y-3">
           {Object.keys(CADENCE).map((c) => (
             <div key={c} className="space-y-1.5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">{CADENCE[c].emoji} {CADENCE[c].label} routines</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">{CADENCE[c].emoji} {CADENCE[c].label} routines</p>
               {starters.routines.filter((r) => r.cadence === c).map((r) => (
                 <div key={r.key} className="flex flex-wrap items-start gap-2 rounded-lg bg-white/5 px-3 py-2">
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">{r.title} {r.verified && <span title="Lilith keeps it from your real activity">✨</span>}</p>
-                    <p className="text-[11px] text-white/45">{r.note}</p>
+                    <p className="text-[11px] text-white/60">{r.note}</p>
                     {r.pays_xp > 0 && <p className="text-[11px] text-emerald-300">+{r.pays_xp} ⭐ each time you keep it · no 🍥 or ⚡</p>}
                   </div>
                   {r.on_board ? <span className="text-[11px] text-emerald-300"><Check size={12} className="inline" /> on your board</span>
@@ -213,12 +213,12 @@ export function Starters({ starters: all, add, busyKey }) {
             </div>
           ))}
           <div className="space-y-1.5">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">✅ One-off tasks</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">✅ One-off tasks</p>
             {starters.tasks.map((t) => (
               <div key={t.key} className="flex flex-wrap items-start gap-2 rounded-lg bg-white/5 px-3 py-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{t.title} {t.verified && <span title="Lilith ticks it from your real activity">✨</span>}</p>
-                  <p className="text-[11px] text-white/45">{t.note}</p>
+                  <p className="text-[11px] text-white/60">{t.note}</p>
                 </div>
                 {t.on_board ? <span className="text-[11px] text-emerald-300"><Check size={12} className="inline" /> on your board</span>
                   : <button onClick={() => add("task", t.key)} disabled={busyKey === t.key} className="re-btn !w-auto px-3 py-1 text-[11px]">Add</button>}
@@ -240,7 +240,7 @@ export function BuildCTA({ actions, onMake }) {
     <form className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3"
           onSubmit={(e) => { e.preventDefault(); if (sel) { onMake({ ...f, title: f.title.trim() || sel.label }); setF({ ...f, title: "" }); } }}>
       <p className="font-display text-sm font-bold">🎯 Build a call-to-action</p>
-      <p className="text-[11px] text-white/45">Pick something the platform can see you do. Lilith keeps it for you when the records show it — no ticking.</p>
+      <p className="text-[11px] text-white/60">Pick something the platform can see you do. Lilith keeps it for you when the records show it — no ticking.</p>
       <div className="flex flex-wrap gap-2">
         <select value={f.action} onChange={(e) => setF({ ...f, action: e.target.value })} data-nomemo="true" aria-label="What to do"
                 className="min-w-[10rem] flex-1 rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-sm">
@@ -256,7 +256,7 @@ export function BuildCTA({ actions, onMake }) {
                className="w-20 rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-sm" aria-label="How many per period" />
         <button type="submit" disabled={!sel} className="re-btn !w-auto px-4 disabled:opacity-40">Add</button>
       </div>
-      {sel && <p className="text-[11px] text-white/40">{f.goal} {sel.unit}{f.goal === 1 ? "" : "s"} {f.cadence === "daily" ? "a day" : f.cadence === "weekly" ? "a week" : "a month"} — opens {sel.app_key}.</p>}
+      {sel && <p className="text-[11px] text-white/55">{f.goal} {sel.unit}{f.goal === 1 ? "" : "s"} {f.cadence === "daily" ? "a day" : f.cadence === "weekly" ? "a week" : "a month"} — opens {sel.app_key}.</p>}
     </form>
   );
 }
@@ -266,7 +266,7 @@ export function TrashedRoutines({ items, days, restore }) {
   if (!items?.length) return null;
   return (
     <div className="space-y-1.5">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">🗑️ Trash · emptied after {days} days</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">🗑️ Trash · emptied after {days} days</p>
       {items.map((r) => (
         <div key={r.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/55">
           <span className="min-w-0 flex-1 truncate">{CADENCE[r.cadence]?.emoji} {r.title}</span>

@@ -36,12 +36,12 @@ const today = () => new Date().toISOString().slice(0, 10);
  *  second copy of a number that moves during a session is a stale quote, and a
  *  stale quote is the same lie as no quote. */
 function Price({ cost }) {
-  if (cost === null || cost === undefined) return <span className="text-white/40">priced there</span>;
+  if (cost === null || cost === undefined) return <span className="text-white/55">priced there</span>;
   if (!cost.amount) return <span className="text-emerald-300">Free</span>;
   return (
     <span className={cost.affordable ? "text-mcz-ember" : "text-mcz-ember/60"}>
       −{cost.amount} {ENERGY}
-      {!cost.affordable && <span className="text-white/35"> · we'll take what's there</span>}
+      {!cost.affordable && <span className="text-white/50"> · we'll take what's there</span>}
     </span>
   );
 }
@@ -62,7 +62,7 @@ function Gate({ gate, children = null }) {
       </p>
       {d.blurb && <p className="mt-1 text-[11px] text-white/55">{d.blurb}</p>}
       {(d.preview?.what || d.what) && (
-        <p className="mt-1 text-[11px] text-white/45">{d.preview?.what || d.what}</p>
+        <p className="mt-1 text-[11px] text-white/60">{d.preview?.what || d.what}</p>
       )}
       {d.always_free && <p className="mt-1 text-[11px] text-emerald-300/80">{d.always_free}</p>}
       <button className="neon-btn-primary mt-2 !w-auto px-4 text-[12px]"
@@ -84,26 +84,26 @@ function OpenIn({ entry, busy, onGo }) {
   return (
     <div className="mt-2 space-y-1.5 rounded-xl border border-white/[0.06] bg-black/20 p-2.5"
          data-tour="journalz-open-in">
-      <p className="text-[10px] uppercase tracking-widest text-white/40">Take this entry to</p>
+      <p className="text-[10px] uppercase tracking-widest text-white/55">Take this entry to</p>
       {dests.map((d) => (
         <div key={d.app + d.label} className="rounded-lg border border-white/[0.06] p-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <button onClick={() => onGo(d)} disabled={!d.available}
                     className={`text-[12px] font-semibold ${d.available
-                      ? "text-white hover:text-mcz-gold" : "cursor-not-allowed text-white/35"}`}>
+                      ? "text-white hover:text-mcz-gold" : "cursor-not-allowed text-white/50"}`}>
               {d.label}
             </button>
             <span className="text-[11px]"><Price cost={d.cost} /></span>
             {d.gain?.what && <span className="text-[11px] text-emerald-300/70">→ {d.gain.what}</span>}
           </div>
-          <p className="mt-0.5 text-[11px] leading-relaxed text-white/45">{d.what}</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-white/60">{d.what}</p>
           {d.warn && <p className="mt-0.5 text-[11px] text-mcz-ember/80">{d.warn}</p>}
           {!d.available && (
             <p className="mt-1 text-[11px] text-mcz-ember/80">Needs {asList(d.needs).join("; ")}.</p>
           )}
         </div>
       ))}
-      {busy && <p className="flex items-center gap-2 text-[11px] text-white/45">
+      {busy && <p className="flex items-center gap-2 text-[11px] text-white/60">
         <Loader2 className="animate-spin" size={12} /> Handing it over…</p>}
     </div>
   );
@@ -128,11 +128,11 @@ function Chips({ value, onChange, placeholder, prefix = "", max, icon: Icon }) {
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center gap-1.5">
-        {Icon && <Icon size={13} className="text-white/35" />}
+        {Icon && <Icon size={13} className="text-white/50" />}
         {list.map((v) => (
           <span key={v} className="pill !py-0.5 text-[11px]">
             {prefix}{v}
-            <button className="ml-1 text-white/40 hover:text-mcz-ember"
+            <button className="ml-1 text-white/55 hover:text-mcz-ember"
                     onClick={() => onChange(list.filter((x) => x !== v))}>
               <XIcon size={10} className="inline" />
             </button>
@@ -386,7 +386,7 @@ export default function JournalZ() {
         <IconImg icon="journalz.png" alt="JournalZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">JournalZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Your diary. Private until you say otherwise — tagging somebody here tells them nothing.
           </p>
         </div>
@@ -448,7 +448,7 @@ export default function JournalZ() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-[11px] text-white/45">
+          <label className="flex items-center gap-1.5 text-[11px] text-white/60">
             <Calendar size={13} />
             <input type="date" max={today()} value={day} onChange={(e) => setDay(e.target.value)}
                    className="rounded-lg border border-white/[0.08] bg-black/40 px-2 py-1.5 text-[12px] text-white outline-none focus:border-mcz-ember/60" />
@@ -491,7 +491,7 @@ export default function JournalZ() {
                  max={limits.people} icon={Users} />
           {/* The whole reason tagging is safe to offer on a diary, said where
               somebody is actually doing it. */}
-          <p className="text-[10px] leading-relaxed text-white/35">
+          <p className="text-[10px] leading-relaxed text-white/50">
             {visibility === "private"
               ? "Nobody is told. On a private entry a tag is a note to yourself — they can't see it and they get no notification."
               : "These members will be told, once, when you save this."}
@@ -500,7 +500,7 @@ export default function JournalZ() {
 
         <div data-tour="journalz-place" className="space-y-1">
           <div className="flex flex-wrap items-center gap-2">
-            <MapPin size={13} className="text-white/35" />
+            <MapPin size={13} className="text-white/50" />
             <input className="neon-input !w-56 !py-1 text-[11px]" placeholder="Where were you?"
                    maxLength={120} value={placeName} onChange={(e) => setPlaceName(e.target.value)} />
             <button className="pill text-[11px]" onClick={locate}>Use my location</button>
@@ -513,7 +513,7 @@ export default function JournalZ() {
             )}
           </div>
           {coords && (
-            <p className="text-[10px] leading-relaxed text-white/35">
+            <p className="text-[10px] leading-relaxed text-white/50">
               {coords.lat}, {coords.lng} —{" "}
               {placeExact
                 ? "the coordinates will travel with a shared entry."
@@ -523,7 +523,7 @@ export default function JournalZ() {
         </div>
 
         <MediaFields value={work} onChange={setWork} label="Attach a photo, a voice note, a take" />
-        {storage && <p className="text-[10px] text-white/35">{storageNote(storage)}</p>}
+        {storage && <p className="text-[10px] text-white/50">{storageNote(storage)}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
           <select aria-label="Who can read this entry" className="rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60"
@@ -532,7 +532,7 @@ export default function JournalZ() {
             <option value="restricted">👥 Members only</option>
             <option value="public">🌍 Public</option>
           </select>
-          <span className="basis-full text-[10px] leading-relaxed text-white/35 sm:basis-auto">
+          <span className="basis-full text-[10px] leading-relaxed text-white/50 sm:basis-auto">
             {visibility === "private"
               ? "Just me: only you can read this entry."
               : visibility === "restricted"
@@ -569,10 +569,10 @@ export default function JournalZ() {
       {exportGate && <Gate gate={exportGate} />}
       {look && (
         <div className="neon-frame space-y-2 p-3">
-          <p className="text-[11px] uppercase tracking-widest text-white/45">
+          <p className="text-[11px] uppercase tracking-widest text-white/60">
             On this day · {look.count} {look.count === 1 ? "year" : "years"}
           </p>
-          {look.count === 0 && <p className="text-[12px] text-white/45">
+          {look.count === 0 && <p className="text-[12px] text-white/60">
             Nothing on this date in another year yet — this one grows as you keep it.</p>}
           {asList(look.years).map((e) => (
             <div key={e.id} className="rounded-lg border border-white/[0.06] p-2">
@@ -592,7 +592,7 @@ export default function JournalZ() {
           </button>
         ))}
         <span className="flex items-center gap-1">
-          <Search size={12} className="text-white/35" />
+          <Search size={12} className="text-white/50" />
           <input className="neon-input !w-44 !py-1 text-[11px]" placeholder="Search your words"
                  value={q} onChange={(e) => setQ(e.target.value)}
                  onKeyDown={(e) => e.key === "Enter" && load()} />
@@ -618,7 +618,7 @@ export default function JournalZ() {
       {/* ---- the entries -------------------------------------------------- */}
       <div className="space-y-3" data-tour="journalz-entries">
         {entries.length === 0 && (
-          <p className="text-sm text-white/45">
+          <p className="text-sm text-white/60">
             {view === "tagged"
               ? "Nobody has shared an entry you're in yet."
               : "Nothing kept yet. Today is as good a day as any."}
@@ -635,9 +635,9 @@ export default function JournalZ() {
                 {e.private ? "🔒 Just me" : e.visibility === "public" ? "🌍 Public" : "👥 Members only"}
               </span>
               {e.mood_label && <span className="text-[11px] text-white/50">{e.mood_label}</span>}
-              {e.weather && <span className="text-[11px] text-white/40">{e.weather}</span>}
+              {e.weather && <span className="text-[11px] text-white/55">{e.weather}</span>}
               {e.mine && (
-                <button className="ml-auto flex items-center gap-1 text-[11px] text-white/40 hover:text-mcz-cyan"
+                <button className="ml-auto flex items-center gap-1 text-[11px] text-white/55 hover:text-mcz-cyan"
                         title="Edit this entry — free, and not on a timer" onClick={() => startEdit(e)}>
                   <Pencil size={12} /> Edit
                 </button>
@@ -698,7 +698,7 @@ export default function JournalZ() {
           <div className="neon-frame w-full max-w-md space-y-3 p-4" onClick={(ev) => ev.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg font-extrabold">Publish this entry</h3>
-              <button onClick={() => setQuote(null)} className="text-white/40 hover:text-white"><XIcon size={16} /></button>
+              <button onClick={() => setQuote(null)} className="text-white/55 hover:text-white"><XIcon size={16} /></button>
             </div>
             {quote.warn && <p className="text-[12px] text-mcz-ember">{quote.warn}</p>}
             <p className="text-[12px] text-white/60">
@@ -710,7 +710,7 @@ export default function JournalZ() {
                 <span className="text-mcz-cyan">{quote.will_notify.map((n) => `@${n}`).join(", ")}</span>
               </p>
             ) : (
-              <p className="text-[12px] text-white/45">Nobody new will be notified.</p>
+              <p className="text-[12px] text-white/60">Nobody new will be notified.</p>
             )}
             {quote.place_shared && (
               <p className="text-[12px] text-white/50">

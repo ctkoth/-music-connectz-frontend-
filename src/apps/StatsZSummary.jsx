@@ -66,7 +66,7 @@ export default function StatsZSummary() {
       onClick={() => goToSpot(topInstrument.appKey, `${topInstrument.appKey}-progress`)}
       className="neon-frame block w-full space-y-3 p-4 text-left transition hover:border-emerald-400/40"
     >
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         <TrendingUp size={13} className="text-emerald-400" /> Your top instrument
       </p>
       <div className="flex items-end gap-4">
@@ -74,7 +74,7 @@ export default function StatsZSummary() {
           <p className="text-2xl font-bold text-emerald-400">{topInstrument.score}%</p>
           <p className="text-xs text-white/60">{labels[topInstrument.appKey]} average</p>
         </div>
-        <p className="text-[11px] text-white/40">{topInstrument.count} take{topInstrument.count !== 1 ? "s" : ""}</p>
+        <p className="text-[11px] text-white/55">{topInstrument.count} take{topInstrument.count !== 1 ? "s" : ""}</p>
       </div>
     </button>
   );

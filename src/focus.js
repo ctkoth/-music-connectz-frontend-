@@ -28,7 +28,7 @@ export const FOCUS_COACH_PARENTS = ["SkillZ"];
 // and IntelligenceZ (every AI app and what each costs before it is opened). These are the ToolZ
 // CATEGORIES (ToolZMenu's TOOLZ_MENU keys), so one tap opens the whole group, not one app in it.
 // They were two cards among thirteen behind "More apps"; a parent nobody can find is not one.
-export const FOCUS_PARENTS = ["ToolZ", "IntelligenceZ"];
+export const FOCUS_PARENTS = ["ToolZ", "IntelligenceZ", "StudioZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];   // Corey's line-up; StudioZ is DawZ, MangaZ and AnimeZ
 // The apps a parent opens onto that must still be offered up front in the ⊞ drawer.
 const FOCUS_PARENT_APPS = ["intelligencez"];
 
@@ -36,12 +36,23 @@ const FOCUS_PARENT_APPS = ["intelligencez"];
 // a profile, messages, a friend to challenge, practice tools the coach's own
 // notes link into, and the account screens that make it payable.
 export const FOCUS_SUPPORT = [
-  "postz", "filez", "profilez", "messagez", "battlez",
+  "postz", "filez", "profilez", "messagez",
   "metz", "tunerz", "chordz", "breathz",
   "membershipz", "onboardz", "logz",
   // Not music, kept on purpose: Corey uses them.
   "bodiez", "lilith",
+  "lookmaxz",                  // Corey: up front too; opens for anybody (an example reading, no account or ID)
+  "imagez", "dawz", "gamez",   // Corey: up front on the home screen (DawZ is also in StudioZ)
 ];
+
+// Corey's home screen: always shown at the top, whatever else folds away. Categories open their screen;
+// apps open the app. Order is his.
+// SkillZ is the FEATURED tile (HOME_FEATURED), big, above the grid: it is where the coaches live, so SingZ, RapZ,
+// GuitarZ and DrumZ are not repeated as tiles beside it (Corey: they belong in SkillZ). They are still one tap in, still
+// routed, and an app a member opens often still lands in "Your apps".
+export const HOME_FEATURED = "SkillZ";
+export const HOME_PARENTS = ["ToolZ", "IntelligenceZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"];
+export const HOME_APPS = ["bodiez", "dawz", "imagez", "gamez", "lookmaxz"];
 
 const FOCUS_SET = new Set(["toolz", ...FOCUS_COACHES, ...FOCUS_PARENT_APPS, ...FOCUS_SUPPORT]);
 

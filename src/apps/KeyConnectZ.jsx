@@ -137,7 +137,7 @@ export default function KeyConnectZ() {
         <IconImg icon="keyconnectz.png" alt="KeyConnectZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">KeyConnectZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Type in your language, send in theirs. Free on every tier.
           </p>
         </div>
@@ -271,7 +271,7 @@ export default function KeyConnectZ() {
         </p>
       </div>
 
-      <p className="text-[11px] leading-relaxed text-white/35">
+      <p className="text-[11px] leading-relaxed text-white/50">
         This is the in-app keyboard. Making KeyConnectZ your phone's system keyboard needs the native
         Android app — it can't be done from the web.
       </p>

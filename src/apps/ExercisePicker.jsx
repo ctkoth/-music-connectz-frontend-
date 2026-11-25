@@ -119,7 +119,7 @@ export function CustomExerciseForm({ initialName = "", initialMuscle = "", onCre
             </label>
           )}
         </div>
-        <p className="text-[11px] text-white/45">
+        <p className="text-[11px] text-white/60">
           These decide whether it shows up when you tell BodieZ what your body can do. Private to you.
         </p>
       </fieldset>
@@ -196,7 +196,7 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
           {Object.entries(MUSCLE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
         </select>
         <div className="relative min-w-0 flex-1">
-          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
+          <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-white/55" aria-hidden="true" />
           <input role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-label={label}
                  aria-activedescendant={open ? `${uid}-opt-${active}` : undefined}
                  className={`w-full rounded-lg border border-white/[0.08] bg-black/40 py-2 pl-8 pr-8 text-white outline-none ${compact ? "text-xs" : "text-sm"}`}
@@ -244,7 +244,7 @@ export default function ExercisePicker({ exercises, all, value, onChange, label 
           ))}
           {shown.length === 0 && <li role="presentation" className="px-2.5 py-2 text-xs text-white/55">No exercise matches{muscle ? ` in ${MUSCLE_LABEL[muscle]}` : ""}{gear.length ? " with that equipment" : ""}.</li>}
           {results.length > shown.length && (
-            <li role="presentation" className="px-2.5 py-1 text-[11px] text-white/45">+{results.length - shown.length} more — keep typing to narrow</li>
+            <li role="presentation" className="px-2.5 py-1 text-[11px] text-white/60">+{results.length - shown.length} more — keep typing to narrow</li>
           )}
           <li id={`${uid}-opt-${shown.length}`} role="option" aria-selected={active === shown.length}
               onMouseEnter={() => setActive(shown.length)} onMouseDown={(ev) => { ev.preventDefault(); setCreating(true); setOpen(false); }}

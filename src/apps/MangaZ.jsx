@@ -1,3 +1,4 @@
+import PlansLink from "../components/PlansLink.jsx";
 import InspirationRef from "../components/InspirationRef.jsx";
 import MangaPageDesigner from "../components/MangaPageDesigner.jsx";
 // MangaZ — AI pages from your CharacterZ and your idea.
@@ -24,8 +25,8 @@ import Doors from "../components/Doors.jsx";
 // A script is a text run, so a free daily prompt covers it; a drawing is an image run,
 // which the daily allowance never covers (the server bills them that way).
 function Cost({ s, drawing = false }) {
-  return <span className="text-[11px]"><Price amount={s.cost_cents} emoji={PROMPTZ} freeToday={!drawing && s.free_today} /> <AiEnergy />{" "}
-    <span className="text-white/40">{drawing ? "per image · " : ""}not charged if nothing comes back</span></span>;
+  return <span className="text-[11px]"><Price amount={drawing ? (s.panel_cost_cents ?? s.cost_cents) : s.cost_cents} emoji={PROMPTZ} freeToday={!drawing && s.free_today} /> <AiEnergy />{" "}
+    <span className="text-white/55">{drawing ? "per image · " : ""}not charged if nothing comes back</span></span>;
 }
 
 function PageEditor({ s, page, chars, onChange }) {
@@ -52,7 +53,7 @@ function PageEditor({ s, page, chars, onChange }) {
       <p className="text-[11px] text-mcz-gold">{s.ai_label}</p>
       {p.panels.map((q, i) => (
         <div key={q.n} className="space-y-1.5 rounded-lg bg-white/5 p-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Panel {q.n} · {q.shot}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Panel {q.n} · {q.shot}</p>
           <input className="neon-input !py-1.5 text-sm" value={q.action} onChange={(e) => editPanel(i, { action: e.target.value })} aria-label={`Panel ${q.n} action`} />
           {q.dialogue.map((dl, j) => (
             <div key={j} className="flex items-center gap-1.5 text-sm">
@@ -69,7 +70,7 @@ function PageEditor({ s, page, chars, onChange }) {
             onClick={() => handOff("imagez", "", { url: q.image, name: `${p.title} · panel ${q.n}` })}>Edit panel {q.n} in ImageZ</button>}
           <button className="re-btn !w-auto px-3 py-1 text-xs" disabled={!!busy} onClick={() => draw(q.n)}>
             {busy === `d${q.n}` ? <Loader2 size={12} className="animate-spin" /> : <Brush size={12} />} {q.image ? "Redraw" : "Draw"} panel {q.n}{" "}
-            <Price amount={s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />
+            <Price amount={s.panel_cost_cents ?? s.cost_cents} emoji={PROMPTZ} /> <AiEnergy />
           </button>
         </div>
       ))}
@@ -95,7 +96,7 @@ function PageEditor({ s, page, chars, onChange }) {
         <button className="re-btn !w-auto px-3" title="Opens Anime ConnectZ with this page's idea and cast — the plan is priced there, before you press it"
           onClick={() => handOff("animeconnectz", "", { idea: `${p.title}: ${p.idea || p.panels.map((q) => q.action).filter(Boolean).join(" ")}`.slice(0, 2000), character_ids: p.character_ids })}>🎬 Animate it with AI</button>
       </div>
-      <p className="text-[11px] text-white/40">Panel by panel keeps your characters' looks consistent and lets you redraw one; the whole page is one charge but drifts more.</p>
+      <p className="text-[11px] text-white/55">Panel by panel keeps your characters' looks consistent and lets you redraw one; the whole page is one charge but drifts more.</p>
       {p.page_image && (
         <>
           <img src={p.page_image} alt={p.title} className="w-full rounded-lg" />
@@ -156,7 +157,8 @@ export default function MangaZ() {
               </button>
             ))}
             <button className="re-link text-[12px]" onClick={() => goToSpot("characterz", "")}>+ character</button>
-            <span className="text-[11px] text-white/45">{picked.length} of {s.max_characters} on a page{s.max_characters < 10 ? " · Premium 6, StatZ every one" : ""}</span>
+            <span className="text-[11px] text-white/60">{picked.length} of {s.max_characters} on a page{s.max_characters < 10 ? " · Premium 6, StatZ every one" : ""}</span>
+            {s.max_characters < 10 && <PlansLink />}
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens on this page?"
                     value={idea} onChange={(e) => setIdea(e.target.value)} aria-label="Idea" />
@@ -188,7 +190,7 @@ export default function MangaZ() {
           <p className="re-label">Your pages</p>
           {s.pages.map((pg) => (
             <button key={pg.id} className="block w-full rounded-lg bg-white/5 px-3 py-2 text-left text-sm hover:bg-white/10" onClick={() => setOpen(pg)}>
-              {pg.title} <span className="text-[11px] text-white/40">· {pg.panels.length} panels{pg.page_image || pg.panels.some((q) => q.image) ? " · drawn" : ""}</span>
+              {pg.title} <span className="text-[11px] text-white/55">· {pg.panels.length} panels{pg.page_image || pg.panels.some((q) => q.image) ? " · drawn" : ""}</span>
             </button>
           ))}
         </div>

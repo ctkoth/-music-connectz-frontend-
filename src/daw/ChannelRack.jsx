@@ -106,9 +106,9 @@ export default function ChannelRack({ app, daw, bpm, busy, onSend }) {
         <label className="flex items-center gap-1 text-white/60">Swing
           <input type="range" min={0} max={0.6} step={0.05} value={rack.swing} className="w-20"
                  onChange={(e) => setRack((r) => setSwing(r, e.target.value))} />
-          <span className="w-8 tabular-nums text-white/45">{Math.round(rack.swing * 100)}%</span>
+          <span className="w-8 tabular-nums text-white/60">{Math.round(rack.swing * 100)}%</span>
         </label>
-        <span className="text-white/40">{bpm} BPM · the tempo is the session's, above</span>
+        <span className="text-white/55">{bpm} BPM · the tempo is the session's, above</span>
       </div>
 
       <div className="space-y-1.5 overflow-x-auto pb-1">
@@ -134,7 +134,7 @@ export default function ChannelRack({ app, daw, bpm, busy, onSend }) {
                           ? "bg-orange-400" : Math.floor(i / 4) % 2 ? "bg-white/[0.07]" : "bg-white/[0.14]"} ${step === i ? "ring-2 ring-white" : ""}`} />
               ))}
             </div>
-            <button type="button" className="shrink-0 rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
+            <button type="button" className="shrink-0 rounded p-1 text-white/55 hover:bg-white/10 hover:text-white"
                     aria-label={`Remove ${VOICES[c.voice].label}`} onClick={() => setRack((r) => removeChannel(r, c.id))}><Trash2 size={13} /></button>
           </div>
         ))}
@@ -159,7 +159,7 @@ export default function ChannelRack({ app, daw, bpm, busy, onSend }) {
           </button>
         </span>
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         <span className="text-emerald-300">Free.</span> Send to Playlist drops this pattern at the playhead as {bars} bar{bars === 1 ? "" : "s"} of audio
         ({Math.round(barSeconds(bpm) * bars * 10) / 10}s) on its own track — arrange it there, mix it in the Mixer. Every sound is made on your device.
       </p>

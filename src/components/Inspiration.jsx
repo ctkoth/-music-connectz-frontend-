@@ -29,7 +29,7 @@ export function SideMedia({ side, label }) {
   const video = String(side.file.type || "").startsWith("video");
   return (
     <div className="space-y-0.5">
-      <p className="text-[11px] text-white/45">{label}</p>
+      <p className="text-[11px] text-white/60">{label}</p>
       {video ? <video src={src} controls className="max-h-48 w-full rounded" /> : <audio src={src} controls className="w-full" />}
     </div>
   );
@@ -52,10 +52,10 @@ function TrackChip({ which, source, heard, children }) {
   return (
     <div className={`space-y-1 rounded-lg border-2 ${t.border} p-2`}>
       <p className={`font-semibold ${t.text}`}>
-        {t.name} <span className="text-[10px] font-normal text-white/45">track {t.letter}</span>
+        {t.name} <span className="text-[10px] font-normal text-white/60">track {t.letter}</span>
         {source && <span className="font-normal text-white/70"> — {sideLabelOf(source)}</span>}
       </p>
-      {heard && <p className="text-white/60"><span className="text-white/40">The coach heard:</span> {heard}</p>}
+      {heard && <p className="text-white/60"><span className="text-white/55">The coach heard:</span> {heard}</p>}
       {children}
     </div>
   );
@@ -77,7 +77,7 @@ export function Source({ label, side, onSide, disabled, posts, mine, uploads, al
     <div className="space-y-1.5 rounded-lg border border-white/15 p-2">
       <div className="flex flex-wrap items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-xs text-white/80">
-          {side ? `${label}: ${sideLabel(side)}` : <span className="text-white/45">{label}</span>}
+          {side ? `${label}: ${sideLabel(side)}` : <span className="text-white/60">{label}</span>}
         </span>
         <label className={`${btn} cursor-pointer inline-flex items-center gap-1`}>
           <Upload size={13} /> File
@@ -114,7 +114,7 @@ export function Source({ label, side, onSide, disabled, posts, mine, uploads, al
           {verdict.state === "ok" && <p className="text-emerald-300/80">{verdict.text}</p>}
           {verdict.state === "no" && <p role="alert" className="text-amber-200">{verdict.text}</p>}
           {verdict.state === "empty" && (
-            <p className="text-white/45">
+            <p className="text-white/60">
               {(linkSources || []).find((x) => x.provider === "youtube")?.note
                 || "Paste a link to a YouTube video."}
             </p>
@@ -139,12 +139,12 @@ export function Source({ label, side, onSide, disabled, posts, mine, uploads, al
                 <button type="button" className="w-full rounded bg-white/5 px-2 py-1 text-left hover:bg-white/10"
                         onClick={() => choose(open === "posts" ? asPost(x) : asUpload(x))}>
                   <span className="text-white">{x.title || x.name}</span>
-                  {open === "posts" && <span className="text-white/45"> · @{x.author}{x.genre ? ` · ${x.genre}` : ""}</span>}
+                  {open === "posts" && <span className="text-white/60"> · @{x.author}{x.genre ? ` · ${x.genre}` : ""}</span>}
                 </button>
               </li>
             ))}
             {(open === "posts" ? list : files).length === 0 && (
-              <li className="text-white/45">
+              <li className="text-white/60">
                 {open === "posts" ? "No posts with a recording match that." : "No audio or video files match that."}
               </li>
             )}
@@ -174,11 +174,11 @@ function BetterWorse({ c, label, why }) {
     <div className="grid gap-2 sm:grid-cols-2">
       <div className="rounded border border-emerald-300/25 p-2">
         <p className="font-semibold text-emerald-300">Where {TRACK.take.name.toLowerCase().replace("🎤 ", "")} is better</p>
-        {c.better?.length ? <ul className="space-y-0.5">{c.better.map(row)}</ul> : <p className="text-white/45">Nowhere yet — the reference leads or ties on every dimension.</p>}
+        {c.better?.length ? <ul className="space-y-0.5">{c.better.map(row)}</ul> : <p className="text-white/60">Nowhere yet — the reference leads or ties on every dimension.</p>}
       </div>
       <div className="rounded border border-white/15 p-2">
         <p className={`font-semibold ${TRACK.reference.text}`}>Where the {TRACK.reference.name.replace("✨ ", "")} is ahead</p>
-        {c.worse?.length ? <ul className="space-y-0.5">{c.worse.map(row)}</ul> : <p className="text-white/45">Nowhere — you match or lead on every dimension.</p>}
+        {c.worse?.length ? <ul className="space-y-0.5">{c.worse.map(row)}</ul> : <p className="text-white/60">Nowhere — you match or lead on every dimension.</p>}
       </div>
     </div>
   );
@@ -226,7 +226,7 @@ function BuildPlan({ blueprint, plan, note }) {
           </li>
         ))}
       </ol>
-      {note && <p className="text-[11px] text-white/45">{note}</p>}
+      {note && <p className="text-[11px] text-white/60">{note}</p>}
     </div>
   );
 }
@@ -256,7 +256,7 @@ function FactorTable({ title, rows, doors, note, trial, track, against, picked, 
                 <span className="tabular-nums">
                   <span className={TRACK.take.text}>you</span> <RatingNumber value={r.take} size="sm" /> ·{" "}
                   <span className={TRACK.reference.text}>inspiration</span> <RatingNumber value={r.reference} size="sm" />
-                  <span className={`ml-2 text-[11px] font-semibold ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? TRACK.reference.text : "text-white/40"}`}>
+                  <span className={`ml-2 text-[11px] font-semibold ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? TRACK.reference.text : "text-white/55"}`}>
                     {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `inspiration +${-r.gap}` : "even"}
                   </span>
                 </span>
@@ -272,16 +272,16 @@ function FactorTable({ title, rows, doors, note, trial, track, against, picked, 
                   </button>
                   {door.cost
                     ? <span className="text-[11px] text-mcz-ember">{price(door.cost)} when you press Write</span>
-                    : <span className="text-[11px] text-white/45">{door.note || "Free"}</span>}
+                    : <span className="text-[11px] text-white/60">{door.note || "Free"}</span>}
                 </div>
               )}
             </li>
           );
         })}
       </ul>
-      {note && <p className="text-white/40">{note}</p>}
+      {note && <p className="text-white/55">{note}</p>}
       {!trial && doors && Object.values(doors).find((d) => d.cost)?.note && (
-        <p className="text-white/40">{Object.values(doors).find((d) => d.cost).note}</p>
+        <p className="text-white/55">{Object.values(doors).find((d) => d.cost).note}</p>
       )}
     </div>
   );
@@ -318,7 +318,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
         </TrackChip>
       </div>
       {res.heard && (
-        <p className="text-white/40">Check these two: if they're the wrong way round, the coach mixed the tracks up and the numbers below are swapped too.</p>
+        <p className="text-white/55">Check these two: if they're the wrong way round, the coach mixed the tracks up and the numbers below are swapped too.</p>
       )}
       <p className="text-lg font-bold text-white">{res.closeness}% <span className="text-xs font-normal text-white/60">close — {res.closeness_why}</span></p>
       <p>{res.summary}</p>
@@ -340,14 +340,14 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
                 <span>{scores?.[r.key] || r.key}</span>
                 <span className="tabular-nums">
                   <span className={TRACK.take.text}>you</span> <RatingNumber value={r.take} size="sm" /> · <span className={TRACK.reference.text}>inspiration</span> <RatingNumber value={r.reference} size="sm" />
-                  <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/40"}`}>
+                  <span className={`ml-2 text-[11px] ${r.gap > 0 ? "text-emerald-300" : r.gap < 0 ? "text-white/50" : "text-white/55"}`}>
                     {r.gap > 0 ? `you +${r.gap}` : r.gap < 0 ? `inspiration +${-r.gap}` : "even"}
                   </span>
                 </span>
               </li>
             ))}
           </ul>
-          <p className="text-white/40">Both rated on one 1-10 scale so they compare. Nothing here is saved as your score.</p>
+          <p className="text-white/55">Both rated on one 1-10 scale so they compare. Nothing here is saved as your score.</p>
         </div>
       )}
       {res.eq?.length > 0 && (
@@ -356,7 +356,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
           {res.eq.map((e) => (
             <p key={e.region} className="mt-1"><b>{e.label} ({e.hz}) — {DIR[e.direction]}.</b> {e.what} {e.how && <span className="text-emerald-300">→ {e.how}</span>}</p>
           ))}
-          <p className="mt-1 text-white/45">{res.eq_note}</p>
+          <p className="mt-1 text-white/60">{res.eq_note}</p>
         </div>
       )}
       {res.how_to?.map((h, i) => (
@@ -375,7 +375,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
               <p className="text-emerald-300">{d.how}</p>
             </div>
           ))}
-          <p className="text-white/40">Free to do. Your next take's {label(res.drills[0].targets)} score is how you'll know it worked.</p>
+          <p className="text-white/55">Free to do. Your next take's {label(res.drills[0].targets)} score is how you'll know it worked.</p>
         </div>
       )}
       {res.keep && <p><b>Keep:</b> {res.keep}</p>}
@@ -388,7 +388,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
             </button>
             <span className="text-[11px] text-emerald-300">Free · on your device</span>
           </div>
-          <p className="text-white/45">{res.mix_match_door.note}</p>
+          <p className="text-white/60">{res.mix_match_door.note}</p>
         </div>
       )}
       <BuildPlan blueprint={res.blueprint} plan={res.build_plan} note={res.build_note} />
@@ -416,7 +416,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
               </span>
             )}
           </div>
-          <p className="text-white/45">
+          <p className="text-white/60">
             {fixPick.length ? "Tick or untick the factors above — only the ticked ones change." : "Tick at least one factor above."} {fixDoor.note}
           </p>
         </div>
@@ -425,7 +425,7 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
         <div className="rounded border border-white/10 p-2">
           <p className="font-semibold text-white">Lyrics</p>
           <p>{res.lyric_direction}</p>
-          <p className="text-white/45">{res.lyric_note}</p>
+          <p className="text-white/60">{res.lyric_note}</p>
           {!trial && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <button type="button" onClick={toLyrics} className="rounded-full border border-mcz-cyan px-3 py-1 text-[11px] text-white">
@@ -439,10 +439,10 @@ export function InspirationResult({ res, scores, genre, trial = false }) {
               )}
             </div>
           )}
-          {!trial && door?.note && <p className="text-white/40">{door.note}</p>}
+          {!trial && door?.note && <p className="text-white/55">{door.note}</p>}
         </div>
       )}
-      <p className="text-white/40">
+      <p className="text-white/55">
         {trial
           ? "Not saved. This used one free take."
           : <>Not saved. Cost {res.cost_cents ? `${res.cost_cents} ${PROMPTZ}` : "a free daily prompt"}
@@ -467,7 +467,7 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
     api(`/api/${appKey}/match/`).then((d) => on && setInfo(d)).catch(() => {});
     // The lists to pick from. A failure leaves them empty and the file door still works — the
     // member did not ask for these, so a fetch that fails says nothing.
-    Promise.allSettled([api("/api/economy/posts/?mine=1"), api("/api/economy/posts/?sort=top"), api("/api/economy/uploads/")])
+    Promise.allSettled([api("/api/economy/postz/?mine=1"), api("/api/economy/postz/?sort=top"), api("/api/economy/uploads/")])
       .then(([mine, all, up]) => {
         if (!on) return;
         const rows = (r) => (r.status === "fulfilled" ? (Array.isArray(r.value) ? r.value : r.value?.posts || []) : []);
@@ -519,9 +519,9 @@ export default function Inspiration({ appKey, genre, hostBlob, hostName }) {
           {info.free_today ? "Free today — uses 1 free prompt" : `−${info.cost_cents} ${PROMPTZ}`}
           {needsEnergy && <> · −{info.post_energy_cost} {ENERGY} for using a post</>}
         </span>
-        <span className="text-white/40">Not charged if it fails · nothing saved</span>
+        <span className="text-white/55">Not charged if it fails · nothing saved</span>
       </div>
-      {needsEnergy && <p className="text-white/45">{info.post_note}</p>}
+      {needsEnergy && <p className="text-white/60">{info.post_note}</p>}
       {err && <p className="text-mcz-ember">{err}</p>}
       {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}
       {res && !res.unscorable && <InspirationResult res={res} scores={info.scores} genre={genre} />}

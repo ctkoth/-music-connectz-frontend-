@@ -23,6 +23,7 @@ import { loadSocial, saveSocial, NATIONALITIES } from "./socialData.js";
 import { SPINAZ, ENERGY, PROMPTZ, MONEY, XP } from "../resources.js";
 import BadgeZ from "../BadgeZ.jsx";
 import { BadgeWear, BadgeWearList } from "../BadgeWear.jsx";
+import CreatorProfile from "../components/CreatorProfile.jsx";
 import { spotlight, goToTab, goToSpot } from "../goto.js";
 import { useTransactionModal } from "../TransactionModalContext.jsx";
 import MemberName from "../MemberName.jsx";
@@ -64,7 +65,7 @@ function Verify18Card() {
     let tries = 0, timer;
     const go = async () => {
       const r = await load();
-      if (back && r?.last?.result === "pending" && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
+      if (back && r?.last?.result === "pending" && !r.last.needs_you && !r.last.stale && tries++ < 12) { setWaiting(true); timer = setTimeout(go, 5000); }
       else setWaiting(false);
     };
     go();
@@ -91,31 +92,38 @@ function Verify18Card() {
   if (!st) return null;
   const verified = !!st.verified_18plus;
   const last = st.last;
+  const holding = last?.result === "pending" && !last.stale && !last.needs_you;   // Stripe is genuinely working on it
   return (
     <div data-tour="verify-18" className={`neon-frame space-y-2 p-4 ${verified ? "" : "border-mcz-ember/30"}`}>
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         <ShieldCheck size={13} className={verified ? "text-emerald-400" : "text-mcz-ember"} /> 18+ Verification
       </p>
       {verified ? (
         <>
           <p className="flex items-center gap-2 text-sm font-semibold text-emerald-300"><Check size={15} /> Success — you're verified 18+. VybeZ, LookZMaxZ and other adult features are unlocked.</p>
-          <p className="text-[11px] text-white/45">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
+          <p className="text-[11px] text-white/60">You don't need to scan again{st.verified_at ? ` (verified ${new Date(st.verified_at).toLocaleDateString()})` : ""}.</p>
         </>
       ) : (
         <>
           {last?.result === "failure" && (
             <p className="text-sm text-mcz-ember"><span className="font-semibold">Failure — your last check did not pass.</span> {last.detail}</p>
           )}
-          {last?.result === "pending" && (
+          {/* Pending is three different things. Stripe really is checking (spinner, and the button waits); the member
+              has not finished (their move); or Stripe has had it for far too long (start a new one). Only the first holds
+              the button: a stuck check used to lock the member out of ever starting another. */}
+          {last?.result === "pending" && !holding && (
+            <p className="text-sm text-mcz-gold">{last.detail}</p>
+          )}
+          {last?.result === "pending" && holding && (
             <p className="flex items-center gap-2 text-sm text-white/70"><Loader size={13} className={waiting ? "animate-spin" : ""} /> {last.detail}</p>
           )}
           <p className="text-[11px] text-white/50">Verify your age with a government ID + selfie (via Stripe Identity) to unlock VybeZ (finding a date), LookZMaxZ and other adult features. We never store your ID — Stripe handles it.</p>
-          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || last?.result === "pending"}>
-            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
+          <button className="re-btn !w-auto px-4" onClick={start} disabled={busy || !st.stripe_enabled || st.can_start === false || holding}>
+            {busy ? <Loader size={14} className="animate-spin" /> : <ShieldCheck size={14} />} {busy ? "Starting…" : last?.needs_you ? "Open the check again" : last?.stale ? "Start a new check" : last?.result === "failure" ? "Try again" : "Verify I'm 18+"}
           </button>
-          {st.can_start === false && last?.result !== "pending" && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
-          {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/40">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
-          {!st.stripe_enabled && <p className="text-[11px] text-white/40">Verification is being switched on — check back soon.</p>}
+          {st.can_start === false && !holding && <p className="text-[11px] text-mcz-ember">3 checks did not pass in the last 24 hours — try again tomorrow.</p>}
+          {st.can_start && st.attempts_left_today < 3 && <p className="text-[11px] text-white/55">{st.attempts_left_today} {st.attempts_left_today === 1 ? "try" : "tries"} left today.</p>}
+          {!st.stripe_enabled && <p className="text-[11px] text-white/55">Verification is being switched on — check back soon.</p>}
         </>
       )}
       {msg && <p className="text-[11px] text-white/70">{msg}</p>}
@@ -217,11 +225,11 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
            onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h3 className="font-display text-lg font-extrabold">{personaLabel} skills</h3>
-          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+          <button aria-label="Close" onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
             <X size={16} />
           </button>
         </div>
-        <p className="mb-4 text-[11px] text-white/45">
+        <p className="mb-4 text-[11px] text-white/60">
           Pick what you actually do, then say when. Experience is the time you <em>served</em> — if you stopped,
           add the end date and the years you were away don't count. Picked it back up? Add another stretch.
         </p>
@@ -248,7 +256,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                       <div className="mt-1 space-y-1 pl-3">
                         {rows.map((pr, i) => (
                           <div key={i} className="flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] text-white/40">{i === 0 ? "Started" : "Again"}</span>
+                            <span className="text-[10px] text-white/55">{i === 0 ? "Started" : "Again"}</span>
                             <SkillDateInput start={pr.start || ""} precision={pr.precision || ""} max={today}
                               onChange={(v, prec) => setPeriods(label, rows.map((r, j) => {
                                 if (j !== i) return r;
@@ -259,7 +267,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                               inputClass="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
                             {pr.end ? (
                               <>
-                                <span className="text-[10px] text-white/40">until</span>
+                                <span className="text-[10px] text-white/55">until</span>
                                 {/* A full date, or just the year they stopped. */}
                                 <SkillDateInput end start={pr.end} precision={pr.end_precision || ""} max={today} min={pr.start || undefined}
                                   minYear={Number(String(pr.start || "").slice(0, 4)) || 1900}
@@ -272,12 +280,12 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                                   inputClass="rounded border border-white/10 bg-black/40 px-2 py-1 text-[10px] text-white/70 outline-none" />
                                 <button title="Still doing it"
                                   onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { start: r.start, ...(r.precision === "year" ? { precision: "year" } : {}) } : r))}
-                                  className="text-[10px] text-white/35 hover:text-mcz-cyan">still going</button>
+                                  className="text-[10px] text-white/50 hover:text-mcz-cyan">still going</button>
                               </>
                             ) : (
                               <button
                                 onClick={() => setPeriods(label, rows.map((r, j) => j === i ? { ...r, end: today } : r))}
-                                className="text-[10px] text-white/35 hover:text-mcz-ember">
+                                className="text-[10px] text-white/50 hover:text-mcz-ember">
                                 I stopped
                               </button>
                             )}
@@ -299,7 +307,7 @@ function SkillModal({ personaKey, personaLabel, skills, onChange, onClose }) {
                               {hasYearOnlyDates(picked[label]) ? "about " : ""}{total} yr{total === 1 ? "" : "s"} total
                               {act?.active
                                 ? <span className="text-emerald-300"> · active</span>
-                                : act?.lastPlayed && <span className="text-white/35"> · last played {act.lastPlayed.slice(0, 4)}</span>}
+                                : act?.lastPlayed && <span className="text-white/50"> · last played {act.lastPlayed.slice(0, 4)}</span>}
                             </span>
                           )}
                         </div>
@@ -347,23 +355,23 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
            onClick={(e) => e.stopPropagation()}>
         <div className="mb-1 flex items-center justify-between">
           <h3 className="font-display text-lg font-extrabold">{personaLabel} — bio &amp; interests</h3>
-          <button onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
+          <button aria-label="Close" onClick={onClose} className="rounded-lg p-1 text-white/50 hover:bg-white/10 hover:text-white">
             <X size={16} />
           </button>
         </div>
-        <p className="mb-4 text-[11px] text-white/45">
+        <p className="mb-4 text-[11px] text-white/60">
           What you say about THIS role — separate from your account bio above.
           Nothing here is scored. A suggestion is only kept if you accept it.
         </p>
 
         <label className="mb-3 block">
-          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">Bio</span>
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/55">Bio</span>
           <textarea className="neon-input min-h-[80px] w-full text-sm" maxLength={500}
                     value={bio} onChange={(e) => setBio(e.target.value)}
                     placeholder="A couple sentences about this role." />
         </label>
         <label className="mb-3 block">
-          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/55">
             Interests <span className="normal-case text-white/30">(comma-separated)</span>
           </span>
           <input className="neon-input w-full text-sm" value={interests}
@@ -378,7 +386,7 @@ function FlavorModal({ personaKey, personaLabel, persona, onChange, onClose }) {
           strengths={strengths} setStrengths={setStrengths}
         />
         <label className="mb-4 block">
-          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/40">
+          <span className="mb-1 block text-[10px] uppercase tracking-widest text-white/55">
             Pet peeves <span className="normal-case text-white/30">(comma-separated)</span>
           </span>
           <input className="neon-input w-full text-sm" value={petPeeves}
@@ -466,7 +474,7 @@ function AvatarCard() {
   const shown = preview || url;
   return (
     <div className="neon-frame space-y-3 p-4">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         <ImageIcon size={13} className="text-mcz-ember" /> Profile picture
       </p>
       <div className="flex items-center gap-4">
@@ -477,7 +485,7 @@ function AvatarCard() {
           <IconImg icon="personaz.png" alt="" className="h-20 w-20 shrink-0 rounded-2xl opacity-60" />
         )}
         <div className="flex-1 space-y-2">
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             {preview ? "Preview — not saved yet."
                      : url ? "This is what other members see."
                            : "No picture yet — you're showing the default PersonaZ art."}
@@ -719,6 +727,8 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
   return (
     <div className="space-y-6">
+      <CreatorProfile username={me?.username} worn={worn} visibility={me?.visibility} audiences={audiences} />
+
       <header className="flex items-center gap-4">
         <IconImg icon="personaz.png" alt="ProfileZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
@@ -786,7 +796,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           here without waiting for a reload. */}
       <BadgeZ onWear={setWorn} />
       {worn.hidden > 0 && (
-        <p className="-mt-4 text-[11px] text-white/35">
+        <p className="-mt-4 text-[11px] text-white/50">
           {worn.hidden === 1 ? "One badge is" : `${worn.hidden} badges are`} hidden —
           you keep the effect either way, the room just doesn't see it.
         </p>
@@ -803,7 +813,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       {/* HandleZ — customize your profile handle/username (Premium only) */}
       {premium && (
         <div className="neon-frame space-y-3 p-4">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
             <span className="text-mcz-cyan">Handle</span>
           </p>
           <p className="text-sm text-white/60">Your current handle: <span className="font-semibold text-white">{me.username}</span></p>
@@ -870,13 +880,13 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           anchor, so it is one anchor serving both rather than a second name
           for the same control. */}
       <div className="neon-frame space-y-3 p-4" data-tour="referral-code">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <Gift size={13} className="text-mcz-ember" /> ReferZ
           <span className="ml-auto flex items-center gap-1 text-mcz-pink">
             +{ref?.reward_per_join ?? 300} {SPINAZ} / legit join
           </span>
         </p>
-        <p className="text-[11px] text-white/40">Share your link. You earn SpinaZ every time someone new joins with it.</p>
+        <p className="text-[11px] text-white/55">Share your link. You earn SpinaZ every time someone new joins with it.</p>
         <div className="flex items-center gap-2">
           <input
             readOnly
@@ -898,7 +908,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
               <div key={m.username} className="flex items-center justify-between rounded bg-white/[0.03] px-2 py-1.5">
                 <div>
                   <MemberName username={m.username} className="text-sm" />
-                  <p className="text-[11px] text-white/40">
+                  <p className="text-[11px] text-white/55">
                     {new Date(m.joined).toLocaleDateString()} · +{m.reward} {SPINAZ}
                   </p>
                 </div>
@@ -917,9 +927,9 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       <StatsZSummary />
 
       <div className="neon-frame space-y-2 p-4">
-        <p className="text-xs font-semibold uppercase tracking-widest text-white/45">ZodiacZ — birthday</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-white/60">ZodiacZ — birthday</p>
         <input data-tour="birthday" type="date" className="neon-input !w-auto" value={birthday || ""} onChange={(e) => setBirthday(e.target.value)} />
-        <p className="text-xs text-white/40">Your sign auto-detects from your birthday. Only the sign shows publicly.</p>
+        <p className="text-xs text-white/55">Your sign auto-detects from your birthday. Only the sign shows publicly.</p>
 
         {/* The bonus sits under the field that decides it. The sign is set
             here, so this is where somebody finds out what it's worth — and
@@ -978,7 +988,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       </div>
 
       <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           Your PersonaZ — pick every role you play ({sel.length} selected)
         </p>
         <div data-tour="personas" className="grid grid-cols-3 gap-3 sm:grid-cols-4">
@@ -1059,10 +1069,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
       {/* PreferenceZ — partner genderZ. Any one, any mix, or all three. */}
       <div data-tour="preferencez">
-        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <Heart size={13} className="text-mcz-pink" /> PreferenceZ — partner genderZ ({partners.length} selected)
         </p>
-        <p className="mb-2 text-[11px] text-white/40">
+        <p className="mb-2 text-[11px] text-white/55">
           Who you're attracted to. Pick one, pick two, pick all three — it becomes a filter on Social ConnectZ.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -1081,7 +1091,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
       {/* SubstanceZ — declared use and how often, another searchable metric. */}
       <div data-tour="substancez">
-        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <IconImg icon="substancez.png" alt="" className="h-5 w-5 rounded" />
           SubstanceZ ({sober ? "sober by choice" : `${Object.keys(subs).length} declared`})
         </p>
@@ -1107,7 +1117,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             </p>
           );
         })()}
-        <p className="mb-2 text-[11px] text-white/40">
+        <p className="mb-2 text-[11px] text-white/55">
           What you actually use, and how often — a daily habit and a few times a year are different
           lives. Honest beats flattering; it's a filter, so it puts you with people who live the same
           way. Pick how often for each one you use; leave the rest blank.
@@ -1123,7 +1133,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         </button>
 
         {subScale === null && (
-          <p className="flex items-center gap-2 text-[11px] text-white/40"><Loader2 className="animate-spin" size={12} /> Loading…</p>
+          <p className="flex items-center gap-2 text-[11px] text-white/55"><Loader2 className="animate-spin" size={12} /> Loading…</p>
         )}
         {subScale === false && (
           <p className="text-[11px] text-mcz-ember">
@@ -1133,7 +1143,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
         {subScale && (
           <>
             {/* The scale, said once up front: "often" has to mean the same thing to everyone. */}
-            <p className="mb-2 text-[10px] text-white/35">
+            <p className="mb-2 text-[10px] text-white/50">
               {subScale.frequencies.map((f) => `${f.label} = ${f.hint}`).join(" · ")}
             </p>
             <div className={`space-y-2 ${sober ? "pointer-events-none opacity-35" : ""}`}>
@@ -1147,7 +1157,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-sm text-white"><span className="mr-1.5">{sub.emoji}</span>{sub.label}</span>
                       {stance && (
-                        <button type="button" className="text-[11px] text-white/45 hover:text-white" disabled={sober}
+                        <button type="button" className="text-[11px] text-white/60 hover:text-white" disabled={sober}
                                 onClick={() => setSubs((v) => { const n = { ...v }; delete n[sub.key]; return n; })}>
                           Clear
                         </button>
@@ -1171,7 +1181,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
                       })}
                     </div>
                     {stance && !unsaid && (
-                      <p className="mt-1 text-[10px] text-white/40">{frequencyHint(subScale, stance)}</p>
+                      <p className="mt-1 text-[10px] text-white/55">{frequencyHint(subScale, stance)}</p>
                     )}
                     {unsaid && (
                       <p className="mt-1 text-[10px] text-amber-300/90">
@@ -1190,7 +1200,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             Sober by choice — you'll show up for people filtering for that, which an empty list can't do.
           </p>
         ) : Object.keys(subs).length === 0 ? (
-          <p className="mt-2 text-[11px] text-white/40">
+          <p className="mt-2 text-[11px] text-white/55">
             Nothing declared. That reads as "didn't say", not as sober — use the button above if you mean sober.
           </p>
         ) : null}
@@ -1199,10 +1209,10 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       {/* Your bio. It already rendered on member profiles with no way to
           write one — the field existed everywhere except where you type it. */}
       <div data-tour="bio">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           Bio — who you are
         </p>
-        <p className="mb-2 text-[11px] text-white/40">
+        <p className="mb-2 text-[11px] text-white/55">
           The first thing anyone reads on your profile. What you make, who you want to work with.
         </p>
         <textarea
@@ -1216,11 +1226,11 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       </div>
 
       <div>
-        <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <IconImg icon="nationalitiez.png" alt="" className="h-5 w-5 rounded" />
           NationalitieZ — your heritage ({nats.length} selected)
         </p>
-        <p className="mb-2 text-[11px] text-white/40">
+        <p className="mb-2 text-[11px] text-white/55">
           Represent your ancestry. Selections become a filterable metric on Social ConnectZ.
         </p>
 
@@ -1228,7 +1238,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
             selected stays visible regardless of the query, so filtering can
             never hide a choice you have made. */}
         <div data-tour="nationalities" className="relative mb-2">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input
             value={natQuery}
             onChange={(e) => setNatQuery(e.target.value)}
@@ -1238,7 +1248,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           {natQuery && (
             <button onClick={() => setNatQuery("")}
               title="Clear"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/40 hover:text-white">
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-white/55 hover:text-white">
               <X size={13} />
             </button>
           )}
@@ -1260,7 +1270,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
           ))}
         </div>
         {natQuery && (
-          <p className="mt-2 text-[11px] text-white/35">
+          <p className="mt-2 text-[11px] text-white/50">
             {natMatches.length === 0
               ? <>Nothing matches “{natQuery}”. Try a shorter word.</>
               : <>{natMatches.length} of {NATIONALITIES.length} shown{nats.length > 0 && " · your selections stay visible"}.</>}
@@ -1368,7 +1378,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
               })}
             </div>
             {!premium && (
-              <p className="mt-4 text-[11px] text-white/45">
+              <p className="mt-4 text-[11px] text-white/60">
                 The PersonaZ is free for everyone — only the alternate artwork needs Premium.{" "}
                 <button type="button" onClick={() => { setPickingIcon(null); goToSpot("membershipz", "membershipz-plans"); }}
                         className="text-mcz-cyan hover:underline">

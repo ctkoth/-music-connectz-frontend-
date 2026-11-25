@@ -58,3 +58,8 @@ test("statusLine says why a screen is half English, and nothing when it is whole
   assert.match(statusLine({ pending: 1, capped: true }), /limit/);
   assert.equal(statusLine({ capped: true }), "", "a cap with nothing left to translate is not worth a message");
 });
+
+test("a product name ending in a capital Z is never sent to the translator", () => {
+  for (const s of ["STATZ", "StatZ", "PostZ", "SkillZ", "MixConnectZ"]) assert.ok(!worth(s), s);
+  for (const s of ["Jazz", "Quiz night", "Open PostZ"]) assert.ok(worth(s), s);
+});

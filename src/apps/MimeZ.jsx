@@ -54,13 +54,13 @@ function Quest({ q, onClaim, busy }) {
         {q.energy !== q.base_energy && (
           <span className="text-[10px] text-mcz-gold">streak bonus on {q.base_energy}</span>
         )}
-        <span className="ml-auto text-[11px] tabular-nums text-white/45">
+        <span className="ml-auto text-[11px] tabular-nums text-white/60">
           {Math.min(q.done, q.target)}/{q.target}
         </span>
       </div>
 
       <p className="mt-1 text-[11px] leading-relaxed text-white/55">{q.what}</p>
-      <p className="mt-0.5 text-[11px] italic leading-relaxed text-white/35">{q.why}</p>
+      <p className="mt-0.5 text-[11px] italic leading-relaxed text-white/50">{q.why}</p>
       <Bar done={q.done} target={q.target} />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -155,12 +155,12 @@ export default function MimeZ() {
               : <>No streak yet — claim a daily to start one</>}
           </span>
           {board.next_streak_step && (
-            <span className="text-white/40">
+            <span className="text-white/55">
               {board.next_streak_step - board.streak_days} more day
               {board.next_streak_step - board.streak_days === 1 ? "" : "s"} for the next step
             </span>
           )}
-          <span className="ml-auto text-white/45">
+          <span className="ml-auto text-white/60">
             {board.minted_today}/{board.daily_cap} {ENERGY} claimed today
           </span>
         </div>
@@ -177,7 +177,7 @@ export default function MimeZ() {
           return (
             <div key={scope} className="space-y-2" data-tour={`questz-${scope}`}>
               <div className="flex items-baseline gap-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+                <h3 className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
                   {label}
                 </h3>
                 <span className="text-[11px] text-white/30">{note}</span>

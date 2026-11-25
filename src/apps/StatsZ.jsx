@@ -100,7 +100,7 @@ export default function StatsZ() {
 
       {!hasData ? (
         <div className="neon-frame space-y-3 p-6 text-center">
-          <BarChart3 size={24} className="mx-auto text-white/40" />
+          <BarChart3 size={24} className="mx-auto text-white/55" />
           <Empty text="No takes yet. Score one with any coach and its stats land here." action="Pick a coach" onAction={() => goToSpot("toolz", "")} />
         </div>
       ) : (
@@ -125,19 +125,19 @@ export default function StatsZ() {
               <div key={key} className="neon-frame space-y-3 p-4">
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-white">{label}</p>
-                  <span className="text-[11px] text-white/40">{stats.takes.length} take{stats.takes.length !== 1 ? "s" : ""}</span>
+                  <span className="text-[11px] text-white/55">{stats.takes.length} take{stats.takes.length !== 1 ? "s" : ""}</span>
                 </div>
 
                 <div className="space-y-2">
                   {stats.best_score !== null && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-white/40">Best pitch accuracy</p>
+                      <p className="text-[10px] uppercase tracking-wider text-white/55">Best pitch accuracy</p>
                       <p className="text-2xl font-bold text-mcz-cyan">{stats.best_score}%</p>
                     </div>
                   )}
                   {stats.avg_score !== null && (
                     <div>
-                      <p className="text-[10px] uppercase tracking-wider text-white/40">Average</p>
+                      <p className="text-[10px] uppercase tracking-wider text-white/55">Average</p>
                       <p className="text-lg text-white/80">{stats.avg_score}%</p>
                     </div>
                   )}

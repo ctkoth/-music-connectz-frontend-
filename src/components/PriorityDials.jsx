@@ -29,9 +29,9 @@ export default function PriorityDials({ medium, value, onChange, disabled }) {
   return (
     <details className="rounded-lg border border-white/10 px-3 py-2 text-[11px] text-white/60">
       <summary className="cursor-pointer text-white/75">
-        What matters most to you here <span className="text-white/35">(optional{count ? ` · ${count} set` : ""})</span>
+        What matters most to you here <span className="text-white/50">(optional{count ? ` · ${count} set` : ""})</span>
       </summary>
-      <p className="mt-1 text-white/35">
+      <p className="mt-1 text-white/50">
         Rate how much you value each one, 0 (don't care) to {max} (matters most). It steers what the
         maker spends its effort on. Leave a dial alone and it has no preference. It doesn't change the price.
       </p>

@@ -52,11 +52,11 @@ function MemberCard({ m, religionLabel, languageLabel }) {
         {m.avatar
           ? <img src={m.avatar} alt="" className="h-11 w-11 rounded-xl object-cover" />
           : <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5">
-              <UserRound size={18} className="text-white/40" />
+              <UserRound size={18} className="text-white/55" />
             </div>}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-white">{m.display_name}</p>
-          <p className="truncate text-[11px] text-white/45">
+          <p className="truncate text-[11px] text-white/60">
             {m.age ? `${m.age}` : ""}
             {m.distance_km != null ? `${m.age ? " · " : ""}${Math.round(m.distance_km)}km` : ""}
           </p>
@@ -162,7 +162,7 @@ export default function VybeZ() {
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
     parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract,
-                               thuro: ranges.thuro, sexi: ranges.sexi }));
+                               thuro: ranges.thuro, sexi: ranges.sexi, thorough: ranges.thorough }));
     if (avoid.length) {
       parts.push(`substances=${avoid.join(",")}`);
       if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);
@@ -217,7 +217,7 @@ export default function VybeZ() {
               override a mistyped birthday, in the permissive direction only). Neither
               is a workaround for an actual minor; both are just routing a member to the
               control that fixes a wrong answer, same as any other field. */}
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             If that birthday is wrong,{" "}
             <button className="re-link" onClick={() => goToSpot("profilez", "birthday")}>fix it in ProfileZ</button>
             {" "}or{" "}
@@ -234,7 +234,7 @@ export default function VybeZ() {
         <IconImg icon="vybez.png" alt="VybeZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">VybeZ</h2>
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Find people by what they've actually said about themselves — four personality axes,
             plus everything else on their profile. Free, and nothing here costs a resource:
             searching spends nothing.
@@ -284,7 +284,7 @@ export default function VybeZ() {
                         <option key={f.key} value={f.key}>up to {f.label.toLowerCase()} ({f.hint})</option>
                       ))}
                     </select>
-                    <span className="mt-1 block text-[10px] text-white/35">
+                    <span className="mt-1 block text-[10px] text-white/50">
                       People who haven't said how often can't be counted under a limit, so they're hidden unless you pick
                       the top of the scale. Someone who hasn't declared anything isn't hidden.
                     </span>
@@ -310,7 +310,7 @@ export default function VybeZ() {
                 {/* A distance filter with no origin silently matches nobody, so
                     it says why rather than looking broken. */}
                 {!originShared && (
-                  <span className="mt-1 block text-[10px] text-white/35">
+                  <span className="mt-1 block text-[10px] text-white/50">
                     Turn on location sharing to search by distance —{" "}
                     <button className="re-link" onClick={() => goToSpot("profilez", "visibility")}>ProfileZ</button>
                   </span>
@@ -349,7 +349,7 @@ export default function VybeZ() {
             {/* `note` already says when the cause is "nobody has said" rather
                 than "nobody matches". Without it, the two look identical and
                 the wrong one is the one people believe. */}
-            <p className="text-[11px] text-white/40">
+            <p className="text-[11px] text-white/55">
               {note || "Loosen a filter — every axis you add is an AND, not an OR."}
             </p>
           </div>

@@ -57,7 +57,7 @@ export default function WhatINeed() {
 
   return (
     <div className="neon-frame space-y-3 p-4">
-      <p className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center justify-between gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         <span>🎯 What I Need</span>
         {!editing && (
           <button
@@ -76,31 +76,31 @@ export default function WhatINeed() {
           <div className="space-y-2 text-sm">
             {form.help_needed && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Need</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/55">Need</p>
                 <p className="text-white">{form.help_needed}</p>
               </div>
             )}
             {form.status && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Status</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/55">Status</p>
                 <p className="text-white/80">{form.status}</p>
               </div>
             )}
             {form.current_reach && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Currently</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/55">Currently</p>
                 <p className="text-white/80">{form.current_reach}</p>
               </div>
             )}
             {form.rate && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-white/40">Rate</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/55">Rate</p>
                 <p className="text-mcz-gold">{form.rate}</p>
               </div>
             )}
           </div>
         ) : (
-          <p className="text-xs text-white/40">No public seeking info yet.</p>
+          <p className="text-xs text-white/55">No public seeking info yet.</p>
         )
       ) : (
         // Edit mode
@@ -118,7 +118,7 @@ export default function WhatINeed() {
           {form.active && (
             <>
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40">What kind of help do you need?</label>
+                <label className="text-[10px] uppercase tracking-wider text-white/55">What kind of help do you need?</label>
                 <input
                   type="text"
                   placeholder="e.g. Lo-fi producer / beat supplier"
@@ -131,7 +131,7 @@ export default function WhatINeed() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40">What are you building?</label>
+                <label className="text-[10px] uppercase tracking-wider text-white/55">What are you building?</label>
                 <input
                   type="text"
                   placeholder="e.g. 10-track album, zero beats yet"
@@ -144,7 +144,7 @@ export default function WhatINeed() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40">Where are you now?</label>
+                <label className="text-[10px] uppercase tracking-wider text-white/55">Where are you now?</label>
                 <input
                   type="text"
                   placeholder="e.g. 1.2k SoundCloud followers, no YouTube"
@@ -157,7 +157,7 @@ export default function WhatINeed() {
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-white/40">What's your rate?</label>
+                <label className="text-[10px] uppercase tracking-wider text-white/55">What's your rate?</label>
                 <input
                   type="text"
                   placeholder="e.g. Revenue split or $50/beat, your choice"
@@ -180,7 +180,7 @@ export default function WhatINeed() {
               {busy ? <Loader2 className="animate-spin inline mr-1" size={14} /> : <Save size={14} className="inline mr-1" />}
               {busy ? "Saving…" : "Save"}
             </button>
-            <button
+            <button aria-label="Cancel"
               className="re-btn !py-2 !text-sm px-4"
               onClick={cancel}
               disabled={busy}

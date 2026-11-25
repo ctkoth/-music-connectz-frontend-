@@ -33,7 +33,7 @@ export function SelectAllLocked({ label }) {
       {open && (
         <span className="basis-full">
           <StatzSample what="Select all" />
-          <span className="block text-[11px] text-white/45">Ticking them one by one is free at every tier.</span>
+          <span className="block text-[11px] text-white/60">Ticking them one by one is free at every tier.</span>
         </span>
       )}
     </>

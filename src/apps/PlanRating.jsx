@@ -48,7 +48,7 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
     <div className="space-y-1.5" data-testid="plan-rating">
       {plan.score != null
         ? <RatingRow value={Math.round(plan.score)} exact={plan.score} label="Plan" detail={planDetail(plan)} outOf size="sm" />
-        : <p className="text-[11px] text-white/40">Plan: {planDetail(plan)}</p>}
+        : <p className="text-[11px] text-white/55">Plan: {planDetail(plan)}</p>}
       {(plan.checks || []).length > 0 && (
         <details className="text-[11px] text-white/55" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
           <summary className="cursor-pointer text-mcz-cyan/80">What the Plan checks</summary>
@@ -60,7 +60,7 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
               </li>
             ))}
           </ul>
-          {caveat && <p className="mt-1 text-white/35">{caveat}</p>}
+          {caveat && <p className="mt-1 text-white/50">{caveat}</p>}
         </details>
       )}
       {canFix(plan) && !proposal && (
@@ -87,14 +87,14 @@ export default function PlanRating({ routine, caveat, onApply, autoOpen = false 
           <ul className="list-disc space-y-0.5 pl-4">
             {p.changes.map((c, i) => <li key={i}>{c.what}</li>)}
           </ul>
-          {checkMoves(p.compare).map((m) => <p key={m.key} className="text-white/45">{m.text}</p>)}
+          {checkMoves(p.compare).map((m) => <p key={m.key} className="text-white/60">{m.text}</p>)}
           {stillYours(p.plan).length > 0 && (
             <p className="text-amber-200">Still yours to fix: {stillYours(p.plan).map((c) => c.detail).join(" ")}</p>
           )}
           <div className="flex gap-2 pt-1">
             <button type="button" className="neon-btn-primary !w-auto px-3 py-1 text-[11px]" disabled={busy} onClick={apply}>Apply</button>
             <button type="button" className="neon-btn-ghost !w-auto px-3 py-1 text-[11px]" disabled={busy} onClick={() => setProposal(null)}>Not now</button>
-            <span className="self-center text-white/35">Free · weights are untouched.</span>
+            <span className="self-center text-white/50">Free · weights are untouched.</span>
           </div>
         </div>
       )}

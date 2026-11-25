@@ -66,7 +66,7 @@ export default function PromptzDoor() {
           </div>
         </div>
       )}
-      <p className="text-[10px] text-white/35">A refused or failed conversion charges nothing.</p>
+      <p className="text-[10px] text-white/50">A refused or failed conversion charges nothing.</p>
       {msg && <p className="text-[11px] text-mcz-cyan">{msg}</p>}
     </div>
   );

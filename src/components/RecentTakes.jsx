@@ -101,16 +101,16 @@ function Row({ t, labels, appKey }) {
     <li className="rounded-lg bg-white/5 text-[12px]">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left">
-        {open ? <ChevronDown size={13} className="text-white/40" /> : <ChevronRight size={13} className="text-white/40" />}
+        {open ? <ChevronDown size={13} className="text-white/55" /> : <ChevronRight size={13} className="text-white/55" />}
         <span className="flex flex-col items-start gap-0.5">
           <RatingNumber size="md" outOf value={t.overall} exact={t.exact} />
           <RatingStars size="sm" value={t.overall} exact={t.exact} />
         </span>
         {t.pb && <span className="rounded-full bg-mcz-gold/15 px-2 py-0.5 text-[10px] font-semibold text-mcz-gold">🏆 Personal best</span>}
-        <span className="text-white/45">{new Date(t.at).toLocaleDateString()}</span>
-        {t.genre && <span className="text-white/35">{genreLabel(t.genre)}</span>}
-        {t.difficulty && <span className="text-white/35">{t.difficulty}</span>}
-        {t.range_class && <span className="text-white/35">{t.range_class}</span>}
+        <span className="text-white/60">{new Date(t.at).toLocaleDateString()}</span>
+        {t.genre && <span className="text-white/50">{genreLabel(t.genre)}</span>}
+        {t.difficulty && <span className="text-white/50">{t.difficulty}</span>}
+        {t.range_class && <span className="text-white/50">{t.range_class}</span>}
       </button>
       {open && (
         <div className="space-y-2 border-t border-white/[0.06] px-3 py-2">
@@ -119,7 +119,7 @@ function Row({ t, labels, appKey }) {
               ? <video src={t.file.url} controls preload="none" className="w-full max-w-sm rounded-lg" />
               : <audio src={t.file.url} controls preload="none" className="w-full max-w-sm" />
           )}
-          {t.file && !t.file.kept && <p className="text-[11px] text-white/40">{t.file.why}</p>}
+          {t.file && !t.file.kept && <p className="text-[11px] text-white/55">{t.file.why}</p>}
                     {read.verdict && <p className="text-white/75">{read.verdict}</p>}
           <RatingGrid rows={Object.entries(t.scores || {}).filter(([k]) => labels[k]).map(([k, v]) => ({
             key: k, label: labels[k], value: v }))} />
@@ -129,7 +129,7 @@ function Row({ t, labels, appKey }) {
                 <RatingRow key={x.key} value={x.value} label={x.label} size="sm"
                   detail={[x.detail, x.counted === true ? "Counts in the overall above." : x.counted === false ? "Shown beside the overall, not inside it." : ""].filter(Boolean).join(" ")} />
               ))}
-              {t.extras_note && <p className="text-[10px] leading-snug text-white/35">{t.extras_note}</p>}
+              {t.extras_note && <p className="text-[10px] leading-snug text-white/50">{t.extras_note}</p>}
               <FeelzTips tips={t.extras.find((x) => x.key === "feelz")?.tips} cause={t.extras.find((x) => x.key === "feelz")?.cause?.label} />
             </div>
           )}
@@ -157,7 +157,7 @@ function Row({ t, labels, appKey }) {
             </div>
           )}
           {!read.verdict && !read.fixes?.length && (
-            <p className="text-white/40">This take was scored before the read was kept, so there is only the score to carry.</p>
+            <p className="text-white/55">This take was scored before the read was kept, so there is only the score to carry.</p>
           )}
 
           {t.open_in?.tab && shellHas(t.open_in.tab) && (
@@ -167,7 +167,7 @@ function Row({ t, labels, appKey }) {
 
           {doors.length > 0 && (
             <div className="space-y-1.5 border-t border-white/[0.06] pt-2">
-              <p className="text-[10px] uppercase tracking-widest text-white/40">Take it further</p>
+              <p className="text-[10px] uppercase tracking-widest text-white/55">Take it further</p>
               {doors.map((e) => (
                 <div key={e.key} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                   {(e.kind === "share" || e.kind === "promo") && <div className="basis-full"><DeclareHuman checked={human} onChange={setHuman} /></div>}
@@ -178,7 +178,7 @@ function Row({ t, labels, appKey }) {
                   </button>
                   <Cost cost={e.cost} />
                   {e.kind === "promo" && <HashtagCount value={tags} onChange={setTags} />}
-                  <span className="text-[11px] text-white/45">{e.note}</span>
+                  <span className="text-[11px] text-white/60">{e.note}</span>
                   {e.kind === "share" && shareUrl && (
                     <span className="flex flex-wrap gap-2 text-[11px]">
                       <a href={shareUrl} target="_blank" rel="noreferrer" className="text-white/55 underline">See the card</a>
@@ -197,7 +197,7 @@ function Row({ t, labels, appKey }) {
                   {e.kind === "download" && (<><button type="button" onClick={() => downloadIt("json")} className="text-[11px] text-white/55 underline">as JSON</button>{t.file?.kept && t.file.url && <a href={t.file.url} download className="text-[11px] text-mcz-cyan underline">Download the recording</a>}{dlMsg && <span className="text-[11px] text-mcz-ember">{dlMsg}</span>}</>)}
                 </div>
               ))}
-              <p className="text-[11px] text-white/35">
+              <p className="text-[11px] text-white/50">
                 The score and the coach's read travel; the recording doesn't — it was scored, not kept.
               </p>
             </div>
@@ -227,7 +227,7 @@ export default function RecentTakes({ takes, dimensions, appKey, total, showingA
   };
   return (
     <div>
-      <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/40">Recent takes</p>
+      <p className="mb-1.5 text-[11px] uppercase tracking-wide text-white/55">Recent takes</p>
       <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]" data-take-controls>
         <label className="flex items-center gap-1.5 text-white/55">Sort by
           <select data-nomemo="true" value={sort.by} onChange={(e) => setSort((x) => ({ ...x, by: e.target.value }))}
@@ -255,16 +255,16 @@ export default function RecentTakes({ takes, dimensions, appKey, total, showingA
           </select>
         )}
         {!isDefault(sort, filter) && (
-          <button type="button" onClick={() => { setSort(DEFAULT_SORT); setFilter(DEFAULT_FILTER); }} className="text-white/45 underline">Reset</button>
+          <button type="button" onClick={() => { setSort(DEFAULT_SORT); setFilter(DEFAULT_FILTER); }} className="text-white/60 underline">Reset</button>
         )}
       </div>
-      {loading && <p className="mb-1 text-[11px] text-white/45">Loading every take so the order is true across all of them…</p>}
+      {loading && <p className="mb-1 text-[11px] text-white/60">Loading every take so the order is true across all of them…</p>}
       {!loading && list.length === 0 && <p className="text-[12px] text-white/50">No takes match that filter.</p>}
       <ul className="space-y-1">
         {list.map((t) => <Row key={t.id} t={t} labels={labels} appKey={appKey} />)}
       </ul>
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]" data-download-all>
-        <span className="text-white/45">Download all {total ?? takes.length} takes:</span>
+        <span className="text-white/60">Download all {total ?? takes.length} takes:</span>
         <button type="button" onClick={() => downloadAll("csv")} className="text-mcz-cyan underline">spreadsheet (.csv)</button>
         <button type="button" onClick={() => downloadAll("json")} className="text-mcz-cyan underline">.json</button>
         {allMsg && <span className="text-mcz-ember">{allMsg}</span>}
@@ -275,7 +275,7 @@ export default function RecentTakes({ takes, dimensions, appKey, total, showingA
           Show all {total} takes — {total - takes.length} older {total - takes.length === 1 ? "one is" : "ones are"} not listed
         </button>
       )}
-      <p className="mt-2 text-[11px] text-white/35">
+      <p className="mt-2 text-[11px] text-white/50">
         Takes are listed with their score and the coach's read. The recording itself is only here when you ticked
         "Keep this take" or the take came from a post or journal entry — older takes were scored and not stored.
       </p>

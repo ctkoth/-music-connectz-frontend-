@@ -91,7 +91,7 @@ export default function PersonalityTest() {
       {result ? (
         <div className="space-y-5">
           <div className="neon-frame p-6 text-center">
-            <p className="text-[11px] uppercase tracking-widest text-white/45">Your PersonalitieZ</p>
+            <p className="text-[11px] uppercase tracking-widest text-white/60">Your PersonalitieZ</p>
             <p className="my-3 font-display text-6xl font-extrabold tracking-tight text-mcz-cyan">
               {result.code || "—"}
             </p>
@@ -109,11 +109,11 @@ export default function PersonalityTest() {
                 return (
                   <div key={a.key}>
                     <div className="flex items-baseline justify-between text-[12px]">
-                      <span className={side ? "text-white" : "text-white/35"}>
+                      <span className={side ? "text-white" : "text-white/50"}>
                         {side ? <><span className="font-bold text-mcz-cyan">{side.code}</span> {side.label}</>
                               : <>{a.left.label} / {a.right.label} — you sat in the middle</>}
                       </span>
-                      <span className="text-white/40">{clarity}%</span>
+                      <span className="text-white/55">{clarity}%</span>
                     </div>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
                       <div className="h-full rounded-full bg-mcz-cyan" style={{ width: `${Math.max(2, clarity)}%` }} />
@@ -124,7 +124,7 @@ export default function PersonalityTest() {
             </div>
             {/* The number is consistency, not quality, and the one place
                 somebody would assume otherwise is right under a percentage. */}
-            <p className="mt-3 text-left text-[11px] leading-relaxed text-white/40">
+            <p className="mt-3 text-left text-[11px] leading-relaxed text-white/55">
               The percentage is how consistently your answers pointed one way — not how
               good the answer is. Neither side of any axis is better, and a 55% is not a
               worse result than a 95%.
@@ -176,7 +176,7 @@ export default function PersonalityTest() {
               {spec.count} statements, {LABEL[depth]}. No account, no microphone, nothing to install.
             </p>
             {/* Before the first question, not after the result. */}
-            <p className="mt-2 text-[11px] leading-relaxed text-white/40">{spec.note}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-white/55">{spec.note}</p>
           </div>
 
           <div className="space-y-3">
@@ -212,7 +212,7 @@ export default function PersonalityTest() {
             {/* Skipping is allowed and says what it costs: an axis you leave
                 blank comes back unsaid, which is honest rather than guessed. */}
             {!!done && done < spec.count && (
-              <p className="mt-2 text-center text-[11px] text-white/35">
+              <p className="mt-2 text-center text-[11px] text-white/50">
                 You can send it part-answered — any axis you skip comes back unsaid rather than guessed.
               </p>
             )}

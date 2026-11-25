@@ -47,8 +47,8 @@ test("SkillZ is a coach app: it ends the coach grid, as the category it is (ther
   assert.match(block("CATEGORY_ICON_KEY"), /\bSkillZ:/);
 });
 
-test("ToolZ and IntelligenceZ are parents: each a real category with art, offered up front", () => {
-  assert.deepEqual(PARENTS, ["ToolZ", "IntelligenceZ"]);
+test("the home screen's parents are each a real category with art, offered up front", () => {
+  assert.deepEqual(PARENTS, ["ToolZ", "IntelligenceZ", "StudioZ", "SocialiZeZ", "CollabZ", "BattleZ", "VenueZ"]);
   const art = block("CATEGORY_ICON_KEY");
   for (const k of PARENTS) {
     assert.match(menu, new RegExp(`\\n  '${k}': \\[`), `${k} is not a category in TOOLZ_MENU`);
@@ -59,10 +59,25 @@ test("ToolZ and IntelligenceZ are parents: each a real category with art, offere
   assert.ok(inFocus("intelligencez"));
 });
 
-test("the parents lead the Around-the-coach grid and SkillZ ends the coach grid", () => {
-  const coach = menu.indexOf("FOCUS_COACHES.map");
-  const hubs = menu.indexOf("FOCUS_COACH_PARENTS.map");
-  const parents = menu.indexOf("FOCUS_PARENTS.map");
-  const support = menu.indexOf("FOCUS_SUPPORT.map");
-  assert.ok(coach < hubs && hubs < parents && parents < support);
+test("one home grid: ToolZ, DawZ and IntelligenceZ lead, the coaches are not tiles (they live in SkillZ), then the parents and support apps", () => {
+  const toolz = menu.indexOf('categoryKey="ToolZ"');
+  const daw = menu.indexOf('appKey="dawz"');
+  const intel = menu.indexOf('categoryKey="IntelligenceZ"');
+  const parents = menu.indexOf('FOCUS_PARENTS.filter');
+  const support = menu.indexOf("FOCUS_SUPPORT.filter");
+  assert.ok(toolz > 0 && toolz < daw && daw < intel && intel < parents && parents < support);
+  assert.ok(!menu.includes("FOCUS_COACHES.map"), "the home grid must not list the coaches");
+});
+
+test("Corey's home screen set is always shown: real categories and real tabs", async () => {
+  const { HOME_PARENTS, HOME_APPS } = await import("./focus.js");
+  for (const k of HOME_PARENTS) assert.match(menu, new RegExp(`key: '${k}', label:`), `${k} is not a category`);
+  for (const k of HOME_APPS) assert.ok(tabs.has(k), `${k} is not a tab`);
+  for (const k of ["ToolZ"]) assert.ok(HOME_PARENTS.includes(k));
+  for (const k of ["bodiez"]) assert.ok(HOME_APPS.includes(k));
+  // The coaches live in SkillZ, which is the featured tile — not repeated beside it.
+  const { HOME_FEATURED } = await import("./focus.js");
+  assert.equal(HOME_FEATURED, "SkillZ");
+  assert.match(menu, new RegExp(`key: '${HOME_FEATURED}', label:`));
+  for (const k of ["singz", "rapz", "guitarz", "drumz"]) assert.ok(!HOME_APPS.includes(k), `${k} belongs in SkillZ`);
 });

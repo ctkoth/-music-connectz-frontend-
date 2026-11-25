@@ -55,7 +55,7 @@ function Art({ art, size = "h-12 w-12", name }) {
   return art
     ? <img src={art} alt={name} className={`${size} flex-shrink-0 rounded-md object-cover`} loading="lazy" />
     : (
-      <div className={`${size} flex flex-shrink-0 items-center justify-center rounded-md border border-dashed border-white/20 text-[9px] text-white/35`}
+      <div className={`${size} flex flex-shrink-0 items-center justify-center rounded-md border border-dashed border-white/20 text-[9px] text-white/50`}
         title="This file is on your machine but not in the repo yet">
         no file
       </div>
@@ -78,10 +78,10 @@ function Row({ name, file, art, status, keyName, note, also = [] }) {
           {name} <Badge status={status} />
         </p>
         <p className="truncate font-mono text-[11px] text-white/50">{file}</p>
-        {keyName && <p className="text-[11px] text-white/40">registry key <span className="font-mono">{keyName}</span></p>}
-        {note && <p className="mt-0.5 text-[11px] leading-snug text-white/45">{note}</p>}
+        {keyName && <p className="text-[11px] text-white/55">registry key <span className="font-mono">{keyName}</span></p>}
+        {note && <p className="mt-0.5 text-[11px] leading-snug text-white/60">{note}</p>}
         {also.map((a) => (
-          <p key={a.file} className="mt-0.5 text-[11px] text-white/35">
+          <p key={a.file} className="mt-0.5 text-[11px] text-white/50">
             also <span className="font-mono">{a.file}</span> · <Badge status={a.status} />
           </p>
         ))}
@@ -99,12 +99,12 @@ function ParentPanel({ p, onClose }) {
         <Art art={p.root?.art} size="h-16 w-16" name={p.label} />
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-white">{p.label}</h3>
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             {p.root ? <>parent <span className="font-mono">{p.root.file}</span></> : "no parent icon of its own — only children name it"}
             {" · "}{p.children.length} {p.children.length === 1 ? "child" : "children"}
           </p>
           {p.root && <div className="mt-1"><Badge status={p.root.status} /></div>}
-          {p.root?.note && <p className="mt-1 text-[11px] text-white/45">{p.root.note}</p>}
+          {p.root?.note && <p className="mt-1 text-[11px] text-white/60">{p.root.note}</p>}
         </div>
         {tab && (
           <button type="button" onClick={() => goToTab(tab)}
@@ -131,7 +131,7 @@ function ParentPanel({ p, onClose }) {
       )}
 
       {p.extra.length > 0 && (
-        <p className="mt-3 text-[11px] text-white/40">
+        <p className="mt-3 text-[11px] text-white/55">
           Other root files under this name: {p.extra.map((x) => x.file).join(", ")}
         </p>
       )}
@@ -207,19 +207,19 @@ export default function IconZ() {
                 <span className="text-[10px] text-white/30">{isTail ? "+" : i + 1}</span>
                 <Art art={p.root?.art} size="h-14 w-14" name={p.label} />
                 <span className="w-full truncate text-[12px] font-semibold text-white/90">{isTail ? "+" : ""}{p.label}</span>
-                <span className="flex items-center gap-1 text-[10px] text-white/45">
+                <span className="flex items-center gap-1 text-[10px] text-white/60">
                   {p.children.length} <Badge status={worst(p)} />
                 </span>
               </button>
             </li>
           );
         })}
-        {shown.length === 0 && <li className="col-span-full text-[12px] text-white/45">Nothing matches.</li>}
+        {shown.length === 0 && <li className="col-span-full text-[12px] text-white/60">Nothing matches.</li>}
       </ul>
 
       <section className="rounded-xl border border-white/10 p-3">
         <h3 className="text-[13px] font-semibold text-white/85">Asked for by a tab, supplied by nobody ({TAB_ICONS_WITHOUT_ART.length})</h3>
-        <p className="mb-2 text-[11px] text-white/45">
+        <p className="mb-2 text-[11px] text-white/60">
           These tabs and apps name an icon no file in the folder covers, so they draw their generated glyph.
         </p>
         <p className="flex flex-wrap gap-1.5">

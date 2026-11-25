@@ -7,7 +7,7 @@ export default function ViewCount({ target, className = "" }) {
   const { n, notice } = useViewCount(target);
   if (n == null) return null;
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] text-white/45 ${className}`} title={notice}>
+    <span className={`inline-flex items-center gap-1 text-[11px] text-white/60 ${className}`} title={notice}>
       <Eye size={12} /> {n.toLocaleString()} {n === 1 ? "view" : "views"}
     </span>
   );

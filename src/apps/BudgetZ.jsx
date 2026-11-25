@@ -62,6 +62,11 @@ export default function BudgetZ() {
       setD(r); setErr(r.added ? "" : "Linked. Nothing new to import yet.");
     } catch (e) { setErr(e.message || "Couldn't link the bank."); } finally { setBusy(false); }
   };
+  const earnings = async () => {
+    setBusy(true);
+    try { const r = await api("/api/economy/budgetz/earnings/", { method: "POST", body: {} }); setD(r); setErr(r.added ? `Imported ${r.added} from your Music ConnectZ money.` : "Nothing new to import."); }
+    catch (e) { setErr(e.message); } finally { setBusy(false); }
+  };
   const sync = async () => {
     setBusy(true);
     try { const r = await api("/api/economy/budgetz/bank/sync/", { method: "POST", body: {} }); setD(r); setErr(`Imported ${r.added} new.`); }
@@ -108,6 +113,12 @@ export default function BudgetZ() {
       </div>
 
       <div className="re-card space-y-2">
+        <p className="text-sm font-semibold text-white">Your Music ConnectZ money · free</p>
+        <p className="text-[12px] text-white/60">Royalties and rewards you earned, and what you paid members, from your own wallet history — added once each. Cash moved into the wallet or out to a bank isn't counted as income or spending.</p>
+        <button className="pill" disabled={busy} onClick={earnings}>Import my earnings</button>
+      </div>
+
+      <div className="re-card space-y-2">
         <p className="text-sm font-semibold text-white">Bank</p>
         <p className="text-[12px] text-white/60">{d.link_note}</p>
         {d.banks.map((b) => <p key={b.id} className="text-[12px] text-white/70">🏦 {b.label || "Linked account"}</p>)}
@@ -117,20 +128,20 @@ export default function BudgetZ() {
             {!!d.banks.length && <button className="pill" disabled={busy} onClick={sync}>Import new</button>}
           </div>
         )}
-        {!!d.banks.length && <p className="text-[11px] text-white/40">A bank line you delete comes back on the next import.</p>}
+        {!!d.banks.length && <p className="text-[11px] text-white/55">A bank line you delete comes back on the next import.</p>}
       </div>
 
       <div className="space-y-1">
         {d.lines.map((l) => (
           <div key={l.id} className="flex items-center justify-between rounded-lg border border-white/5 px-2 py-1.5 text-[12px]">
-            <span className="text-white/70">{l.on.slice(5)} · {l.category}{l.note ? ` · ${l.note}` : ""}{l.source === "bank" ? " 🏦" : ""}</span>
+            <span className="text-white/70">{l.on.slice(5)} · {l.category}{l.note ? ` · ${l.note}` : ""}{l.source === "bank" ? " 🏦" : l.source === "mcz" ? " 🎵" : ""}</span>
             <span className="flex items-center gap-2">
               <span className={l.kind === "income" ? "text-emerald-300" : "text-mcz-ember"}>{l.kind === "income" ? "+" : "−"}{usd(l.amount_cents)}</span>
-              <button type="button" aria-label="Delete" onClick={() => del(l.id)}><Trash2 size={13} className="text-white/40" /></button>
+              <button type="button" aria-label="Delete" onClick={() => del(l.id)}><Trash2 size={13} className="text-white/55" /></button>
             </span>
           </div>
         ))}
-        {!d.lines.length && <p className="text-[12px] text-white/40">Nothing this month yet.</p>}
+        {!d.lines.length && <p className="text-[12px] text-white/55">Nothing this month yet.</p>}
       </div>
     </div>
   );

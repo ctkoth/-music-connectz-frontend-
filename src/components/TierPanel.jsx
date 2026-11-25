@@ -16,7 +16,7 @@ export default function TierPanel({ tab, label, onGo }) {
   const go = (target) => { onGo?.(); goToSpot("membershipz", target); };
   return (
     <div className="mt-3 space-y-2 border-t border-white/[0.08] pt-3">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-white/45">Tiers{entry ? ` in ${label}` : ""}</p>
+      <p className="text-[11px] font-bold uppercase tracking-widest text-white/60">Tiers{entry ? ` in ${label}` : ""}</p>
       {TIER_ORDER.map((t) => {
         const line = entry?.[t] && entry[t] !== "—" ? entry[t] : TIER_BLURB[t];
         const ladder = tiers?.[t];
@@ -27,7 +27,7 @@ export default function TierPanel({ tab, label, onGo }) {
                 {TIER_LABEL[t]}{t === mine && <span className="ml-1 font-normal">· yours</span>}
               </span>
               {ladder && (
-                <span className="text-white/45">
+                <span className="text-white/60">
                   {ladder.month_cents ? `${money(ladder.month_cents)}/mo · ${money(ladder.year_cents)}/yr` : "free"}
                   {" · "}{ladder.char_limit >= 1e8 ? "unlimited" : Number(ladder.char_limit).toLocaleString()} characters
                 </span>

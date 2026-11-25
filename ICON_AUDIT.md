@@ -6,7 +6,7 @@ art. 122 distinct supplied files: **84 live** (committed, now the default),
 **3 duplicates**, 3 already used as backup art. The lists below also
 show committed dotted files the tree picked up from public/icons.
 
-## Live — custom art is the default now (98)
+## Live — custom art is the default now (99)
 | File | Registry key | Note |
 |---|---|---|
 | `battlez.1v1.png` | `battlez.1v1.png` | replaces the generated glyph /icons/battlez.1v1-neon.svg |
@@ -105,6 +105,7 @@ show committed dotted files the tree picked up from public/icons.
 | `profilez.substancez.jpg` | `substancez.png` |  |
 | `profilez.voicez.jpg` | `voicez.png` |  |
 | `profilez.zodiacz.jpg` | `zodiacz.png` |  |
+| `studioz.mixez.jpg` | `mixez.png` |  |
 | `skillz.png` | `skillz.png` |  |
 | `directz.png` | `directz.png` | replaces the generated glyph /icons/directz-neon.svg |
 
@@ -241,7 +242,7 @@ Still what something draws today; custom art takes over where a default exists.
 | `Builder.jpg` | — | same icon as builder.png; on disk as "Builder.jpg"; commit it as builder.jpg |
 | `toolz.jpg` | — | same icon as toolz.png |
 
-## Tabs and apps that ask for an icon no supplied file covers (40)
+## Tabs and apps that ask for an icon no supplied file covers (42)
 - `adz.png` → /icons/adz-neon.svg
 - `bassz.png` → /icons/bassz.png
 - `beatz.png` → /icons/beatz.jpg
@@ -249,6 +250,7 @@ Still what something draws today; custom art takes over where a default exists.
 - `budgetz.jpg` → /icons/budgetz.jpg
 - `callz.png` → /icons/callz-neon.svg
 - `clarinetz.png` → /icons/clarinetz-neon.png
+- `designz.png` → /icons/designz.png
 - `dupez.png` → /icons/dupez.jpg
 - `facez.png` → /icons/facez.png
 - `flutez.png` → /icons/flutez-neon.png
@@ -279,9 +281,10 @@ Still what something draws today; custom art takes over where a default exists.
 - `soundcloudengagementz.png` → /icons/soundcloudengagementz.jpg
 - `soundz.png` → /icons/soundz.jpg
 - `specz.png` → /icons/specz-neon.svg
+- `studiodragon.png` → /icons/dawz.png
 - `trumpetz.png` → /icons/trumpetz-neon.png
 - `videoz.png` → /icons/toolz.videoz.png
 - `violinz.png` → /icons/violinz-neon.svg
 
-Registry keys with no supplied file: 116 of 215 (most are the
+Registry keys with no supplied file: 116 of 216 (most are the
 `personaz_*`, `lilith_*`, `vis_*`, `badge_*` and `tier_*` sets, which were not in this folder).

@@ -48,7 +48,7 @@ export default function InstrumentalInspiration({ info, onApply }) {
             {busy ? <Loader2 size={14} className="animate-spin" /> : "Suggest a setup"}
           </button>
           <span className="text-mcz-ember">{info.free_today ? "Free today — uses 1 free prompt" : `−${info.cost_cents} ${PROMPTZ}`}</span>
-          <span className="text-white/40">Not charged if it fails · then Compose is priced separately</span>
+          <span className="text-white/55">Not charged if it fails · then Compose is priced separately</span>
         </div>
         {err && <p className="text-mcz-ember">{err}</p>}
         {res?.unscorable && <p className="text-amber-200">{res.unscorable}</p>}

@@ -93,7 +93,7 @@ export default function PublicPost() {
             {post.rating != null && (
               <span className="flex items-center gap-1 text-xs text-mcz-ember">
                 <Flame size={13} /> <span className={`font-bold ${ratingTone(post.rating)}`}>{post.rating}</span>
-                <span className="text-white/40">/10</span>
+                <span className="text-white/55">/10</span>
               </span>
             )}
           </div>
@@ -142,7 +142,7 @@ export default function PublicPost() {
           <div className="mt-5 rounded-xl border border-mcz-ember/30 bg-mcz-ember/10 p-4 text-center text-sm">
             <p className="mb-2 text-white/80">Rate this, comment, and post your own — free.</p>
             <JoinLink owner={post?.author} invite className="inline-block rounded-xl bg-mcz-ember px-5 py-2 font-bold text-white hover:brightness-110">Create your account</JoinLink>
-            <p className="mt-2 text-[11px] text-white/45">
+            <p className="mt-2 text-[11px] text-white/60">
               Or <TryLink owner={post?.author} app={postCoachApp(post)} className="text-mcz-cyan hover:underline">get a take scored first</TryLink> — no account needed.
             </p>
           </div>

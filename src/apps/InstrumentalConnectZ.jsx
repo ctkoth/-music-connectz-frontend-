@@ -16,7 +16,7 @@ import RunPrice from "../components/RunPrice.jsx";
 import RunClock from "../components/RunClock.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
 import { budgetOf, runTimeoutMs, shellRoyaltyLine, unknownOutcome, unknownOutcomeNote } from "../aiRun.js";
-import { chargeLine, drumVoice, midiName, missingLine } from "../instrumentalz.js";
+import { chargeLine, drumVoice, midiName, missingLine, soundFor, soundsByName } from "../instrumentalz.js";
 import { useRemembered } from "../useRemembered.js";
 import { remember } from "../remember.js";
 import UsualHint from "../components/UsualHint.jsx";
@@ -72,6 +72,32 @@ function playLoop(work, repeats = 2) {
   return { ctx, ends };
 }
 
+// The synth-engine preview: each part is rendered to audio through its patch (src/daw/synth) and the loop is laid end to
+// end. Rendered on this device; free. The engine is loaded only when somebody presses Preview with it on.
+async function playLoopSynth(work, repeats = 2) {
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  const ctx = new Ctx();
+  try {
+    if (ctx.state !== "running") await ctx.resume();
+    const { renderNotes } = await import("../daw/instruments.js");
+    const bufs = [];
+    for (const tr of work.tracks) {
+      bufs.push(await renderNotes(tr.notes, soundFor(tr.instrument), { bpm: work.bpm, rate: ctx.sampleRate }));
+      await new Promise((r) => setTimeout(r, 0));          // let the page breathe between parts
+    }
+    const master = ctx.createGain();
+    master.gain.value = 0.6;
+    master.connect(ctx.destination);
+    const t0 = ctx.currentTime + 0.1;
+    const loopLen = work.bars * 4 * (60 / work.bpm);
+    for (let r = 0; r < repeats; r++) {
+      for (const b of bufs) { const src = ctx.createBufferSource(); src.buffer = b; src.connect(master); src.start(t0 + r * loopLen); }
+    }
+    return { ctx, ends: t0 + repeats * loopLen };
+  } catch (e) { ctx.close?.(); throw e; }
+}
+
 function scheduleLoop(ctx, work, repeats, t0) {
   const master = ctx.createGain();
   master.gain.value = 0.25;
@@ -109,6 +135,30 @@ function ReloadOnSample({ onChange }) {
   return null;
 }
 
+// Starting points by rap style, singing range and genre: the server's list (instrumental_presets.py), which fills the form
+// below. Free; Compose is priced exactly as before and every field can still be changed. The reason for each choice is
+// shown, because a tempo or a key with no reason is a number to take on trust.
+function PresetPicker({ presets, onPick, last }) {
+  if (!presets?.length) return null;
+  const groups = [...new Set(presets.map((p) => p.group))];
+  return (
+    <div className="space-y-2" data-tour="instrumental-presets">
+      <p className="text-sm text-white/70">Start from a preset <span className="text-emerald-300">free</span> <span className="text-white/50">— fills the form; nothing is composed or charged until you press Compose</span></p>
+      {groups.map((g) => (
+        <div key={g} className="space-y-1">
+          <p className="text-[11px] text-white/55">{g === "Rap style" ? "By rap style" : "By singing range"}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {presets.filter((p) => p.group === g).map((p) => (
+              <button key={p.key} title={p.why} className={`pill text-[11px] ${last?.key === p.key && last?.group === g ? "!bg-white/20" : ""}`} onClick={() => onPick(p)}>{p.emoji} {p.label}</button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {last && <p className="text-[11px] text-white/60">{last.label}: {last.bpm} BPM, {last.key_name}. {last.why}</p>}
+    </div>
+  );
+}
+
 export default function InstrumentalConnectZ() {
   const cl = useCharLimit();
   const [s, setS] = useState(null);
@@ -121,15 +171,19 @@ export default function InstrumentalConnectZ() {
   const [bars, setBars] = useState(4);
   const [prio, setPrio] = useState({});
   const [insp, setInsp] = useState(null);
+  const [lastPreset, setLastPreset] = useState(null);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
   // The POST response for the piece just composed: the only place the server says
   // whether that run was charged. A piece opened from the list has no such fact.
   const [run, setRun] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [rendering, setRendering] = useState(false);
+  const [synth, setSynth] = useRemembered("instrumentalz.synth", "on");      // the preview's sound: the synth engine, or the plain sketch
   const [mood, setMood] = useState("");
   const [moodHits, setMoodHits] = useState(null);
   const player = useRef(null);
+  const playTicket = useRef(0);
   // From MangaZ (or any app): a brief to compose from, e.g. a manga page's story and mood.
   useEffect(() => (IN_SHELL ? undefined : onHandoff("instrumentalconnectz", (p) => {
     if (p?.brief) setBrief(String(p.brief).slice(0, 1000));
@@ -140,7 +194,7 @@ export default function InstrumentalConnectZ() {
     setToDaw("Opening the MIDI in Arsenal…");
     try {
       const blob = await apiBlob(`/api/economy/instrumentalz/${work.id}/midi/`);
-      handOff("arsenal", "", { midi: URL.createObjectURL(blob), name: midiName(work) });
+      handOff("arsenal", "", { midi: URL.createObjectURL(blob), name: midiName(work), sounds: soundsByName(s?.instruments) });
       setToDaw("");
     } catch (e) { setToDaw(e.message); }
   }
@@ -149,13 +203,22 @@ export default function InstrumentalConnectZ() {
   useEffect(() => { load(); return () => stop(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function stop() {
+    playTicket.current += 1;
     player.current?.ctx?.close?.();
     player.current = null;
     setPlaying(false);
   }
-  function play() {
+  async function play() {
     stop();
-    const p = playLoop(work);
+    const ticket = (playTicket.current += 1);
+    let p = null;
+    if (synth !== "off") {
+      setRendering(true);
+      try { p = await playLoopSynth(work); } catch { p = null; }          // a render that fails falls back to the plain sketch
+      setRendering(false);
+      if (ticket !== playTicket.current) { p?.ctx?.close?.(); return; }   // pressed Stop, or another piece, meanwhile
+    }
+    if (!p) p = playLoop(work);
     if (!p) return setErr("This browser can't play a preview — download the .mid instead.");
     player.current = p;
     setPlaying(true);
@@ -236,6 +299,9 @@ export default function InstrumentalConnectZ() {
           if (d.instruments?.length) setPicked(d.instruments);
           if (d.brief) setBrief(cl.clamp(d.brief));
         }} />
+        <PresetPicker presets={s?.presets} last={lastPreset} onPick={(p) => {
+          setLastPreset(p); setGenre(p.genre); setPicked(p.instruments.slice(0, s?.max_tracks ?? 6)); setBpm(p.bpm); setKey(p.key_name); setBars(p.bars); setBrief(cl.clamp(p.brief));
+        }} />
         {/* The same emoji genres every other screen offers; the text box below still takes anything. */}
         <select data-nomemo="true" aria-label="Pick a genre" className="neon-input w-full text-sm"
                 value={GENRES.includes(genre) ? genre : ""} onChange={(e) => e.target.value && setGenre(e.target.value)}>
@@ -250,7 +316,7 @@ export default function InstrumentalConnectZ() {
           aria-label="Genre" value={genre} onChange={(e) => setGenre(e.target.value)} />
 
         <div>
-          <p className="mb-2 text-sm text-white/70">Instruments <span className="text-white/40">(up to {s?.max_tracks ?? 6})</span></p>
+          <p className="mb-2 text-sm text-white/70">Instruments <span className="text-white/55">(up to {s?.max_tracks ?? 6})</span></p>
           <div className="flex flex-wrap gap-2">
             {(s?.instruments || []).map((i) => (
               <button key={i.id} onClick={() => toggle(i.id)} aria-pressed={picked.includes(i.id)}
@@ -287,7 +353,7 @@ export default function InstrumentalConnectZ() {
             mood is the StatZ convenience on top, below. */}
         {s?.keys?.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[11px] text-white/45">Every key and its mood — tap one to pick it.</p>
+            <p className="text-[11px] text-white/60">Every key and its mood — tap one to pick it.</p>
             <ul className="max-h-60 space-y-0.5 overflow-y-auto rounded-xl border border-white/10 bg-white/5 p-1">
               {s.keys.map((k) => (
                 <li key={k.key}>
@@ -329,7 +395,7 @@ export default function InstrumentalConnectZ() {
         {IN_SHELL ? (
           // CharLimit's upgrade link goes to MembershipZ, which a shell does not have.
           cl.ready && !cl.unlimited && (
-            <p className={`text-[11px] ${cl.state(brief) === "ok" ? "text-white/35" : cl.state(brief) === "near" ? "text-mcz-gold" : "text-mcz-ember"}`}>
+            <p className={`text-[11px] ${cl.state(brief) === "ok" ? "text-white/50" : cl.state(brief) === "near" ? "text-mcz-gold" : "text-mcz-ember"}`}>
               {brief.length.toLocaleString()} / {cl.limit.toLocaleString()}{cl.state(brief) === "full" && " · limit reached"}
             </p>
           )
@@ -346,7 +412,7 @@ export default function InstrumentalConnectZ() {
             {busy ? <Loader2 className="animate-spin" size={16} /> : <Music size={16} />} Compose it
           </button>
           <RunPrice s={s} noun="compositions" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
-          <span className="text-[11px] text-white/40">
+          <span className="text-[11px] text-white/55">
             An answer with no usable loop isn't charged. If only some of the parts you asked for come back, it says which are missing and whether that run was charged.
           </span>
           <RunClock running={busy} budgetSeconds={budgetOf(s)} what="Composing" />
@@ -370,14 +436,20 @@ export default function InstrumentalConnectZ() {
           <div className="flex flex-wrap gap-3">
             {playing
               ? <button className="re-btn !w-auto px-4" onClick={stop}><Square size={14} /> Stop</button>
-              : <button className="re-btn !w-auto px-4" onClick={play}><Play size={14} /> Preview</button>}
+              : <button className="re-btn !w-auto px-4" onClick={play} disabled={rendering}>{rendering ? <><Loader2 size={14} className="animate-spin" /> Rendering the sound…</> : <><Play size={14} /> Preview</>}</button>}
+            <label className="flex items-center gap-1.5 text-xs text-white/70" title="The synth engine plays each part through a patch (rendered on your device, free). Plain is the quick sketch.">
+              Sound
+              <select className="neon-input !w-auto !py-1" data-nomemo="true" value={synth} onChange={(e) => setSynth(e.target.value)} aria-label="Preview sound">
+                <option value="on">Synth</option><option value="off">Plain sketch</option>
+              </select>
+            </label>
             <button className="re-btn !w-auto px-4" onClick={download}><Download size={14} /> Download .mid</button>
             {!IN_SHELL && <button className="re-btn !w-auto px-4" onClick={openInArsenal}
               title="Opens the .mid in Arsenal's MIDI window: pick an instrument per part, then record over it — free">
               Open in Arsenal <span className="text-emerald-300">free</span></button>}
           </div>
           {toDaw && <p className="text-xs text-white/60">{toDaw}</p>}
-          <p className="text-[11px] text-white/40">The preview uses simple built-in sounds. Load the .mid into your DAW for the real instruments.</p>
+          <p className="text-[11px] text-white/55">The preview plays each part through the synth engine (piano and organ are still basic voices). Open in Arsenal keeps those sounds and lets you change them per part.</p>
           {!IN_SHELL && pct != null && <UseIn source="instrumental" sourceId={work.id} pct={pct} />}
         </div>
       )}
@@ -388,7 +460,7 @@ export default function InstrumentalConnectZ() {
           {s.works.map((w) => (
             <button key={w.id} onClick={() => { stop(); setWork(w); }}
               className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
-              {w.genre ? genreLabel(w.genre) : "Instrumental"} <span className="text-white/45">— {w.key}, {w.bpm} BPM</span>
+              {w.genre ? genreLabel(w.genre) : "Instrumental"} <span className="text-white/60">— {w.key}, {w.bpm} BPM</span>
             </button>
           ))}
         </div>

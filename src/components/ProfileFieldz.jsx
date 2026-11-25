@@ -126,7 +126,7 @@ export function ProfileFieldsEditor({ value, onChange }) {
               {it.photo ? <img src={it.photo} alt="" className="inline h-6 w-6 rounded object-cover" /> : "📷"}
               <input type="file" accept="image/*" className="hidden" onChange={(e) => addPhoto(i, e.target.files?.[0])} />
             </label>
-            <button type="button" className="text-white/40" aria-label="Remove"
+            <button type="button" className="text-white/55" aria-label="Remove"
                     onClick={() => set("inventory", v.inventory.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
@@ -134,7 +134,7 @@ export function ProfileFieldsEditor({ value, onChange }) {
                 onClick={() => set("inventory", [...(v.inventory || []), { name: "", kind: "microphone", where: "home", note: "" }])}>
           + Add gear or clothes
         </button>
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           Members can rate each piece and your inventory in total (free; it never moves a skill or a price). Renaming a piece starts its ratings again.
           Worth is an exact price or $ to $$$$$$$$$$ (1 your least expensive thing, 10 your most) — members see it unless you change
           "What my InVenTorieZ is worth" in VisibilitieZ; the logged-out page never does by default.
@@ -160,7 +160,7 @@ export function ProfileFieldsEditor({ value, onChange }) {
             <input type="file" accept="image/*" className="hidden" disabled={coverBusy}
                    onChange={(e) => pickCover(e.target.files?.[0])} />
           </label>
-          {v.cover_url && <button type="button" className="text-white/40 underline" onClick={() => set("cover_url", "")}>Remove</button>}
+          {v.cover_url && <button type="button" className="text-white/55 underline" onClick={() => set("cover_url", "")}>Remove</button>}
           <span className="text-white/30">Uses your FileZ storage.</span>
         </div>
         {coverErr && <p className="mt-1 text-mcz-ember">{coverErr}</p>}
@@ -180,7 +180,7 @@ export function ProfileFields({ p, linkPost }) {
   const time = p.timezone ? localTime(p.timezone) : "";
   const pills = (label, xs) => xs?.length ? (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-[11px] uppercase tracking-wide text-white/35">{label}</span>
+      <span className="text-[11px] uppercase tracking-wide text-white/50">{label}</span>
       {xs.map((x) => <span key={x} className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/75">{x}</span>)}
     </div>
   ) : null;
@@ -189,7 +189,7 @@ export function ProfileFields({ p, linkPost }) {
       {(p.headline || p.pronouns) && (
         <p className="text-sm text-white/80">
           {p.headline}{p.headline && p.pronouns ? " · " : ""}
-          {p.pronouns && <span className="text-white/45">{p.pronouns}</span>}
+          {p.pronouns && <span className="text-white/60">{p.pronouns}</span>}
         </p>
       )}
       {pills("Genres", p.genres)}
@@ -197,7 +197,7 @@ export function ProfileFields({ p, linkPost }) {
       {pills("Gear", p.gear)}
       {(p.inventory || []).length > 0 && (
         <div className="space-y-1">
-          <span className="text-[11px] uppercase tracking-wide text-white/35">Inventory</span>
+          <span className="text-[11px] uppercase tracking-wide text-white/50">Inventory</span>
           <div className="flex flex-wrap gap-1.5">
             {p.inventory.map((it) => (
               <span key={it.name} title={`${it.where}${it.note ? ` · ${it.note}` : ""}`}

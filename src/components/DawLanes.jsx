@@ -55,7 +55,7 @@ export default function DawLanes({ lanes, from, to, kinds = {}, minWidth = 520 }
               className="flex w-full flex-col justify-center border-b border-white/5 px-2 text-left hover:bg-white/5 disabled:hover:bg-transparent"
               style={{ height: LANE_H }}>
               <span className="truncate text-xs font-semibold">{l.label}</span>
-              {l.sub && <span className="truncate text-[10px] text-white/45">{l.sub}</span>}
+              {l.sub && <span className="truncate text-[10px] text-white/60">{l.sub}</span>}
             </button>
           ))}
         </div>
@@ -63,7 +63,7 @@ export default function DawLanes({ lanes, from, to, kinds = {}, minWidth = 520 }
           <div className="relative" style={{ minWidth }}>
             <div className="relative h-7 border-b border-white/10 bg-black/30">
               {marks.map((t) => (
-                <span key={t} className="absolute top-1 -translate-x-1/2 text-[10px] text-white/45" style={{ left: `${pct(t)}%` }}>
+                <span key={t} className="absolute top-1 -translate-x-1/2 text-[10px] text-white/60" style={{ left: `${pct(t)}%` }}>
                   {tickLabel(t, from, to)}
                 </span>
               ))}

@@ -97,6 +97,7 @@ export const ICON_DEFAULTS = {
   "substancez.png": "/icons/profilez.substancez.jpg",
   "voicez.png": "/icons/profilez.voicez.jpg",
   "zodiacz.png": "/icons/profilez.zodiacz.jpg",
+  "mixez.png": "/icons/studioz.mixez.jpg",
   "skillz.png": "/icons/skillz.png",
   "directz.png": "/icons/directz.png",
   "callz.png": "/icons/callz.png",
@@ -1657,6 +1658,24 @@ export const ICON_TREE = [
     "children": []
   },
   {
+    "parent": "studioz",
+    "label": "StudioZ",
+    "root": null,
+    "extra": [],
+    "children": [
+      {
+        "child": "mixez",
+        "label": "MixeZ",
+        "file": "studioz.mixez.jpg",
+        "art": "/icons/studioz.mixez.jpg",
+        "key": "mixez.png",
+        "status": "live",
+        "note": "",
+        "also": []
+      }
+    ]
+  },
+  {
     "parent": "substancez",
     "label": "SubstanceZ",
     "root": {
@@ -2034,6 +2053,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "budgetz.jpg",
   "callz.png",
   "clarinetz.png",
+  "designz.png",
   "dupez.png",
   "facez.png",
   "flutez.png",
@@ -2064,6 +2084,7 @@ export const TAB_ICONS_WITHOUT_ART = [
   "soundcloudengagementz.png",
   "soundz.png",
   "specz.png",
+  "studiodragon.png",
   "trumpetz.png",
   "videoz.png",
   "violinz.png"

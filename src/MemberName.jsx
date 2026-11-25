@@ -69,7 +69,7 @@ export default function MemberName({
           onClick={message}
           // Small on purpose: it sits beside a name in a list, and a button the
           // size of the name competes with it.
-          className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] p-1 text-white/45 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan active:scale-95"
+          className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] p-1 text-white/60 transition hover:border-mcz-cyan/40 hover:text-mcz-cyan active:scale-95"
           title={`Message @${username}`}
           aria-label={`Message @${username}`}
         >

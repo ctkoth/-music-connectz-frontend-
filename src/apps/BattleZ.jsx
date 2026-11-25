@@ -80,7 +80,7 @@ function Work({ item }) {
       {item.image_url && <img src={item.image_url} alt="" className="w-full rounded-lg" />}
       {item.lyrics && (
         <details>
-          <summary className="cursor-pointer text-[11px] text-white/45">Lyrics / script</summary>
+          <summary className="cursor-pointer text-[11px] text-white/60">Lyrics / script</summary>
           <p className="mt-1 whitespace-pre-wrap text-[12px] text-white/70">{item.lyrics}</p>
         </details>
       )}
@@ -101,7 +101,7 @@ function MoneyPoll() {
     <div className="neon-frame flex flex-wrap items-center justify-between gap-2 p-4">
       <p className="text-sm text-white/70">
         💵 <b>Real-money battles?</b> {poll.votes} vote{poll.votes === 1 ? "" : "s"} so far.
-        <span className="block text-[10px] text-white/40">{poll.note}</span>
+        <span className="block text-[10px] text-white/55">{poll.note}</span>
       </p>
       <button
         className={`neon-btn-${poll.my_vote ? "primary" : "ghost"} !w-auto px-4 py-2 text-xs`}
@@ -131,7 +131,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
           {s.median != null ? s.median : "—"}<span className="text-white/30">/10</span>
         </span>
       </div>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         {s.count}/{battle.min_ratings} ratings · score is the <Term k="median">median</Term>
         {!s.qualified && <span className="text-mcz-ember"> · not enough to qualify yet</span>}
       </p>
@@ -142,7 +142,7 @@ function Side({ side, board, battle, onRate, onSubmit }) {
         </p>
       )}
       {entry ? <Work item={entry} /> : (
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           {mine ? "You haven't put your take up yet." : "No take yet."}
         </p>
       )}
@@ -179,7 +179,7 @@ function ShareBattle({ id, title }) {
       <button className="re-btn !w-auto px-3 text-xs" onClick={share} title="Anyone with the link can watch. Entries from members under 18 aren't shown there.">
         Share
       </button>
-      <span className="text-[10px] text-white/35">{said || "public link · under-18 entries hidden"}</span>
+      <span className="text-[10px] text-white/50">{said || "public link · under-18 entries hidden"}</span>
     </span>
   );
 }
@@ -322,7 +322,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           <div className="min-w-0">
             <h3 className="font-display text-lg font-extrabold">{b.title}</h3>
             <PartnerzMark pairs={b.partnered} />
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               hosted by <AtUser user={b.host} />
               {b.genre && <> · {genreLabel(b.genre)}</>}
               {" · "}{b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}
@@ -340,7 +340,7 @@ function Detail({ id, onBack, onFlash, seed }) {
         {b.description && <p className="text-[13px] text-white/75"><MentionText text={b.description} /></p>}
         <Work item={b} />
         {Object.keys(b.gates || {}).length > 0 && (
-          <p className="flex items-center gap-1.5 text-[11px] text-white/45">
+          <p className="flex items-center gap-1.5 text-[11px] text-white/60">
             <Lock size={11} /> This battle has entry ranges — they're exclusive, so anyone with no
             value for a gated metric is out.
           </p>
@@ -370,7 +370,7 @@ function Detail({ id, onBack, onFlash, seed }) {
           )}
 
           {b.status === "open" && b.ends_at && (
-            <p className="flex items-center gap-1.5 text-[11px] text-white/45">
+            <p className="flex items-center gap-1.5 text-[11px] text-white/60">
               <Timer size={12} /> Closes {new Date(b.ends_at).toLocaleString()} — it settles itself then.
             </p>
           )}
@@ -389,7 +389,7 @@ function Detail({ id, onBack, onFlash, seed }) {
 
           {/* The pool. Every figure is stated before the button that moves it. */}
           <div className="neon-frame space-y-2 p-3">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/60">
               <Coins size={12} /> Wagers — {b.pool_total || 0} {SPINAZ} in the pot
             </p>
             <div className="flex flex-wrap gap-2">
@@ -425,16 +425,16 @@ function Detail({ id, onBack, onFlash, seed }) {
                       </button>
                     );
                   })}
-                  {spinazLeft != null && <span className="text-[11px] text-white/45">You have {spinazLeft.toLocaleString()} {SPINAZ}</span>}
+                  {spinazLeft != null && <span className="text-[11px] text-white/60">You have {spinazLeft.toLocaleString()} {SPINAZ}</span>}
                 </div>
-                <p className="text-[10px] text-white/35">
+                <p className="text-[10px] text-white/50">
                   Your stake leaves your wallet now and is held until the result. Winners split the
                   whole pot in proportion to what they staked — no house cut. A draw, or too few
                   judges, refunds everybody.
                 </p>
               </>
             ) : b.i_am_contestant ? (
-              <p className="text-[10px] text-white/35">You're in this one — you can't wager on it.</p>
+              <p className="text-[10px] text-white/50">You're in this one — you can't wager on it.</p>
             ) : null}
           </div>
 
@@ -447,11 +447,11 @@ function Detail({ id, onBack, onFlash, seed }) {
       )}
 
       <div className={is1v1 ? "hidden" : ""}>
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/60">
           <Trophy size={12} /> Leaderboard
         </p>
         {entries.length === 0 ? (
-          <p className="text-[12px] text-white/40">No entries yet{b.status === "open" && b.i_am_contestant ? " — enter yours below." : "."}</p>
+          <p className="text-[12px] text-white/55">No entries yet{b.status === "open" && b.i_am_contestant ? " — enter yours below." : "."}</p>
         ) : (
           <ol className="space-y-2">
             {entries.map((e, i) => (
@@ -462,7 +462,7 @@ function Detail({ id, onBack, onFlash, seed }) {
                     <span className="text-[13px] font-semibold text-white/85">
                       {e.title || <AtUser user={e.user} />}
                     </span>
-                    <span className="block text-[10px] text-white/35"><AtUser user={e.user} /></span>
+                    <span className="block text-[10px] text-white/50"><AtUser user={e.user} /></span>
                   </span>
                   <span className="flex shrink-0 items-center gap-2">
                     <span className="text-[12px] font-bold text-mcz-ember">
@@ -485,7 +485,7 @@ function Detail({ id, onBack, onFlash, seed }) {
 
       {b.status === "open" && (is1v1 ? showEntry : ((!b.mine || b.kind === "weekly") && !b.entered)) && (
         <div className="neon-frame space-y-3 p-4">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Enter</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Enter</p>
           <input className="neon-input !py-2 text-xs" placeholder="Name your entry"
                  value={title} onChange={(e) => setTitle(e.target.value)} />
           <MediaFields value={work} onChange={setWork} label="Your entry" />
@@ -504,13 +504,13 @@ function Detail({ id, onBack, onFlash, seed }) {
             )}
           </button>
           {/* The fee is stated on the button, and what happens to it here. */}
-          <p className="text-[10px] text-white/35">
+          <p className="text-[10px] text-white/50">
             {b.entry_spinaz > 0
               ? `The entry fee goes to @${b.host} for their time. It isn't returned if you withdraw.`
               : "Free to enter."}
           </p>
           {cost?.cost?.amount > 0 && (
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               The ⚡ is the combined price of the skills you named:{" "}
               {cost.lines.filter((l) => l.cents > 0).map((l) => skillQuoteLine(l, labelForSkill(l.skill))).join(" + ")}.
               {/* Unlike a post, a take that can't be paid for is REFUSED, so
@@ -559,20 +559,20 @@ function WeeklyOpen({ onOpen }) {
         <p className="text-[12px] text-white/70">👑 Last week: <b>@{d.last_week.winner}</b></p>
       )}
       {top.length === 0 ? (
-        <p className="text-[12px] text-white/45">No takes in yet — be first in.</p>
+        <p className="text-[12px] text-white/60">No takes in yet — be first in.</p>
       ) : (
         <ol className="space-y-1">
           {top.map((r) => (
             <li key={r.entry_id} className="flex items-center justify-between gap-2 text-[12px]">
               <span className="min-w-0 truncate">
-                <span className="tabular-nums text-white/35">{r.rank ? `#${r.rank}` : "—"}</span>{" "}
+                <span className="tabular-nums text-white/50">{r.rank ? `#${r.rank}` : "—"}</span>{" "}
                 <span className={r.mine ? "text-mcz-cyan" : "text-white/85"}>@{r.username}</span>
-                {r.title ? <span className="text-white/40"> · {r.title}</span> : null}
+                {r.title ? <span className="text-white/55"> · {r.title}</span> : null}
               </span>
               <span className="shrink-0 tabular-nums">
                 {r.rank
                   ? <><b className="text-mcz-ember">{r.median}</b><span className="text-white/30">/10 · {r.count}</span></>
-                  : <span className="text-white/40">needs {r.needs} more rating{r.needs === 1 ? "" : "s"}</span>}
+                  : <span className="text-white/55">needs {r.needs} more rating{r.needs === 1 ? "" : "s"}</span>}
               </span>
             </li>
           ))}
@@ -583,7 +583,7 @@ function WeeklyOpen({ onOpen }) {
           {w.entered ? "See the entries & rate" : "Enter this week"}
         </button>
         {w.board.some((r) => !r.mine && !r.rated_by_me) && (
-          <span className="self-center text-[11px] text-white/45">
+          <span className="self-center text-[11px] text-white/60">
             {w.board.filter((r) => !r.mine && !r.rated_by_me).length} take(s) waiting for your rating
           </span>
         )}
@@ -668,7 +668,7 @@ export default function BattleZ() {
         <IconImg icon="battlez.png" alt="BattleZ" className="h-11 w-11 rounded-xl" />
         <div>
           <h2 className="font-display text-xl font-extrabold">BattleZ</h2>
-          <p className="text-xs text-white/45">Set a challenge. Best entry wins on the community's rating.</p>
+          <p className="text-xs text-white/60">Set a challenge. Best entry wins on the community's rating.</p>
         </div>
       </header>
 
@@ -702,7 +702,7 @@ export default function BattleZ() {
           {list === null ? (
             <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Loading…</p>
           ) : list.length === 0 ? (
-            <p className="text-sm text-white/45">No battles yet — set the first one below.</p>
+            <p className="text-sm text-white/60">No battles yet — set the first one below.</p>
           ) : (
             <ul className="space-y-1.5">
               {list.map((b) => (
@@ -711,7 +711,7 @@ export default function BattleZ() {
                           onClick={() => setOpen(b.id)}>
                     <span className="min-w-0">
                       <span className="block truncate text-[13px] text-white/85">{b.title}</span>
-                      <span className="block text-[10px] text-white/35">
+                      <span className="block text-[10px] text-white/50">
                         {b.mode === "1v1"
                           ? <>@{b.host} vs @{b.opponent}{b.pool_total > 0 && <> · {b.pool_total} {SPINAZ} pot</>}</>
                           : <>@{b.host} · {b.entry_count} entr{b.entry_count === 1 ? "y" : "ies"}</>}
@@ -735,7 +735,7 @@ export default function BattleZ() {
 
           {/* 1v1 is what people mean by a battle: name somebody, they answer. */}
           <div className="neon-frame space-y-3 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
               Throw down a challenge
             </p>
             <div className="grid gap-2 sm:grid-cols-3">
@@ -757,23 +757,23 @@ export default function BattleZ() {
               {calloutCost > 0 && <span className="ml-2 text-mcz-ember">−{calloutCost} {ENERGY}</span>}
             </button>
             {calloutCost > 0 && (
-              <p className="text-[10px] text-white/35">
+              <p className="text-[10px] text-white/50">
                 Charged when it is sent, <span className="text-emerald-300">+{calloutCost} {ENERGY}</span> back if they decline.
                 A challenge that fails to send is not charged.
               </p>
             )}
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               1v1, Freestyle and Battle Cypher are labels on the battle: it is the same challenge, rating
               and wagering whichever you pick, and the label is what the opponent sees.
             </p>
-            <p className="text-[10px] text-white/35">
+            <p className="text-[10px] text-white/50">
               Nothing goes live until they accept. Spectators stake SpinaZ once it does — you can't
               wager on your own battle.
             </p>
           </div>
 
           <div className="neon-frame space-y-3 p-4">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">
               Or host an open challenge
             </p>
             <input className="neon-input !py-2 text-xs" placeholder="The challenge"

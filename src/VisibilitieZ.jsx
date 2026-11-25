@@ -32,6 +32,7 @@ const NAMES = {
   attracted_to: "Attracted to", age: "Age", birthday: "Birthday",
   location: "Location", substances: "SubstanceZ",
   superfan: "On artists' SuperfanZ 🫶 lists",
+  coach_best: "My CoachZ best scores, and the coach's feedback on each",
   inventory_value: "What my InVenTorieZ is worth",
 };
 const nameOf = (f) => NAMES[f] || f.replace(/_/g, " ");
@@ -89,10 +90,10 @@ export default function VisibilitieZ({ visibility, audiences, onChange }) {
 
   return (
     <div>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-white/60">
         Who can see what
       </p>
-      <p className="mb-3 text-[11px] leading-relaxed text-white/40">
+      <p className="mb-3 text-[11px] leading-relaxed text-white/55">
         Every field on its own, and each can name more than one audience — your
         FriendZ and your PartnerZ, say. Nothing changed when this arrived: each
         field starts where it already was.
@@ -109,7 +110,7 @@ export default function VisibilitieZ({ visibility, audiences, onChange }) {
                 <span className="text-sm">
                   {nameOf(field)}
                   {!same(on, base) && (
-                    <span className="pl-1.5 text-[10px] text-white/35">changed</span>
+                    <span className="pl-1.5 text-[10px] text-white/50">changed</span>
                   )}
                 </span>
                 <div className="flex flex-wrap gap-1">
@@ -126,7 +127,7 @@ export default function VisibilitieZ({ visibility, audiences, onChange }) {
                         className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition disabled:opacity-40 ${
                           active
                             ? "bg-mcz-cyan/20 text-mcz-cyan ring-1 ring-mcz-cyan/40"
-                            : "text-white/40 hover:text-white/70"
+                            : "text-white/55 hover:text-white/70"
                         }`}
                       >
                         <Icon size={12} />

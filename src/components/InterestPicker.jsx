@@ -114,16 +114,16 @@ export default function InterestPicker({ persona, interests, setInterests, brand
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {busy === "recording" ? (
-          <button type="button" className="pill text-[11px] !border-mcz-ember !text-mcz-ember" onClick={stopMic}>
-            <Square size={12} /> Stop
+          <button type="button" className="pill !flex min-h-[2.75rem] items-center gap-2 px-5 text-sm font-bold !border-mcz-ember !text-mcz-ember" onClick={stopMic}>
+            <Square size={16} fill="currentColor" /> Stop
           </button>
         ) : (
-          <button type="button" className="pill text-[11px]" onClick={startMic}
+          <button type="button" className="pill !flex min-h-[2.75rem] items-center gap-2 px-5 text-sm font-bold" onClick={startMic}
                   disabled={!!busy || left === 0}>
-            <Mic size={12} /> {busy === "transcribe" ? "Listening…" : "Say it"}
+            <Mic size={18} /> {busy === "transcribe" ? "Listening…" : "Say it"}
           </button>
         )}
-        <span className="text-[10px] text-white/45">{left === 0 ? "You've used today's voice clips — typing is free and works the same." : micCost}</span>
+        <span className="text-[10px] text-white/60">{left === 0 ? "You've used today's voice clips — typing is free and works the same." : micCost}</span>
         <button type="button" className="pill ml-auto text-[11px]" onClick={find} disabled={!text.trim() || !!busy}>
           {busy === "scan" ? "Finding…" : "Find them · free"}
         </button>
@@ -137,7 +137,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
           )}
           {found.interests.length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">Interests we heard — tap the ones that are yours</p>
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">Interests we heard — tap the ones that are yours</p>
               <div className="flex flex-wrap gap-1.5">
                 {found.interests.map((i) => (
                   <button key={i.key} type="button" aria-pressed={has(interests, i.label)}
@@ -151,7 +151,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
           )}
           {!compact && found.brands.length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">Tools and brands you mentioned</p>
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">Tools and brands you mentioned</p>
               <div className="flex flex-wrap gap-1.5">
                 {found.brands.map((b) => (
                   <button key={b.key} type="button" aria-pressed={brands.includes(b.key)}
@@ -165,12 +165,12 @@ export default function InterestPicker({ persona, interests, setInterests, brand
           )}
           {!compact && offered.length > 0 && (
             <div>
-              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">Strengths this might go with — a suggestion, not a score</p>
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">Strengths this might go with — a suggestion, not a score</p>
               <div className="space-y-2">
                 {offered.map((s) => (
                   <div key={s.key} className="rounded-lg border border-white/10 p-2">
                     <p className="text-[12px] font-semibold text-white">{s.emoji} {s.label}
-                      <span className="ml-1 font-normal text-white/40">from {s.from.join(", ")}</span></p>
+                      <span className="ml-1 font-normal text-white/55">from {s.from.join(", ")}</span></p>
                     {s.because.map((b) => <p key={b} className="mt-0.5 text-[11px] text-white/60">{b}</p>)}
                     <div className="mt-1.5 flex gap-2">
                       <button type="button" className="pill text-[11px]" aria-pressed={strengths.includes(s.key)}
@@ -192,7 +192,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
 
       {!compact && (strengths.length > 0 || brands.length > 0) && (
         <div className="mt-3">
-          <p className="mb-1 text-[10px] uppercase tracking-widest text-white/40">What you've said about this role</p>
+          <p className="mb-1 text-[10px] uppercase tracking-widest text-white/55">What you've said about this role</p>
           <div className="flex flex-wrap gap-1.5">
             {strengths.map((k) => (
               <button key={k} type="button" className="pill text-[11px]" title="Remove"
@@ -209,7 +209,7 @@ export default function InterestPicker({ persona, interests, setInterests, brand
           </div>
         </div>
       )}
-      {!compact && <p className="mt-3 text-[10px] leading-relaxed text-white/40">{cat.rule}</p>}
+      {!compact && <p className="mt-3 text-[10px] leading-relaxed text-white/55">{cat.rule}</p>}
     </div>
   );
 }

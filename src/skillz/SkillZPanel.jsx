@@ -121,7 +121,7 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
       <div className="space-y-4">
         {Object.entries(grouped).map(([cat, items]) => (
           <div key={cat}>
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">
               {cat.replace(/_/g, " ")}
             </h3>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -150,10 +150,10 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
 
       {/* Badges */}
       <div>
-        <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <Award size={14} /> Badges
         </h3>
-        {badges.length === 0 && <p className="text-xs text-white/45">No badges here yet. The drills above are how they're earned.</p>}
+        {badges.length === 0 && <p className="text-xs text-white/60">No badges here yet. The drills above are how they're earned.</p>}
         <div className="flex flex-wrap gap-2">
           {badges.map((b) => (
             <span
@@ -162,7 +162,7 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
               className={`rounded-xl border px-3 py-2 text-xs ${
                 b.earned
                   ? "border-mcz-gold/50 bg-mcz-gold/10 text-mcz-gold"
-                  : "border-white/10 bg-black/30 text-white/35"
+                  : "border-white/10 bg-black/30 text-white/50"
               }`}
             >
               {b.earned ? "🏅 " : "🔒 "}
@@ -174,15 +174,15 @@ export default function SkillZPanel({ basePath, accent = "#22e6ff" }) {
 
       {/* Leaderboard */}
       <div>
-        <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <Trophy size={14} /> Leaderboard
         </h3>
         <div className="neon-frame divide-y divide-white/5">
-          {board.length === 0 && <p className="p-4 text-sm text-white/45">Be the first to train.</p>}
+          {board.length === 0 && <p className="p-4 text-sm text-white/60">Be the first to train.</p>}
           {board.map((row, i) => (
             <div key={row.username + i} className="flex items-center justify-between px-4 py-2 text-sm">
               <span className="flex items-center gap-3">
-                <span className="w-5 text-white/40">{i + 1}</span>
+                <span className="w-5 text-white/55">{i + 1}</span>
                 {/* A name opens a profile and a message form, and the SkillZ app has neither. */}
                 {IN_SHELL ? <span className="font-semibold text-white/80">@{row.username}</span> : <MemberName username={row.username} bare />}
               </span>
@@ -204,7 +204,7 @@ function Stat({ icon: Icon, label, value, accent }) {
       <Icon size={20} style={{ color: accent }} />
       <div>
         <p className="text-lg font-extrabold leading-none">{value}</p>
-        <p className="text-[11px] uppercase tracking-wide text-white/45">{label}</p>
+        <p className="text-[11px] uppercase tracking-wide text-white/60">{label}</p>
       </div>
     </div>
   );

@@ -109,7 +109,7 @@ export default function RoyaltieZ() {
         <p className="font-display text-3xl font-extrabold text-emerald-300">
           {usd(gross)} <span className="text-2xl">{MONEY}</span>
         </p>
-        <p className="text-[12px] text-white/45">
+        <p className="text-[12px] text-white/60">
           Held separately from your spendable balance until you cash it out.
         </p>
       </div>
@@ -143,9 +143,9 @@ export default function RoyaltieZ() {
             <div key={p.plan} className="re-card space-y-2">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="font-display text-sm font-extrabold capitalize">{p.plan}</span>
-                <span className="text-[11px] text-white/40">{p.rate_percent}% fee</span>
+                <span className="text-[11px] text-white/55">{p.rate_percent}% fee</span>
               </div>
-              <p className="text-[11px] text-white/45">{PLAN_BLURB[p.plan] || ""}</p>
+              <p className="text-[11px] text-white/60">{PLAN_BLURB[p.plan] || ""}</p>
               <p className="flex flex-wrap items-center gap-2 text-[13px] font-bold">
                 <span className="text-mcz-ember">−{usd(p.tax_cents)} {MONEY}</span>
                 <span className="text-emerald-300">+{usd(p.net_cents)} {MONEY}</span>
@@ -161,7 +161,7 @@ export default function RoyaltieZ() {
           ))}
         </div>
         {gross <= 0 && (
-          <p className="text-[11px] text-white/35">
+          <p className="text-[11px] text-white/50">
             Nothing to cash out yet — the rates are here so you know them before you do.
           </p>
         )}
@@ -186,7 +186,7 @@ export default function RoyaltieZ() {
                   <span className="block truncate text-[13px] text-white/85">
                     {e.source || (e.kind === "cashout" ? "Cashed out" : "Royalty")}
                   </span>
-                  <span className="block text-[10px] text-white/35">
+                  <span className="block text-[10px] text-white/50">
                     {when(e.created_at)}
                     {e.tax_cents ? ` · ${usd(e.tax_cents)} fee` : ""}
                   </span>

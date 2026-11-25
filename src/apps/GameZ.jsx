@@ -26,6 +26,7 @@ import { goToTab } from "../goto.js";
 import { playSound } from "../sound.js";
 import { useUploadLimit } from "../limits.js";
 import MentionText from "../MentionParser.jsx";
+import { inCategory, tally } from "../gamezCategories.js";
 import TierUpgradePrompt from "../components/TierUpgradePrompt.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 
@@ -33,7 +34,7 @@ const STATUS_TONE = {
   playable: "text-emerald-300",
   building: "text-mcz-cyan",
   failed: "text-mcz-ember",
-  draft: "text-white/45",
+  draft: "text-white/60",
 };
 
 export default function GameZ() {
@@ -46,6 +47,7 @@ export default function GameZ() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [playing, setPlaying] = useState(null);   // the game in the frame
+  const [cat, setCat] = useState({ genre: "", sub: "" });   // the category being browsed
   const [quote, setQuote] = useState({});          // id -> build cost
   const [showUploadLimitPrompt, setShowUploadLimitPrompt] = useState(false);
   const pollRef = useRef(null);
@@ -153,6 +155,15 @@ export default function GameZ() {
   }
 
   const games = asList(data.games);
+  const genres = asList(data.genres);
+  const counts = tally(games);
+  const shown = inCategory(games, cat.genre, cat.sub);
+  const openGenre = genres.find((x) => x.key === cat.genre);
+  // Filing a game under a genre/subgenre is the member's call; the server validates against the taxonomy.
+  async function fileUnder(game, genre, subgenre) {
+    try { await api(`/api/economy/gamez/${game.id}/`, { method: "PATCH", body: { genre, subgenre } }); load(); }
+    catch (e) { setMsg(e.message || "Couldn't change the category."); }
+  }
 
   return (
     <div className="space-y-4">
@@ -183,11 +194,45 @@ export default function GameZ() {
         <p className="text-[13px] text-white/75">
           {data.storage_used_mb} / {data.storage_mb} MB used
         </p>
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Game assets count against the same storage your tier already gives
           you — there's no second quota to keep track of.
         </p>
       </div>
+
+      {games.length > 0 && (
+        <div className="space-y-2" data-tour="gamez-categories">
+          <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Genre">
+            <button role="tab" aria-selected={!cat.genre} onClick={() => setCat({ genre: "", sub: "" })}
+              className={`rounded-full border px-3 py-1 text-[12px] ${!cat.genre ? "border-violet-400 bg-violet-500/20 text-violet-200" : "border-white/10 text-white/65"}`}>All ({games.length})</button>
+            {genres.map((x) => {
+              const n = counts.genre[x.key] || 0;
+              return (
+                <button key={x.key} role="tab" aria-selected={cat.genre === x.key} onClick={() => setCat({ genre: x.key, sub: "" })}
+                  className={`rounded-full border px-3 py-1 text-[12px] ${cat.genre === x.key ? "border-violet-400 bg-violet-500/20 text-violet-200" : n ? "border-white/20 text-white/80" : "border-white/5 text-white/35"}`}>
+                  {x.emoji} {x.name} ({n})
+                </button>
+              );
+            })}
+            {counts.none > 0 && (
+              <button role="tab" aria-selected={cat.genre === "none"} onClick={() => setCat({ genre: "none", sub: "" })}
+                className={`rounded-full border px-3 py-1 text-[12px] ${cat.genre === "none" ? "border-violet-400 bg-violet-500/20 text-violet-200" : "border-white/20 text-white/80"}`}>Uncategorised ({counts.none})</button>
+            )}
+          </div>
+          {openGenre && (
+            <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Subgenre">
+              <button role="tab" aria-selected={!cat.sub} onClick={() => setCat({ genre: cat.genre, sub: "" })}
+                className={`rounded-full border px-2.5 py-0.5 text-[11px] ${!cat.sub ? "border-fuchsia-400 text-fuchsia-200" : "border-white/10 text-white/60"}`}>All {openGenre.name}</button>
+              {openGenre.subgenres.map((name) => (
+                <button key={name} role="tab" aria-selected={cat.sub === name} onClick={() => setCat({ genre: cat.genre, sub: name })}
+                  className={`rounded-full border px-2.5 py-0.5 text-[11px] ${cat.sub === name ? "border-fuchsia-400 text-fuchsia-200" : counts.sub[name] ? "border-white/20 text-white/80" : "border-white/5 text-white/35"}`}>
+                  {name} ({counts.sub[name] || 0})
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {games.length === 0 ? (
         <div className="re-card space-y-2">
@@ -202,24 +247,41 @@ export default function GameZ() {
         </div>
       ) : (
         <ul className="space-y-2">
-          {games.map((g) => {
+          {shown.length === 0 && <li className="text-sm text-white/60">No games in this category yet.</li>}
+          {shown.map((g) => {
             const q = quote[g.id];
             return (
               <li key={g.id} className="re-card space-y-2">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-display text-sm font-extrabold">{g.title}</span>
-                  <span className={`text-[11px] ${STATUS_TONE[g.status] || "text-white/45"}`}>
+                  <span className={`text-[11px] ${STATUS_TONE[g.status] || "text-white/60"}`}>
                     {g.status}{g.plays ? ` · ${g.plays} plays` : ""}
                   </span>
                 </div>
                 {g.description && (
                   <p className="text-[12px] text-white/55"><MentionText text={g.description} /></p>
                 )}
-                <p className="text-[11px] text-white/35">
+                <p className="text-[11px] text-white/50">
                   {g.files} file{g.files === 1 ? "" : "s"}
                   {g.bundle_mb ? ` · ${g.bundle_mb} MB built` : ""}
-                  {g.genre ? ` · ${g.genre}` : ""}
+                  {g.genre ? ` · ${genres.find((x) => x.key === g.genre)?.name || g.genre}` : ""}{g.subgenre ? ` / ${g.subgenre}` : ""}
                 </p>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/60">
+                  <label className="flex items-center gap-1">Genre
+                    <select data-nomemo="true" value={g.genre || ""} onChange={(e) => fileUnder(g, e.target.value, "")} className="neon-input !w-auto !py-1 text-[11px]">
+                      <option value="">Uncategorised</option>
+                      {genres.map((x) => <option key={x.key} value={x.key}>{x.emoji} {x.name}</option>)}
+                    </select>
+                  </label>
+                  {g.genre && (
+                    <label className="flex items-center gap-1">Subgenre
+                      <select data-nomemo="true" value={g.subgenre || ""} onChange={(e) => fileUnder(g, g.genre, e.target.value)} className="neon-input !w-auto !py-1 text-[11px]">
+                        <option value="">Any</option>
+                        {(genres.find((x) => x.key === g.genre)?.subgenres || []).map((n) => <option key={n}>{n}</option>)}
+                      </select>
+                    </label>
+                  )}
+                </div>
                 {g.build_detail && g.status === "failed" && (
                   <p className="break-words rounded bg-black/40 px-2 py-1 font-mono text-[10px] text-mcz-ember">
                     {g.build_detail}
@@ -255,7 +317,7 @@ export default function GameZ() {
                     </button>
                   )}
                   {q?.cost?.per_second > 0 && q.billing_note && (
-                    <span className="basis-full text-[11px] text-white/40">{q.billing_note}</span>
+                    <span className="basis-full text-[11px] text-white/55">{q.billing_note}</span>
                   )}
                   <label className="re-btn re-btn-emerald !w-auto cursor-pointer px-4">
                     <Upload size={15} /> Add asset
@@ -277,7 +339,7 @@ export default function GameZ() {
                   // The rate, the balance and the two caveats, before the
                   // button is pressed — the price here is per second, so a
                   // single number would have been a guess.
-                  <p className="text-[11px] leading-relaxed text-white/45">
+                  <p className="text-[11px] leading-relaxed text-white/60">
                     {q.cost?.per_second} {ENERGY} per second of build time. You have{" "}
                     <b className="text-white/70">{q.energy} {ENERGY}</b>. {q.billing_note}
                     {!q.allowed && q.reason ? ` — ${q.reason}` : ""}

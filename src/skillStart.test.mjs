@@ -22,14 +22,18 @@ test("only a 1 January with the flag counts as year-only", () => {
   assert.equal(startIsYearOnly(undefined), false);
 });
 
-test("a year-only skill is never worded in months or days", () => {
+test("a year-only skill is decimal years with 'about', never months or days", () => {
   const sk = { periods: [{ start: yearOnlyStart(thisYear - 13), precision: "year" }] };
-  assert.equal(skillDurationShown(sk), "about 13 years");
-  assert.equal(skillDurationShown({ periods: [{ start: yearOnlyStart(thisYear), precision: "year" }] }), "less than a year");
+  assert.match(skillDurationShown(sk), /^about 1[34]\.\d years$/);
+  assert.match(skillDurationShown({ periods: [{ start: yearOnlyStart(thisYear), precision: "year" }] }), /^about \d\.\d years$/);
 });
 
 test("calendar years since 1 January is exactly the whole years served", () => {
   assert.equal(skillYears({ periods: [{ start: yearOnlyStart(thisYear - 7), precision: "year" }] }), 7);
+});
+
+test(".5 of a year reads as 0.5, six months, and a full date does not say about", () => {
+  assert.equal(skillDurationShown({ periods: [{ start: "2025-11-20", end: "2026-05-21" }] }, Date.UTC(2026, 10, 20)), "0.5 years");
 });
 
 test("a full date keeps its precise wording", () => {
@@ -58,11 +62,11 @@ test("any year-only date, start or stop, makes the skill approximate", () => {
 
 test("a year-only stop is never worded in months or days either", () => {
   const sk = { periods: [{ start: "2000-03-04", end: yearOnlyEnd(2010), end_precision: "year" }] };
-  assert.equal(skillDurationShown(sk), "about 10 years");
+  assert.match(skillDurationShown(sk), /^about 10\.\d years$/);
 });
 
 test("a start and a stop in the same year is under a year, not dropped", () => {
   const y = thisYear - 3;
   const sk = { periods: [{ start: yearOnlyStart(y), precision: "year", end: yearOnlyEnd(y), end_precision: "year" }] };
-  assert.equal(skillDurationShown(sk), "less than a year");
+  assert.match(skillDurationShown(sk), /^(about 0\.\d years|less than 0\.1 years)$/);
 });

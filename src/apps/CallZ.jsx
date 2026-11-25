@@ -16,6 +16,7 @@
 // this backend runs gunicorn with no ASGI and no channels layer, so there are
 // no WebSockets to signal over. Polling costs a few seconds at connect and
 // nothing afterwards — the audio never touches the server.
+import PlansLink from "../components/PlansLink.jsx";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onHandoff } from "../handoff.js";
 import { Loader2, Phone, PhoneOff, PhoneIncoming, Mic, MicOff, AlertTriangle } from "lucide-react";
@@ -285,7 +286,7 @@ export default function CallZ() {
             <span className={mine.direction === "outgoing" ? "text-mcz-ember" : "text-emerald-300"}>
               {mine.direction === "outgoing" ? "−" : "+"}{usd(mine.cost_cents)} {MONEY}
             </span>
-            <span className="text-[11px] font-normal text-white/40">
+            <span className="text-[11px] font-normal text-white/55">
               {mine.rate_cents_per_min ? `${usd(mine.rate_cents_per_min)}/min` : "free call"}
               {mine.held_cents ? ` · ${usd(mine.held_cents)} held` : ""}
             </span>
@@ -296,9 +297,9 @@ export default function CallZ() {
                 {muted ? <MicOff size={15} /> : <Mic size={15} />} {muted ? "Unmute" : "Mute"}
               </button>
             )}
-            <button className="re-btn re-btn-red !w-auto px-4" disabled={busy}
+            <button className="re-btn re-btn-red !w-auto min-h-[3rem] px-6 text-base font-bold" disabled={busy}
                     onClick={() => finish(mine, "end")}>
-              <PhoneOff size={15} /> {mine.status === "ringing" ? "Cancel" : "End call"}
+              <PhoneOff size={20} /> {mine.status === "ringing" ? "Cancel" : "End call"}
             </button>
           </div>
         </div>
@@ -328,7 +329,7 @@ export default function CallZ() {
             <div className="space-y-2 rounded-xl border border-white/[0.08] bg-white/[0.02] p-3">
               {(quote.skills || []).length > 1 && (
                 <div className="space-y-1">
-                  <p className="text-[11px] text-white/45">Call about (each skill they price by the hour):</p>
+                  <p className="text-[11px] text-white/60">Call about (each skill they price by the hour):</p>
                   <div className="flex flex-wrap gap-1.5">
                     {quote.skills.map((s) => (
                       <button key={s.name} type="button" onClick={() => setSkill(s.name)}
@@ -349,7 +350,7 @@ export default function CallZ() {
                       −{usd(perMin)} {MONEY}</span> a minute{picked ? <> for {picked.name}</> : ""}.</>}
               </p>
               {!quote.free && (
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/60">
                   You have {usd(quote.your_money_cents)} {MONEY} — about{" "}
                   <b className="text-white/70">{minutes ?? quote.affordable_minutes} minutes</b>. Up to{" "}
                   {quote.max_escrow_minutes} minutes is held when they answer and the rest
@@ -357,9 +358,9 @@ export default function CallZ() {
                 </p>
               )}
               {quote.can_call ? (
-                <button className="neon-btn-primary !w-auto px-5" disabled={busy}
+                <button className="neon-btn-primary !w-auto min-h-[3rem] px-6 text-base font-bold" disabled={busy}
                         onClick={place}>
-                  <Phone size={15} /> Call {quote.username}
+                  <Phone size={20} /> Call {quote.username}
                   {!quote.free && ` · ${usd(perMin)}/min`}
                 </button>
               ) : (
@@ -367,6 +368,7 @@ export default function CallZ() {
                   Placing a call is a <b className="text-white/85">StatZ</b> perk — your tier is{" "}
                   <span className="uppercase">{quote.tier}</span>. Answering one is free at
                   every tier, and it pays you.
+                  <PlansLink label="🔒 See StatZ" />
                 </p>
               )}
               {quote.stun_only && (
@@ -394,7 +396,7 @@ export default function CallZ() {
                   <span className="block truncate text-[13px] text-white/85">
                     {c.direction === "outgoing" ? "→" : "←"} {c.other}
                   </span>
-                  <span className="block text-[10px] text-white/35">
+                  <span className="block text-[10px] text-white/50">
                     {c.status}{c.billed_seconds || c.elapsed_seconds
                       ? ` · ${mmss(c.elapsed_seconds)}` : ""}
                     {c.end_reason ? ` · ${c.end_reason}` : ""}

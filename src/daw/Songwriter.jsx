@@ -94,7 +94,7 @@ export default function Songwriter({ app, daw, bpm, busy, onSend, onBpm }) {
         {chords.map((c, i) => (
           <li key={i} className="min-w-[3.5rem] rounded-lg bg-white/10 px-3 py-2 text-center">
             <span className="block text-base font-bold text-white">{c.name}</span>
-            <span className="block text-[10px] text-white/45">{c.roman}</span>
+            <span className="block text-[10px] text-white/60">{c.roman}</span>
           </li>
         ))}
       </ol>
@@ -119,7 +119,7 @@ export default function Songwriter({ app, daw, bpm, busy, onSend, onBpm }) {
         <button type="button" className="re-btn !w-auto px-3" onClick={tap} title="Tap along to your song; three taps set the tempo">
           <Hand size={13} /> Smart Tempo: tap
         </button>
-        <span className="text-white/45" role="status">{taps.length >= 3 ? `Set to ${bpm} BPM from your taps` : taps.length ? `${3 - taps.length} more tap${taps.length === 2 ? "" : "s"}…` : `${bpm} BPM`}</span>
+        <span className="text-white/60" role="status">{taps.length >= 3 ? `Set to ${bpm} BPM from your taps` : taps.length ? `${3 - taps.length} more tap${taps.length === 2 ? "" : "s"}…` : `${bpm} BPM`}</span>
         <span className="ml-auto flex items-center gap-2">
           <label className="flex items-center gap-1 text-white/60">Times through
             <select className="neon-input !w-auto !py-1.5" data-nomemo="true" value={times} onChange={(e) => setTimes(Number(e.target.value))}>
@@ -131,7 +131,7 @@ export default function Songwriter({ app, daw, bpm, busy, onSend, onBpm }) {
           </button>
         </span>
       </div>
-      <p className="text-[11px] text-white/45">
+      <p className="text-[11px] text-white/60">
         <span className="text-emerald-300">Free.</span> Send to Tracks puts the progression ({secs}s) on its own track at the playhead — then arm a track and record your
         melody or vocal over it. Smart Tempo here is your taps; it does not listen to a file. Every sound is made on your device.
       </p>

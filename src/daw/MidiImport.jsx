@@ -10,6 +10,9 @@ import { FileUp, Play, Send, Square } from "lucide-react";
 import { parseMidi, beatsOf } from "./midi.js";
 import PianoRoll from "./PianoRoll.jsx";
 import { INSTRUMENTS, instrumentFor, renderNotes } from "./instruments.js";
+import { api } from "../api.js";
+import { cleanGainPct, cleanPanPct, gainPctToDb, gainPctToLinear, panToUnit } from "./partMix.js";
+import { setUserPatches, userRows } from "./synth/userPatches.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
 import { goToSpot } from "../goto.js";
 
@@ -25,21 +28,36 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
   const live = useRef(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const cap = lim && "imagez_layers" in lim ? lim.imagez_layers : null;
-  const ok = new Set((cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k));
-  const allowed = (k) => (ok.has(k) ? k : INSTRUMENTS[0][0]);
+  // The member's own saved synth patches (Synth window) are instruments too, wherever the plan's list ends.
+  const [mineRows, setMineRows] = useState(userRows);
+  useEffect(() => { api("/api/economy/tonez/").then((d) => setMineRows(setUserPatches(d.presets))).catch(() => {}); }, []);
+  const [tempRows, setTempRows] = useState([]);              // a live take's own patch, before it has been saved
+  const allRows = [...INSTRUMENTS, ...mineRows, ...tempRows];
+  const ok = new Set([...(cap == null ? INSTRUMENTS : INSTRUMENTS.slice(0, cap)).map(([k]) => k), ...mineRows.map(([k]) => k), ...tempRows.map(([k]) => k)]);
+  // Above the plan's list a part falls back to the voice its own program would get, and only then to the first.
+  const allowed = (k, track) => (ok.has(k) ? k : track && ok.has(instrumentFor(track)) ? instrumentFor(track) : INSTRUMENTS[0][0]);
 
-  const open = async (name, bytes) => {
+  const open = async (name, bytes, sounds) => {
     setErr("");
     try {
       const m = parseMidi(bytes);
       setFile({ name, ...m });
-      setPick(Object.fromEntries(m.tracks.map((t, i) => [i, instrumentFor(t)])));
+      setPick(Object.fromEntries(m.tracks.map((t, i) => [i, sounds?.[t.name] && INSTRUMENTS.some(([k]) => k === sounds[t.name]) ? sounds[t.name] : instrumentFor(t)])));
       setOn(Object.fromEntries(m.tracks.map((_, i) => [i, true])));
     } catch (e) { setErr(e.message); setFile(null); }
   };
+  // A take played live: its notes open here to fix, on the patch it was played with.
+  useEffect(() => {
+    const t = initial?.take;
+    if (!t) return;
+    setErr("");
+    setTempRows([[t.soundKey, t.soundLabel]]);
+    setFile({ name: t.name, bpm: t.bpm, cut: false, tracks: [{ name: t.name, channel: 0, program: 0, drums: false, notes: t.notes }] });
+    setPick({ 0: t.soundKey }); setOn({ 0: true }); setRollOf(0);
+  }, [initial?.take, initial?.n]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!initial?.url) return;
-    fetch(initial.url).then((r) => r.arrayBuffer()).then((b) => open(initial.name || "Imported.mid", b)).catch(() => setErr("That MIDI file couldn't be read."));
+    fetch(initial.url).then((r) => r.arrayBuffer()).then((b) => open(initial.name || "Imported.mid", b, initial.sounds)).catch(() => setErr("That MIDI file couldn't be read."));
   }, [initial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new, empty part to draw in — the start of a melody with no file at all.
@@ -51,8 +69,31 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
     setOn((x) => ({ ...x, [i]: true }));
     setRollOf(i);
   };
+  const setMix = (i, patch) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, ...patch } : t)) }));
   const setNotes = (i, notes) => setFile((f) => ({ ...f, tracks: f.tracks.map((t, k) => (k === i ? { ...t, notes } : t)) }));
 
+  // One note, to hear what is being drawn. Rendered once per (instrument, pitch) and kept, so a pitch heard before is instant;
+  // the first time costs a short render. It plays through the part's own gain and pan, like Hear does.
+  const noteCache = useRef(new Map());
+  const audition = async (pitch) => {
+    if (rollOf == null || !file?.tracks[rollOf]) return;
+    try {
+      const l = live.current || (live.current = { ctx: new (window.AudioContext || window.webkitAudioContext)() });
+      if (l.ctx.state !== "running") await l.ctx.resume();
+      const t = file.tracks[rollOf]; const inst = allowed(pick[rollOf], t);
+      const key = `${inst}:${pitch}`;
+      let buf = noteCache.current.get(key);
+      if (!buf) {
+        buf = await renderNotes([[pitch, 0, 0.5, 100]], inst, { bpm: 120, rate: l.ctx.sampleRate });
+        noteCache.current.set(key, buf);
+        if (noteCache.current.size > 150) noteCache.current.delete(noteCache.current.keys().next().value);
+      }
+      const src = l.ctx.createBufferSource(); src.buffer = buf;
+      const g = l.ctx.createGain(); g.gain.value = gainPctToLinear(t.gain ?? 100);
+      const pn = l.ctx.createStereoPanner(); pn.pan.value = panToUnit(t.pan ?? 0);
+      src.connect(g).connect(pn).connect(l.ctx.destination); src.start();
+    } catch { /* a note that will not play is not worth an error on a click */ }
+  };
   const stop = () => { try { live.current?.src?.stop(); } catch { /* ended */ } setPlaying(null); };
   useEffect(() => () => { stop(); live.current?.ctx?.close().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const hear = async (i) => {
@@ -61,21 +102,31 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
       const l = live.current || (live.current = { ctx: new (window.AudioContext || window.webkitAudioContext)() });
       if (l.ctx.state !== "running") await l.ctx.resume();
       const t = file.tracks[i];
-      const buf = await renderNotes(t.notes.filter((n) => n[1] < 32), allowed(pick[i]), { bpm, rate: l.ctx.sampleRate });
-      const src = l.ctx.createBufferSource(); src.buffer = buf; src.connect(l.ctx.destination); src.start();
+      const buf = await renderNotes(t.notes.filter((n) => n[1] < 32), allowed(pick[i], t), { bpm, rate: l.ctx.sampleRate });
+      const src = l.ctx.createBufferSource(); src.buffer = buf;
+      const g = l.ctx.createGain(); g.gain.value = gainPctToLinear(t.gain ?? 100);
+      const pn = l.ctx.createStereoPanner(); pn.pan.value = panToUnit(t.pan ?? 0);
+      src.connect(g).connect(pn).connect(l.ctx.destination); src.start();
       src.onended = () => setPlaying((p) => (p === i ? null : p));
-      l.src = src; setPlaying(i);
+      l.src = src; l.gain = g; l.pan = pn; setPlaying(i);
     } catch (e) { setErr(e.message); }
   };
+  // The level and position of the part being heard follow the sliders while it plays.
+  useEffect(() => {
+    const l = live.current; const t = playing != null ? file?.tracks[playing] : null;
+    if (!l?.gain || !t) return;
+    l.gain.gain.setTargetAtTime(gainPctToLinear(t.gain ?? 100), l.ctx.currentTime, 0.02);
+    l.pan.pan.setTargetAtTime(panToUnit(t.pan ?? 0), l.ctx.currentTime, 0.02);
+  }, [file, playing]);
   const send = async () => {
     setSending(true); setErr("");
     try {
       let n = 0;
       for (const [i, t] of file.tracks.entries()) {
         if (!on[i] || !t.notes.length) continue;
-        const inst = allowed(pick[i]);
+        const inst = allowed(pick[i], t);
         const buf = await renderNotes(t.notes, inst, { bpm, rate: daw.sampleRate() });
-        await onSend(daw.toWav(buf, 24), `${t.name} · ${INSTRUMENTS.find(([k]) => k === inst)[1]}.wav`);
+        await onSend(daw.toWav(buf, 24), `${t.name} · ${(allRows.find(([k]) => k === inst) || [, "synth"])[1]}.wav`, { gain: gainPctToDb(t.gain ?? 100), pan: panToUnit(t.pan ?? 0) });
         n++;
       }
       if (!n) setErr("Tick at least one part.");
@@ -102,9 +153,9 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
               <input type="checkbox" checked={!!on[i]} onChange={(e) => setOn({ ...on, [i]: e.target.checked })} aria-label={`Include ${t.name}`} />
               <input className="w-28 rounded bg-black/30 px-1" value={t.name} aria-label="Part name"
                 onChange={(e) => setFile((f) => ({ ...f, tracks: f.tracks.map((x, k) => (k === i ? { ...x, name: e.target.value.slice(0, 40) } : x)) }))} />
-              <span className="text-white/40">{t.notes.length} notes · {Math.ceil(beatsOf(t.notes) / 4)} bars{t.drums ? " · drums" : ""}</span>
+              <span className="text-white/55">{t.notes.length} notes · {Math.ceil(beatsOf(t.notes) / 4)} bars{t.drums ? " · drums" : ""}</span>
               <select className="neon-input !w-auto !py-1 text-xs" data-nomemo="true" value={pick[i]} onChange={(e) => setPick({ ...pick, [i]: e.target.value })}>
-                {INSTRUMENTS.map(([k, label]) => <option key={k} value={k} disabled={!ok.has(k)}>{label}{ok.has(k) ? "" : " — upgrade"}</option>)}
+                {allRows.map(([k, label]) => <option key={k} value={k} disabled={!ok.has(k)}>{label}{ok.has(k) ? "" : " — upgrade"}</option>)}
               </select>
               {!ok.has(pick[i]) && <span className="text-mcz-gold">plays as {INSTRUMENTS[0][1]} on {TIER_LABEL[lim?.tier] || "your tier"}</span>}
               <button className="re-btn !w-auto px-2" onClick={() => setRollOf(rollOf === i ? null : i)}>{rollOf === i ? "Close notes" : "Edit notes"}</button>
@@ -115,15 +166,16 @@ export default function MidiImport({ daw, bpm, busy: working, initial, onSend, o
           ))}
         </div>
         {rollOf != null && file.tracks[rollOf] && (
-          <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)} />
+          <PianoRoll key={rollOf} part={file.tracks[rollOf]} onChange={(n) => setNotes(rollOf, n)} onClose={() => setRollOf(null)}
+                     mix={{ gain: cleanGainPct(file.tracks[rollOf].gain ?? 100), pan: cleanPanPct(file.tracks[rollOf].pan ?? 0) }} onMix={(m) => setMix(rollOf, m)} onAudition={audition} />
         )}
         {cap != null && cap < INSTRUMENTS.length && (
-          <p className="text-[11px] text-white/45">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+          <p className="text-[11px] text-white/60">{cap} of {INSTRUMENTS.length} instruments on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
             <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium has 6; StatZ has all</button></p>
         )}
         <button className="neon-btn-primary !w-auto px-4" disabled={sending || !!working} onClick={send}><Send size={14} /> {sending ? "Rendering…" : "Send the parts to tracks"}</button>
       </>}
-      {!file && !err && <p className="text-xs text-white/45">A .mid from any DAW or from Instrumental ConnectZ. The sounds are this app&apos;s own instruments, made on your device — outside plugins (VST) can&apos;t run in a browser.</p>}
+      {!file && !err && <p className="text-xs text-white/60">A .mid from any DAW or from Instrumental ConnectZ. The sounds are this app&apos;s own instruments, made on your device — outside plugins (VST) can&apos;t run in a browser.</p>}
       {err && <p className="text-xs text-mcz-ember">{err}</p>}
     </div>
   );

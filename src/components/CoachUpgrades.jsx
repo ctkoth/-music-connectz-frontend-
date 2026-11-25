@@ -64,13 +64,13 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
               </select>
             </label>
           ))}
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/55">
             Pick a country site and the gear links search that store there; Off leaves that store out. Saved as soon as you choose.
           </p>
           {saveMsg && <p className="text-[11px] text-mcz-ember">{saveMsg}</p>}
         </div>
       ) : (
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Which stores the links go to is a StatZ setting.
           {!IN_SHELL && (
             <> <button className="underline" onClick={() => goToSpot("membershipz", "tiers")}>See StatZ</button></>
@@ -87,10 +87,10 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
             <span className="text-[11px] text-mcz-ember">
               −{pay.cost} {PROMPTZ} <AiEnergy />
               {pay.cash > 0 && <> ({pay.promptz} {PROMPTZ} + {pay.cash}¢ {MONEY})</>}
-              <span className="text-white/40"> — a failed run isn't charged. A free daily prompt doesn't cover this one.</span>
+              <span className="text-white/55"> — a failed run isn't charged. A free daily prompt doesn't cover this one.</span>
             </span>
           )}
-          {!q.configured && <span className="text-[11px] text-white/40">Not switched on yet.</span>}
+          {!q.configured && <span className="text-[11px] text-white/55">Not switched on yet.</span>}
         </div>
       )}
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
@@ -105,12 +105,12 @@ export default function CoachUpgrades({ appKey, price, takeScoreId }) {
             <div key={i} className="space-y-1">
               <p className="text-[12px] font-semibold text-white/85">{it.heading}</p>
               <p className="text-[12px] leading-relaxed text-white/70">
-                {it.advice} {it.citations?.length > 0 && <span className="text-white/45">{it.citations.join(" ")}</span>}
+                {it.advice} {it.citations?.length > 0 && <span className="text-white/60">{it.citations.join(" ")}</span>}
               </p>
               {it.settings?.length > 0 && (
                 <ul className="text-[11px] text-white/55">{it.settings.map((s, j) => <li key={j}>· {s}</li>)}</ul>
               )}
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/55">
                 Why: {it.why_anchor === "general" || it.general_practice ? "general practice" : it.why}
                 {it.why_anchor !== "general" && it.why && it.general_practice ? ` (${it.why})` : ""}
                 {it.note && ` — ${it.note}`}

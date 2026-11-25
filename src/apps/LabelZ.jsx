@@ -7,6 +7,8 @@ import { P } from "../phrases.js";
 import { IconImg } from "../App.jsx";
 import MentionText from "../MentionParser.jsx";
 import { goToSpot, openMember } from "../goto.js";
+import AdvanceZ from "../components/AdvanceZ.jsx";
+import { TermFields, TermLines } from "../components/TermZ.jsx";
 
 export default function LabelZ() {
   const talk = useSay();
@@ -15,6 +17,7 @@ export default function LabelZ() {
   const [msg, setMsg] = useState("");
   const [newLabel, setNewLabel] = useState({ name: "", bio: "" });
   const [offer, setOffer] = useState({ label_id: "", artist: "", title: "Artist Agreement", terms_text: "", advance_display: "", signed_name: "" });
+  const [terms, setTerms] = useState({});
   const [signName, setSignName] = useState({});
   const [editingLabel, setEditingLabel] = useState(null);
   const [editDraft, setEditDraft] = useState({ name: "", bio: "" });
@@ -36,7 +39,7 @@ export default function LabelZ() {
   }
   async function sendOffer() {
     setMsg("");
-    try { await api("/api/economy/labelz/contracts/", { method: "POST", body: offer }); setMsg(talk(P.label_offered)); load(); }
+    try { await api("/api/economy/labelz/contracts/", { method: "POST", body: { ...offer, terms } }); setTerms({}); setMsg(talk(P.label_offered)); load(); }
     catch (e) { setMsg(e.message); }
   }
   function startEdit(l) {
@@ -71,7 +74,7 @@ export default function LabelZ() {
         <IconImg icon="labelz.png" alt="LabelZ" className="h-16 w-16 rounded-2xl shadow-neon" />
         <div>
           <h2 className="font-display text-3xl font-extrabold" style={{ color: "#a78bfa" }}>LabelZ</h2>
-          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements. Advances settle off-platform.</p>
+          <p className="text-sm text-white/60">Public label groups · e-signed artist agreements · terms. Advances are a shared record; the money settles off-platform.</p>
           <span className="pill mt-1 inline-block">Contracts: adults only · signatures audit-logged</span>
         </div>
       </header>
@@ -97,14 +100,14 @@ export default function LabelZ() {
       )}
 
       <div>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">Labels</h3>
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">Labels</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {labels.map((l) => (
             <div key={l.id} className="neon-frame p-4">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-semibold">{l.name} {l.i_own && <span className="pill ml-1 text-[10px]">yours</span>}</p>
                 {l.i_own && (
-                  <button className="shrink-0 text-white/40 hover:text-white" onClick={() => startEdit(l)} aria-label="Edit label">
+                  <button className="shrink-0 text-white/55 hover:text-white" onClick={() => startEdit(l)} aria-label="Edit label">
                     <Pencil size={13} />
                   </button>
                 )}
@@ -129,7 +132,7 @@ export default function LabelZ() {
               )}
             </div>
           ))}
-          {labels.length === 0 && <p className="text-sm text-white/45">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
+          {labels.length === 0 && <p className="text-sm text-white/60">No labels yet. Founding one needs what the note above says; once a label exists, it can offer artists a signed contract here.</p>}
         </div>
       </div>
 
@@ -144,6 +147,7 @@ export default function LabelZ() {
             <input className="neon-input" placeholder="Artist username" value={offer.artist} onChange={(e) => setOffer({ ...offer, artist: e.target.value })} />
             <input className="neon-input" placeholder="Title" value={offer.title} onChange={(e) => setOffer({ ...offer, title: e.target.value })} />
             <input className="neon-input" placeholder="Advance (recorded only, e.g. $200)" value={offer.advance_display} onChange={(e) => setOffer({ ...offer, advance_display: e.target.value })} />
+            <TermFields fields={data.term_fields} value={terms} onChange={setTerms} />
             <textarea className="neon-input sm:col-span-2" rows={4} placeholder="Full agreement terms — splits, term length, termination…" value={offer.terms_text} onChange={(e) => setOffer({ ...offer, terms_text: e.target.value })} />
             <input className="neon-input sm:col-span-2" placeholder="Type YOUR full legal name to sign the offer" value={offer.signed_name} onChange={(e) => setOffer({ ...offer, signed_name: e.target.value })} />
           </div>
@@ -153,24 +157,26 @@ export default function LabelZ() {
 
       {contracts && (
         <div>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">My contracts</h3>
-          {asArtist.length + asOwner.length === 0 && <p className="text-sm text-white/45">None yet — a contract a label offers you, or one your label offers, lands here to read and sign.</p>}
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">My contracts</h3>
+          {asArtist.length + asOwner.length === 0 && <p className="text-sm text-white/60">None yet — a contract a label offers you, or one your label offers, lands here to read and sign.</p>}
           {[...asArtist, ...asOwner.filter((c) => !asArtist.find((a) => a.id === c.id))].map((c) => (
             <div key={c.id} className="neon-frame mb-3 space-y-2 p-4">
               <div className="flex items-start justify-between">
                 <p className="font-medium">
-                  {c.title} <span className="text-xs text-white/40">· {c.label} → </span>
-                  <button className="text-xs text-white/40 hover:text-white hover:underline" onClick={() => openMember(c.artist)}>{c.artist}</button>
+                  {c.title} <span className="text-xs text-white/55">· {c.label} → </span>
+                  <button className="text-xs text-white/55 hover:text-white hover:underline" onClick={() => openMember(c.artist)}>{c.artist}</button>
                 </p>
                 <span className="pill uppercase">{c.status}</span>
               </div>
+              <TermLines lines={c.terms_lines} />
               <pre className="whitespace-pre-wrap rounded-lg bg-black/30 p-3 text-xs text-white/70">{c.terms_text}</pre>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/55">
                 {c.advance_display && <>Advance: {c.advance_display} (off-platform) · </>}
                 Doc hash {c.doc_sha256?.slice(0, 12)}… ·
                 {c.owner_signed_name && <> Label signed: {c.owner_signed_name}</>}
                 {c.artist_signed_name && <> · Artist signed: {c.artist_signed_name}</>}
               </p>
+              {c.status === "signed" && <AdvanceZ contractId={c.id} />}
               {c.status === "offered" && asArtist.find((a) => a.id === c.id) && (
                 <div className="flex flex-wrap gap-2">
                   <input className="neon-input !w-64 !py-2 text-xs" placeholder="Type your full legal name"

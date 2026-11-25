@@ -61,7 +61,7 @@ export default function PublicPlaylist() {
         <div className="neon-frame space-y-4 p-5">
           <div>
             <h1 className="font-display text-2xl font-extrabold tracking-tight text-white">{pl.title}</h1>
-            <p className="text-sm text-white/45">
+            <p className="text-sm text-white/60">
               by <Link to={`/u/${pl.owner}`} className="hover:text-mcz-ember">@{pl.owner}</Link>
               {" · "}{pl.count} track{pl.count === 1 ? "" : "s"}
               {pl.rating != null && <span className="text-mcz-ember"> · {pl.rating}/10</span>}
@@ -86,7 +86,7 @@ export default function PublicPlaylist() {
                         : <Link2 size={12} className="shrink-0 text-mcz-gold" />}
                       <span className="truncate text-[13px] text-white/85">{it.title || it.url}</span>
                     </span>
-                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/35">
+                    <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-white/50">
                       {it.artist && <span className="truncate">{it.artist}</span>}
                       {isPost
                         ? <span className="pill !px-1.5 !py-0 !text-[9px]">Music ConnectZ</span>

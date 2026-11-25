@@ -51,7 +51,10 @@ const day = (iso) => {
 
 // The price, in the house format and before the control that spends it: red for
 // what leaves, green for what is free, always the resource emoji.
-function Price({ price, daily }) {
+// What one fixed-price run is, per app — never "a video" for a picture.
+const FIXED_UNIT = { videoconnectz: "a video", imageconnectz: "a picture" };
+
+function Price({ price, daily, appKey }) {
   if (!price) return null;
   if (price.kind === "device") {
     return <span className="text-emerald-300">Free — runs on your device</span>;
@@ -63,17 +66,17 @@ function Price({ price, daily }) {
     return (
       <span className="text-mcz-ember">
         −${(Number(price.cost_cents || 0) / 100).toFixed(2)} {MONEY}{" "}
-        <span className="text-white/45">a video — there is no free tier</span>
+        <span className="text-white/60">{FIXED_UNIT[appKey] || "a run"} — there is no free tier</span>
       </span>
     );
   }
   if (price.kind === "prompt") {
     const left = price.daily_remaining ?? daily?.remaining ?? 0;
-    const engine = price.engine ? <span className="text-white/45"> on {price.engine}</span> : null;
+    const engine = price.engine ? <span className="text-white/60"> on {price.engine}</span> : null;
     if (price.free_today) {
       return (
         <span className="text-emerald-300">
-          Free today <span className="text-white/45">— uses 1 of your {left} free {left === 1 ? "prompt" : "prompts"}</span>
+          Free today <span className="text-white/60">— uses 1 of your {left} free {left === 1 ? "prompt" : "prompts"}</span>
           {engine}
         </span>
       );
@@ -81,7 +84,7 @@ function Price({ price, daily }) {
     return (
       <span className="text-mcz-ember">
         −{price.cost_cents} {PROMPTZ}
-        <span className="text-white/45">
+        <span className="text-white/60">
           {left > 0
             ? " a run — this costs more than a free prompt covers"
             : IN_SHELL
@@ -124,7 +127,7 @@ function AppCard({ app, daily, priced }) {
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-2">
         {/* The price sits BEFORE the button that opens the app, and is absent
             rather than guessed when the server could not say. */}
-        {priced && app.price && <p className="text-[12px]"><Price price={app.price} daily={daily} /></p>}
+        {priced && app.price && <p className="text-[12px]"><Price price={app.price} daily={daily} appKey={app.key} /></p>}
         {can && (
           <button className="neon-btn-primary !w-auto px-5" onClick={() => goToTab(app.tab || app.key)}>
             Open <ArrowRight size={14} />
@@ -226,7 +229,7 @@ export default function IntelligenceZ() {
         {apps.filter((a) => a.built !== false).map((a) => <AppCard key={a.key} app={a} daily={daily} priced={!!served} />)}
       </div>
       {apps.some((a) => a.built === false) && (
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/60">
           Still being built, so not offered yet: {apps.filter((a) => a.built === false).map((a) => a.label || a.key).join(", ")}.
         </p>
       )}
@@ -239,8 +242,8 @@ export default function IntelligenceZ() {
               className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
               <IconImg icon={iconOf(r.app)} alt="" className="h-8 w-8 shrink-0 rounded-lg" />
               <span className="min-w-0 flex-1 truncate text-white/85">{r.label}</span>
-              <span className="shrink-0 text-[11px] text-white/45">{day(r.created_at)}</span>
-              <ArrowRight size={14} className="shrink-0 text-white/40" />
+              <span className="shrink-0 text-[11px] text-white/60">{day(r.created_at)}</span>
+              <ArrowRight size={14} className="shrink-0 text-white/55" />
             </button>
           ))}
         </section>

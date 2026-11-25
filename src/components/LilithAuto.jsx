@@ -19,7 +19,7 @@ export default function LilithAuto({ auto, onChanged }) {
       {!auto.allowed ? (
         <>
           <StatzSample what="Automatic tasks" />
-          <p className="text-white/45">{auto.locked}</p>
+          <p className="text-white/60">{auto.locked}</p>
         </>
       ) : (
         <>

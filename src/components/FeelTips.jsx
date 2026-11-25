@@ -6,8 +6,8 @@ function Wwh({ x }) {
   return (
     <div className="space-y-0.5">
       <p className="text-[12px] text-white/85">{x.what}</p>
-      {x.why && <p className="text-[11px] leading-snug text-white/55"><span className="text-white/35">Why: </span>{x.why}</p>}
-      {x.how && <p className="text-[11px] leading-snug text-emerald-200/80"><span className="text-white/35">How: </span>{x.how}</p>}
+      {x.why && <p className="text-[11px] leading-snug text-white/55"><span className="text-white/50">Why: </span>{x.why}</p>}
+      {x.how && <p className="text-[11px] leading-snug text-emerald-200/80"><span className="text-white/50">How: </span>{x.how}</p>}
     </div>
   );
 }
@@ -21,7 +21,7 @@ export function FeelzTips({ tips, onGear, cause }) {
       {cause && <p className="text-[11px] text-white/60">What the coach hears holding it back: <span className="font-semibold text-white/85">{cause}</span>. Delivery comes first — it is the biggest lever.</p>}
       {tips.map((t, i) => (
         <div key={i} className="space-y-0.5">
-          <p className="text-[10px] uppercase tracking-widest text-white/40">{t.label}</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/55">{t.label}</p>
           <Wwh x={t} />
           {onGear && (t.kind === "gear" || t.kind === "room") && (
             <button type="button" onClick={onGear} className="text-[11px] text-mcz-cyan underline">See gear advice for this take</button>
@@ -39,7 +39,7 @@ export function MixTips({ tips }) {
       <p className="text-[10px] font-semibold uppercase tracking-widest text-mcz-cyan/80">Mix suggestions — so the vocal can be heard</p>
       {tips.map((t, i) => (
         <div key={i} className="space-y-0.5">
-          <p className="text-[10px] uppercase tracking-widest text-white/40">Helps {t.helps_label}</p>
+          <p className="text-[10px] uppercase tracking-widest text-white/55">Helps {t.helps_label}</p>
           <Wwh x={t} />
         </div>
       ))}

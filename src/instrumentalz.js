@@ -79,3 +79,18 @@ export function chargeLine(run) {
   }
   return "It counted as a normal run.";
 }
+
+// ---- which sound each part plays ----------------------------------------------------------------------
+// Instrumental ConnectZ's instrument ids -> the DAW's instrument keys (src/daw/instruments.js): the synth engine's
+// patches where one fits, the original voices where it does not (a piano or an organ is not a synth patch, and
+// pretending a pad is a piano would be a worse sound, not a better one). Drums are the DAW's own kit.
+export const PART_SOUND = {
+  piano: "piano", epiano: "synth:glass", organ: "organ", acoustic_guitar: "synth:pluck", electric_guitar: "synth:pluck",
+  bass: "synth:sub", synth_bass: "synth:reese", strings: "synth:strings", choir: "synth:vocal", brass: "synth:brass",
+  lead: "synth:supersaw", pad: "synth:ether", drums: "drums",
+};
+export const soundFor = (instrument) => PART_SOUND[instrument] || "piano";
+/** By the part's name in the .mid (the server names each track by its label), for the hand-off to Arsenal. */
+export function soundsByName(instruments) {
+  return Object.fromEntries((instruments || []).map((i) => [i.label, soundFor(i.id)]));
+}

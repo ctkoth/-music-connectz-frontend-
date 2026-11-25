@@ -201,7 +201,7 @@ export default function MangaPageDesigner({ page, chars, onSaved }) {
         <p className="text-[11px] text-white/50">{cap} of {LAYOUTS.length} layouts on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
           <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium has 6; StatZ has all</button></p>
       )}
-      <p className="text-[11px] text-white/45">Drag a panel to move it, its corner to resize it, and a bubble to place the line.</p>
+      <p className="text-[11px] text-white/60">Drag a panel to move it, its corner to resize it, and a bubble to place the line.</p>
 
       <div ref={pageRef} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={endDrag}
         className="relative mx-auto w-full max-w-md select-none overflow-hidden rounded bg-white" style={{ aspectRatio: "2 / 3", touchAction: "none" }}>
@@ -239,7 +239,7 @@ export default function MangaPageDesigner({ page, chars, onSaved }) {
               </select>
             </label>
           ))}
-          {chars.length > 0 && <p className="text-white/40">Each character&apos;s lines were written in their CharacterZ voice; their FaceZ look rides into every drawn panel.</p>}
+          {chars.length > 0 && <p className="text-white/55">Each character&apos;s lines were written in their CharacterZ voice; their FaceZ look rides into every drawn panel.</p>}
         </div>
       )}
 

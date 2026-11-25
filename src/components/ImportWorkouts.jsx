@@ -131,7 +131,7 @@ export default function ImportWorkouts({ exercises, onImported, muscles = {}, eq
             </div>
           </div>
         ) : (
-          <p className="text-[11px] text-white/40">Columns were matched automatically. StatZ lets you pick them by hand for an export this misreads.</p>
+          <p className="text-[11px] text-white/55">Columns were matched automatically. StatZ lets you pick them by hand for an export this misreads.</p>
         )
       )}
 
@@ -142,7 +142,7 @@ export default function ImportWorkouts({ exercises, onImported, muscles = {}, eq
                     value={effUnit} disabled={!!parsed.unit} onChange={(e) => setUnit(e.target.value)}>
               <option value="kg">kg</option><option value="lb">lb</option>
             </select>
-            {parsed.unit && <span className="ml-1 text-white/35">(the file says so)</span>}
+            {parsed.unit && <span className="ml-1 text-white/50">(the file says so)</span>}
           </label>
           <p className="text-xs text-white/70">
             Understood {matched.length} line{matched.length === 1 ? "" : "s"}.

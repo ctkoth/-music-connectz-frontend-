@@ -163,11 +163,11 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-white">
           <CalendarDays size={14} className="text-mcz-cyan" /> Build a week — free, no account
         </span>
-        {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+        {open ? <ChevronUp size={16} className="text-white/55" /> : <ChevronDown size={16} className="text-white/55" />}
       </button>
       {open && (
         <div className="space-y-2 pt-1">
-          <p className="text-xs text-white/45">
+          <p className="text-xs text-white/60">
             Pick how many days a week you train and BodieZ builds one real routine per
             day — full body, upper/lower, push/pull/legs or a body-part split, every
             muscle group covered across the week. Nothing saves until you make an
@@ -190,7 +190,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
             )}
           </div>
           <div>
-            <p className="mb-1 text-[11px] text-white/40">
+            <p className="mb-1 text-[11px] text-white/55">
               Equipment — pick any that apply, or leave blank for everything
             </p>
             <EquipmentPicker selected={equipment} onToggle={onToggleEquipment} />
@@ -201,7 +201,7 @@ function TrialSplitBuilder({ exercises, splits, goals }) {
                 {goal.sets} sets x {goal.reps_low}-{goal.reps_high} reps, {goal.rest_seconds}s rest — every day
               </p>
               <p className="mt-0.5">{goal.why}</p>
-              <p className="mt-1 text-white/35">{goal.citation}</p>
+              <p className="mt-1 text-white/50">{goal.citation}</p>
             </div>
           )}
           {preview.length > 0 && (
@@ -325,8 +325,8 @@ export default function BodieZTrial() {
           ) : (
             <p className="text-sm text-white/60">No weight — no 1RM estimate to give.</p>
           )}
-          {result.estimated_1rm_kg != null && <p className="text-xs text-white/40">estimated one-rep max</p>}
-          <p className="text-[11px] text-white/40">{result.estimate_note}</p>
+          {result.estimated_1rm_kg != null && <p className="text-xs text-white/55">estimated one-rep max</p>}
+          <p className="text-[11px] text-white/55">{result.estimate_note}</p>
         </div>
 
         {result.coach_sample && (
@@ -418,12 +418,12 @@ export default function BodieZTrial() {
       <div className="text-center">
         <Dumbbell className="mx-auto mb-1 text-fuchsia-300" size={28} />
         <h2 className="font-display text-lg font-extrabold text-white">Try BodieZ — log one set</h2>
-        <p className="text-xs text-white/45">Free, no account. Real arithmetic, not a guess.</p>
+        <p className="text-xs text-white/60">Free, no account. Real arithmetic, not a guess.</p>
       </div>
       {err && <p role="alert" className="re-card text-sm text-mcz-ember">{err}</p>}
       <div className="re-card space-y-2">
         <div>
-          <p className="mb-1 text-[11px] text-white/40">
+          <p className="mb-1 text-[11px] text-white/55">
             Equipment — pick any that apply, or leave blank for everything
           </p>
           <EquipmentPicker selected={equipment}

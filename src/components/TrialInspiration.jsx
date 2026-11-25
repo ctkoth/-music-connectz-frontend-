@@ -60,7 +60,7 @@ export default function TrialInspiration({ appKey, take, takeName, onSpent }) {
       <p>Record or attach your take above, then pick a song you want to sound like. The coach tells you what separates them — in the score, the EQ and the how-to.</p>
       <p className="text-white/50">{info.notice}</p>
       {/* The take is whatever is in the recorder above; it is shown, not re-asked. */}
-      <p className={mine ? "text-emerald-300/80" : "text-white/45"}>
+      <p className={mine ? "text-emerald-300/80" : "text-white/60"}>
         {mine ? `${TRACK.take.name} (A): ${takeName || "recording"}` : `${TRACK.take.name} (A): record or attach one above first.`}
       </p>
       <Source label={`${TRACK.reference.name} (B) — the song you want to sound like: a file or a YouTube link`} side={ref} onSide={setRef} disabled={busy || spent}
@@ -72,7 +72,7 @@ export default function TrialInspiration({ appKey, take, takeName, onSpent }) {
         </button>
         {/* Before the press: what it spends, and that a failed run does not. */}
         <span className="text-mcz-ember">−1 free take</span>
-        <span className="text-white/40">Not used if it fails · nothing saved</span>
+        <span className="text-white/55">Not used if it fails · nothing saved</span>
       </div>
       <p className="text-white/50">{info.note}</p>
       {left === 0 && !res && <p className="text-amber-200">Your free takes are used. An account gets the coach whenever you want it.</p>}

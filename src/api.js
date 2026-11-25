@@ -9,6 +9,9 @@ const API_BASE = (
     : RAW_BASE
 ).replace(/\/$/, "");
 
+/** The API's address, for the few public reads (like the storage health) that are not under /api. */
+export const API_ORIGIN = API_BASE;
+
 export const tokenStore = {
   get: () => localStorage.getItem("mcz_access") || "",
   getRefresh: () => localStorage.getItem("mcz_refresh") || "",
@@ -330,6 +333,14 @@ export async function api(path, {
     err.status = res.status;
     err.data = data;
     throw err;
+  }
+  // Every file a member uploads from this device is also kept ON this device (deviceVault.js), so a file the server later loses can still be
+  // downloaded back. One place, so every upload path (DAW, masters, posts, pictures, videos) gets it. Never blocks or fails the upload.
+  if (isForm && method === "POST" && String(path).split("?")[0] === "/api/economy/uploads/" && data?.upload?.id) {
+    try {
+      const f = body.get("file");
+      if (f instanceof Blob) import("./deviceVault.js").then((v) => v.keepCopy("upload", data.upload.id, f, f.name)).catch(() => {});
+    } catch { /* no safety copy; the upload itself is unaffected */ }
   }
   return data;
 }

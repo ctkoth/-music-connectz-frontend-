@@ -268,7 +268,7 @@ function Board() {
               {widgets.length} widget{widgets.length === 1 ? "" : "s"} open
             </span>
           </button>
-          <button onClick={closeAll} className="rounded p-1 text-white/40 hover:text-mcz-ember" title="Close all">
+          <button onClick={closeAll} className="rounded p-1 text-white/55 hover:text-mcz-ember" title="Close all">
             <X size={14} />
           </button>
         </div>
@@ -292,7 +292,7 @@ function Board() {
     >
       <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
         <span className="font-display text-[13px] font-bold text-white/80">WidgetZ</span>
-        <span className="text-[11px] text-white/35">
+        <span className="text-[11px] text-white/50">
           {widgets.length} open · {shape.lanes} lane{shape.lanes === 1 ? "" : "s"} ·{" "}
           {shape.w}×{shape.h}
           {shape.coarse ? " touch" : ""}
@@ -352,7 +352,7 @@ function Widget({ w, shape, collapsed, first, last }) {
         <button
           onClick={() => move(w.id, -1)}
           disabled={first}
-          className="rounded p-1 text-white/40 hover:text-white disabled:opacity-20"
+          className="rounded p-1 text-white/55 hover:text-white disabled:opacity-20"
           title={shape.stacked ? "Move up" : "Move left"}
         >
           <ChevronLeft size={13} className={shape.stacked ? "rotate-90" : ""} />
@@ -360,7 +360,7 @@ function Widget({ w, shape, collapsed, first, last }) {
         <button
           onClick={() => move(w.id, 1)}
           disabled={last}
-          className="rounded p-1 text-white/40 hover:text-white disabled:opacity-20"
+          className="rounded p-1 text-white/55 hover:text-white disabled:opacity-20"
           title={shape.stacked ? "Move down" : "Move right"}
         >
           <ChevronRight size={13} className={shape.stacked ? "rotate-90" : ""} />
@@ -368,7 +368,7 @@ function Widget({ w, shape, collapsed, first, last }) {
         {shape.lanes > 1 && !collapsed && (
           <button
             onClick={() => setSpan(w.id, span >= shape.lanes ? 1 : span + 1)}
-            className="rounded p-1 text-white/40 hover:text-mcz-cyan"
+            className="rounded p-1 text-white/55 hover:text-mcz-cyan"
             title={span >= shape.lanes ? "Narrower" : "Wider"}
           >
             {span >= shape.lanes ? <Minimize2 size={13} /> : <ArrowLeftRight size={13} />}
@@ -378,12 +378,12 @@ function Widget({ w, shape, collapsed, first, last }) {
           href={w.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded p-1 text-white/40 hover:text-mcz-gold"
+          className="rounded p-1 text-white/55 hover:text-mcz-gold"
           title="Open in a new tab instead"
         >
           <ExternalLink size={13} />
         </a>
-        <button onClick={() => close(w.id)} className="rounded p-1 text-white/40 hover:text-mcz-ember" title="Close">
+        <button onClick={() => close(w.id)} className="rounded p-1 text-white/55 hover:text-mcz-ember" title="Close">
           <X size={13} />
         </button>
       </header>
@@ -396,7 +396,7 @@ function Widget({ w, shape, collapsed, first, last }) {
       {collapsed && (
         <button
           onClick={() => focus(w.id)}
-          className="px-2 py-2 text-left text-[11px] text-white/35 hover:text-white/70"
+          className="px-2 py-2 text-left text-[11px] text-white/50 hover:text-white/70"
         >
           Tap to bring this one forward
         </button>
@@ -414,7 +414,7 @@ function WidgetBody({ w, shape }) {
 
   if (w.state === "resolving") {
     return (
-      <div className="flex h-40 items-center justify-center text-white/40">
+      <div className="flex h-40 items-center justify-center text-white/55">
         <Loader2 size={16} className="mr-2 animate-spin" /> Opening…
       </div>
     );
@@ -609,7 +609,7 @@ export function LinkList({ links, owner, className = "" }) {
       </div>
       {tierIsWhy && (
         <div className="mt-2 space-y-1">
-          <p className="text-[11px] text-white/45">Outside pages open in a new tab. StatZ opens them right here, on this screen.</p>
+          <p className="text-[11px] text-white/60">Outside pages open in a new tab. StatZ opens them right here, on this screen.</p>
           <StatzSample what="Opening these links right here" />
         </div>
       )}

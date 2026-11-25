@@ -1,4 +1,6 @@
+import DeviceCopy from "../components/DeviceCopy.jsx";
 import Doors from "../components/Doors.jsx";
+import KeyBadge from "../components/KeyBadge.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Loader2, Lock, Pause, Play, Save, Trash2, Upload, Wand2 } from "lucide-react";
 import { api } from "../api.js";
@@ -54,11 +56,11 @@ function Measures({ before, after }) {
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-sm font-semibold text-white/80">{m.label}</span>
             <span className="font-mono text-sm">
-              {after ? <><span className="text-white/45">{fmt(before[m.key], "", m.digits ?? 1)}</span> → <span className="text-mcz-cyan">{fmt(after[m.key], m.unit, m.digits ?? 1)}</span></>
+              {after ? <><span className="text-white/60">{fmt(before[m.key], "", m.digits ?? 1)}</span> → <span className="text-mcz-cyan">{fmt(after[m.key], m.unit, m.digits ?? 1)}</span></>
                 : <span className="text-white/85">{fmt(before[m.key], m.unit, m.digits ?? 1)}</span>}
             </span>
           </div>
-          <p className="text-[11px] text-white/45">{m.why}</p>
+          <p className="text-[11px] text-white/60">{m.why}</p>
         </div>
       ))}
     </div>
@@ -87,7 +89,7 @@ function BalanceChart({ chart }) {
           </text>
         ))}
       </svg>
-      <figcaption className="text-[11px] text-white/45">
+      <figcaption className="text-[11px] text-white/60">
         <span className="text-white/70">Grey</span> is your mix, <span className="text-mcz-cyan">cyan</span> is the master — level per third-octave band, both set to 0 at 1 kHz.
       </figcaption>
     </figure>
@@ -193,7 +195,7 @@ function Slider({ label, value, min, max, step, onChange, suffix = "", note }) {
       <span className="flex justify-between"><span>{label}</span><span className="font-mono text-white/85">{value > 0 && suffix === " dB" ? "+" : ""}{value}{suffix}</span></span>
       <input id={id} type="range" min={min} max={max} step={step} value={value}
         onChange={(e) => onChange(Number(e.target.value))} className="w-full accent-cyan-400" />
-      {note && <span className="text-[11px] text-white/40">{note}</span>}
+      {note && <span className="text-[11px] text-white/55">{note}</span>}
     </label>
   );
 }
@@ -459,13 +461,14 @@ export default function MixConnectZ() {
         seconds: a.seconds, sampleRate: a.sampleRate, channels: a.channels, clippedSamples: a.clippedSamples,
         bands: a.bands,
       });
-      await api("/api/economy/mixz/", { method: "POST", body: {
+      const made = await api("/api/economy/mixz/", { method: "POST", body: {
         title, upload_id: uploadId,
         settings: { ...result.settings, bitDepth: depth, dither: depth === 16 && dither, reference: !!ref,
           format: outFmt, kbps: outFmt === "mp3" ? kbps : undefined, exportRate: outRate },
         before: pick(result.before), after: pick(result.after),
       } });
-      setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage.`);
+      if (made?.id) import("../deviceVault.js").then((v) => v.aliasCopy("mixz", made.id, "upload", uploadId)).catch(() => {});
+      setSaved(`Saved to Your masters — ${r1(sizeMb)} MB of your storage. A copy is also kept on this device in case the server loses it.`);
       load();
     } catch (e) {
       // The server's own sentence: over the per-file cap, out of storage, or
@@ -546,7 +549,7 @@ export default function MixConnectZ() {
           </button>
           <input ref={fileInput} type="file" accept="audio/*,video/*,.wav,.flac,.mp3,.m4a,.aac,.ogg" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) open(f, f.name); }} />
-          <span className="text-[11px] text-white/45">WAV, FLAC, MP3, M4A or OGG, up to {MAX_SECONDS / 60} minutes. Master from your final mix, not from an earlier master.</span>
+          <span className="text-[11px] text-white/60">WAV, FLAC, MP3, M4A or OGG, up to {MAX_SECONDS / 60} minutes. Master from your final mix, not from an earlier master.</span>
         </div>
 
         {song && (
@@ -574,7 +577,7 @@ export default function MixConnectZ() {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-white/80">Style</h3>
             <Choice label="Style" options={styleOpts} value={settings.style} onChange={(v) => set("style", v)} />
-            <p className="text-[11px] text-white/45">{STYLES[settings.style].desc}</p>
+            <p className="text-[11px] text-white/60">{STYLES[settings.style].desc}</p>
           </div>
 
           <div className="space-y-2">
@@ -584,17 +587,17 @@ export default function MixConnectZ() {
               <Slider label="Loudness" value={settings.lufs} min={CUSTOM_LUFS.min} max={CUSTOM_LUFS.max} step={0.5} suffix=" LUFS"
                 onChange={(v) => set("lufs", v)} note="Quieter keeps more of the peaks; louder trades them away for level." />
             )}
-            <p className="text-[11px] text-white/45">{targetDesc} True peaks are held under −1 dBTP.</p>
+            <p className="text-[11px] text-white/60">{targetDesc} True peaks are held under −1 dBTP.</p>
           </div>
 
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-white/80">Intensity</h3>
             <Choice label="Intensity" options={intensityOpts} value={settings.intensity} onChange={(v) => set("intensity", v)} locked={lockedIntensity} />
-            <p className="text-[11px] text-white/45">
+            <p className="text-[11px] text-white/60">
               {it.label}: EQ moves up to ±{it.eqMax} dB, glue compression at {it.ratio}:1, and the limiter may take up to {it.maxLimitGr} dB off a peak before the master stops short of the target and says so.
             </p>
             {!IN_SHELL && heaviest && !allowedIntensities.includes("max") && (
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 Heaviest — the hardest compression and the most limiting — comes with {heaviest.label || TIER_NAME[heaviest.tier]}.{" "}
                 <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>
               </p>
@@ -614,7 +617,7 @@ export default function MixConnectZ() {
           <div className="space-y-3 rounded-lg border border-white/10 p-3" data-tour="mixz-vocalz">
             <div>
               <h3 className="text-sm font-semibold text-white/80">VocalZ — vocal too low?</h3>
-              <p className="text-[11px] text-white/45">Free, on your device, like the rest of the master.</p>
+              <p className="text-[11px] text-white/60">Free, on your device, like the rest of the master.</p>
             </div>
             <label className="flex items-start gap-2 text-sm text-white/70">
               <input type="checkbox" className="mt-1" checked={settings.vocal === "auto"}
@@ -622,7 +625,7 @@ export default function MixConnectZ() {
               <span>
                 Auto — the master measures the centre of your mix where a voice sits (1–4 kHz) against your mix's own balance
                 {ref ? " or your Inspiration track" : ""}, and lifts it, up to +{VOCAL_AUTO_MAX} dB, only when it measures low.
-                <span className="block text-[11px] text-white/40">
+                <span className="block text-[11px] text-white/55">
                   It measures the centre, not the voice itself — a beat that fills the same range reads as full. The result says what it measured either way.
                 </span>
               </span>
@@ -642,7 +645,7 @@ export default function MixConnectZ() {
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) openVocal(f); }} />
               {vocalFile
                 ? <span className="text-xs text-white/60">{vocalFile.name} <button className="re-link" onClick={() => setVocalFile(null)}>Remove</button></span>
-                : <span className="text-[11px] text-white/40">Then the song you picked is the beat, and the vocal is laid on it at the level you set — a real mix, then the master. The vocal file never leaves your device.</span>}
+                : <span className="text-[11px] text-white/55">Then the song you picked is the beat, and the vocal is laid on it at the level you set — a real mix, then the master. The vocal file never leaves your device.</span>}
             </div>
             {vocalFile && (
               <Slider label="Vocal level against the beat" value={settings.vocalLevel} min={-VOCAL_LEVEL_MAX} max={VOCAL_LEVEL_MAX} step={0.5} suffix=" dB"
@@ -654,7 +657,7 @@ export default function MixConnectZ() {
           <div className="space-y-3 rounded-lg border border-white/10 p-3" data-tour="mixz-dynamicz">
             <div>
               <h3 className="text-sm font-semibold text-white/80">DynamicZ</h3>
-              <p className="text-[11px] text-white/45">How the hits and the loud moments behave: punch, then compression on one band or three.</p>
+              <p className="text-[11px] text-white/60">How the hits and the loud moments behave: punch, then compression on one band or three.</p>
             </div>
             <Slider label="Punch" value={settings.punch} min={-PUNCH_MAX} max={PUNCH_MAX} step={5} suffix="%"
               onChange={(v) => set("punch", v)}
@@ -664,7 +667,7 @@ export default function MixConnectZ() {
             <label className="flex items-start gap-2 text-sm text-white/70">
               <input type="checkbox" className="mt-1" checked={settings.multiband} onChange={(e) => set("multiband", e.target.checked)} />
               <span>Multiband compression
-                <span className="block text-[11px] text-white/45">
+                <span className="block text-[11px] text-white/60">
                   Lows (under {BANDS_SPLIT[0]} Hz), mids and highs (over {BANDS_SPLIT[1] / 1000} kHz) each get their own compressor, so a loud kick doesn't pull the vocal and cymbals down with it. Off compresses the whole mix as one.
                 </span>
               </span>
@@ -683,7 +686,7 @@ export default function MixConnectZ() {
                 )}
               </>
             ) : (
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 Automatic — about {it.glueGr} dB off the loudest moments at {it.ratio}:1, and none if your mix is already dense.
                 {!IN_SHELL && nextGlue && <> Setting the amount yourself comes with {nextGlue.label || TIER_NAME[nextGlue.tier]}. <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button></>}
               </p>
@@ -707,7 +710,7 @@ export default function MixConnectZ() {
               <span className="text-sm text-white/70">Mono bass (below 120 Hz)</span>
               <Choice label="Mono bass" value={settings.monoBass} onChange={(v) => set("monoBass", v)}
                 options={[{ key: "auto", label: "Auto" }, { key: "on", label: "On" }, { key: "off", label: "Off" }]} />
-              <p className="text-[11px] text-white/45">Auto folds the low end to the centre when it measures wide — stereo bass sums unevenly on mono systems.</p>
+              <p className="text-[11px] text-white/60">Auto folds the low end to the centre when it measures wide — stereo bass sums unevenly on mono systems.</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <button className="re-btn !w-auto px-3" disabled={!!busy} onClick={() => refInput.current?.click()}>
@@ -717,7 +720,7 @@ export default function MixConnectZ() {
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) openReference(f); }} />
               {ref
                 ? <span className="text-xs text-white/60">{ref.name} · {fmt(ref.analysis.lufs, " LUFS")} <button className="re-link" onClick={() => { setRef(null); if (settings.target === "reference") set("target", "streaming"); }}>Remove</button></span>
-                : <span className="text-[11px] text-white/40">Inspiration: a finished song you want yours to sound like. Its tonal balance and loudness become the target. It never leaves your device.</span>}
+                : <span className="text-[11px] text-white/55">Inspiration: a finished song you want yours to sound like. Its tonal balance and loudness become the target. It never leaves your device.</span>}
             </div>
           </details>
 
@@ -762,7 +765,7 @@ export default function MixConnectZ() {
           </div>
           <input type="range" aria-label="Position" min={0} max={1000} value={ab.total ? Math.round((ab.pos / ab.total) * 1000) : 0}
             onChange={(e) => ab.seek(Number(e.target.value) / 1000)} className="w-full accent-cyan-400" />
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             {ab.matched
               ? "Both versions play at the same loudness, so you hear what changed rather than which is louder. Untick to hear the real levels."
               : "Real levels: the master is louder, and louder always sounds better for the first few seconds."}
@@ -795,7 +798,7 @@ export default function MixConnectZ() {
               options={[{ key: "wav", label: "WAV" }, { key: "mp3", label: "MP3" }]}
               locked={wavBits >= 16 ? {} : { wav: tierName(tierFor(16)) || "Not on your plan" }} />
             {wavBits < 24 && (
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 {wavBits >= 16 ? "Your plan exports MP3 and 16-bit WAV." : "Your plan exports MP3."}
                 {!IN_SHELL && tierFor(16) && tierFor(24) && <>
                   {" "}WAV comes in 16-bit with {tierName(tierFor(16))} and 24-bit (what distributors ask for) with {tierName(tierFor(24))}.{" "}
@@ -807,7 +810,7 @@ export default function MixConnectZ() {
               <div className="space-y-1">
                 <Choice label="MP3 bitrate" value={String(kbps)} onChange={(v) => setKbps(Number(v))}
                   options={MP3_KBPS.map((k) => ({ key: String(k), label: `${k} kbps` }))} />
-                <p className="text-[11px] text-white/45">
+                <p className="text-[11px] text-white/60">
                   MP3 is for sharing and previews: it throws detail away to be small. Distributors want the WAV.{" "}
                   <a className="re-link" href="/licenses/lamejs.txt" target="_blank" rel="noreferrer">Encoder: LAME (LGPL)</a>.
                   {kbps < 192 && " Under 192 kbps the encoder's rebuilt peaks can poke past −1 dBTP, and the highs get swirly."}
@@ -818,7 +821,7 @@ export default function MixConnectZ() {
               <Choice label="Sample rate" value={String(rate)} onChange={(v) => setRate(Number(v))}
                 options={[{ key: "0", label: `As mixed · ${song ? (song.sampleRate / 1000).toFixed(1) : ""} kHz` },
                   ...Object.keys(EXPORT_RATES).filter((r) => Number(r) !== song?.sampleRate).map((r) => ({ key: r, label: `${Number(r) / 1000} kHz` }))]} />
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 {rate ? `${EXPORT_RATES[rate]} Converting takes a few seconds on your device, and the peaks are checked again after it.`
                   : outRate !== song?.sampleRate ? `MP3 can't be ${(song.sampleRate / 1000).toFixed(1)} kHz, so this goes out at ${outRate / 1000} kHz.`
                     : "Your master stays at the rate your mix was made at — nothing is converted."}
@@ -834,7 +837,7 @@ export default function MixConnectZ() {
                 </label>
               )}
             </div>}
-            {outFmt === "wav" && <p className="text-[11px] text-white/45">
+            {outFmt === "wav" && <p className="text-[11px] text-white/60">
               {depth === 24
                 ? "24-bit is what distributors ask for. Its rounding sits around −144 dB, below any playback system, so no dither is added."
                 : dither
@@ -851,7 +854,7 @@ export default function MixConnectZ() {
               )}
             </div>
             {s?.storage && (
-              <p className="text-[11px] text-white/45">
+              <p className="text-[11px] text-white/60">
                 {tooBig
                   ? `This file is ${r1(sizeMb)} MB and your plan takes files up to ${s.storage.upload_mb} MB — try 16-bit or MP3, or download it instead.`
                   : noRoom
@@ -876,18 +879,18 @@ export default function MixConnectZ() {
       <div className="space-y-2" data-tour="mixz-recent">
         <h3 className="text-sm font-semibold text-white/70">Your masters</h3>
         {loadErr && <p role="alert" className="text-xs text-mcz-ember">{loadErr}</p>}
-        {s && !s.masters?.length && <p className="text-xs text-white/45">Nothing saved yet. Masters you save land here, with the numbers they were made with.</p>}
+        {s && !s.masters?.length && <p className="text-xs text-white/60">Nothing saved yet. Masters you save land here, with the numbers they were made with.</p>}
         {s?.masters?.map((m) => (
           <div key={m.id} className="space-y-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold text-white/85">{m.title}</span>
-              <span className="text-[11px] text-white/45">
+              <span className="text-[11px] text-white/60">
                 {fmt(m.after?.lufs, " LUFS")} · {fmt(m.after?.truePeakDb, " dBTP")}{m.size_mb ? ` · ${m.size_mb} MB` : ""}
               </span>
             </div>
             {m.missing
-              ? <p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p>
-              : m.url && <audio controls preload="none" src={m.url} className="w-full" />}
+              ? <><p className="text-xs text-mcz-gold">This file isn't on the server any more. The record stays so you know it existed.</p><DeviceCopy kind="mixz" id={m.id} name={m.title} onRestored={load} /></>
+              : m.url && <><audio controls preload="none" src={m.url} className="w-full" /><KeyBadge url={m.url} /></>}
             <div className="flex flex-wrap gap-3 text-xs">
               {m.url && !m.missing && <a className="re-link" href={m.url} download>Download</a>}
               {m.settings && Object.keys(m.settings).length > 0 && (

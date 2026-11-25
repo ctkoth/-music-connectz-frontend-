@@ -41,7 +41,7 @@ export default function EarnInstead({
   }, []);
 
   if (!ways) {
-    return <p className="flex items-center gap-2 text-[11px] text-white/40">
+    return <p className="flex items-center gap-2 text-[11px] text-white/55">
       <Loader2 className="animate-spin" size={12} /> Finding what pays…
     </p>;
   }
@@ -58,7 +58,7 @@ export default function EarnInstead({
   return (
     <div className="space-y-2">
       {rows.length > 0 && (
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">{title}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">{title}</p>
       )}
       <ul className="space-y-1.5">
         {rows.map((w) => (
@@ -70,7 +70,7 @@ export default function EarnInstead({
               <span className="min-w-0">
                 <span className="block truncate text-[13px] text-white/85">{w.label}</span>
                 {(w.note || w.cap) && (
-                  <span className="block truncate text-[10px] text-white/35">
+                  <span className="block truncate text-[10px] text-white/50">
                     {[w.note, w.cap && `Up to ${w.cap}`].filter(Boolean).join(" · ")}
                   </span>
                 )}
@@ -90,7 +90,7 @@ export default function EarnInstead({
 
       {lifts.length > 0 && (
         <>
-          <p className="pt-1 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+          <p className="pt-1 text-[11px] font-semibold uppercase tracking-widest text-white/60">
             Or be paid more per hour
           </p>
           <ul className="space-y-1.5">
@@ -106,7 +106,7 @@ export default function EarnInstead({
                     </span>
                     {/* Their own rate, not a headline one: this is what the app
                         would actually pay THEM, at their reach. */}
-                    <span className="block truncate text-[10px] text-white/35">
+                    <span className="block truncate text-[10px] text-white/50">
                       {raise?.per_hour} {ENERGY}/hr now · {o.per_hour} {ENERGY}/hr on {o.tier}
                     </span>
                   </span>
@@ -125,7 +125,7 @@ export default function EarnInstead({
 
       {buys.length > 0 && (
         <>
-          <p className="pt-1 text-[11px] font-semibold uppercase tracking-widest text-white/45">
+          <p className="pt-1 text-[11px] font-semibold uppercase tracking-widest text-white/60">
             And what it buys
           </p>
           <ul className="space-y-1.5">
@@ -138,7 +138,7 @@ export default function EarnInstead({
                   <span className="min-w-0">
                     <span className="block truncate text-[13px] text-white/85">{s.label}</span>
                     {s.note && (
-                      <span className="block truncate text-[10px] text-white/35">{s.note}</span>
+                      <span className="block truncate text-[10px] text-white/50">{s.note}</span>
                     )}
                   </span>
                   {/* The rate, both halves, before the button is pressed. */}

@@ -33,9 +33,9 @@ export default function KeyActions({ keymap, onKeymap, skin, onSkin }) {
       <h3 className="font-semibold">Actions &amp; shortcuts <span className="text-xs font-normal text-emerald-300">free</span></h3>
       <div className="space-y-1">
         {ACTIONS.map(([id, label]) => (
-          <div key={id} className="flex items-center gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs">
-            <span className="flex-1">{label}</span>
-            <kbd className="min-w-[90px] rounded bg-black/40 px-2 py-0.5 text-center">{listening === id ? "press a key…" : keymap[id] || "—"}</kbd>
+          <div key={id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/5 px-2 py-1 text-xs">
+            <span className="min-w-0 flex-1">{label}</span>
+            <kbd className="min-w-[4.5rem] rounded bg-black/40 px-2 py-0.5 text-center">{listening === id ? "press a key…" : keymap[id] || "—"}</kbd>
             <button className="re-btn !w-auto px-2" onClick={() => { setNote(""); setListening(id); }}>Change</button>
             {keymap[id] !== DEFAULTS[id] && <button className="re-link" onClick={() => onKeymap(assign(keymap, id, DEFAULTS[id]))}>default</button>}
           </div>
@@ -43,7 +43,7 @@ export default function KeyActions({ keymap, onKeymap, skin, onSkin }) {
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <button className="re-btn !w-auto px-3" onClick={() => onKeymap({ ...DEFAULTS })}>Reset all shortcuts</button>
-        <span className="text-white/45">Escape cancels. Kept on this device, for this DAW.</span>
+        <span className="text-white/60">Escape cancels. Kept on this device, for this DAW.</span>
       </div>
       {note && <p className="text-xs text-mcz-gold">{note}</p>}
       <h3 className="pt-2 font-semibold">Skin</h3>
@@ -57,7 +57,7 @@ export default function KeyActions({ keymap, onKeymap, skin, onSkin }) {
         })}
       </div>
       {cap != null && cap < SKINS.length && (
-        <p className="text-[11px] text-white/45">{cap} of {SKINS.length} skins on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
+        <p className="text-[11px] text-white/60">{cap} of {SKINS.length} skins on {TIER_LABEL[lim?.tier] || "your tier"}.{" "}
           <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium has 6; StatZ has all</button></p>
       )}
     </div>

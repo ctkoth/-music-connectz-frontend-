@@ -42,7 +42,7 @@ export default function AccountChoice({ choice, onCreate, onSignIn, busy }) {
             : <>{provider} doesn't tell us your email, so we can't tell whether you've been here before.</>}
         </p>
         {/* The rule this exists to serve, said plainly at the moment it applies. */}
-        <p className="text-[11px] text-white/40">
+        <p className="text-[11px] text-white/55">
           Everyone gets one account, so it's worth a second to get this right.
         </p>
 
@@ -83,7 +83,7 @@ export default function AccountChoice({ choice, onCreate, onSignIn, busy }) {
 
       {/* Said before the second button is pressed, so nobody expects a merge
           and finds a login form. */}
-      <p className="text-[11px] leading-relaxed text-white/40">
+      <p className="text-[11px] leading-relaxed text-white/55">
         Signing in the way you normally do keeps everything you've made. You can
         link {provider} to that account afterwards, and it'll sign you straight
         in next time.

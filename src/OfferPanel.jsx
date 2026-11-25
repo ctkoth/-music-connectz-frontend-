@@ -74,7 +74,7 @@ function Offer({ o, onDismiss }) {
                 <Line line={l} />
               </span>
             ))}
-            {o.gain_note && <span className="pl-1 text-[10px] text-white/35">{o.gain_note}</span>}
+            {o.gain_note && <span className="pl-1 text-[10px] text-white/50">{o.gain_note}</span>}
           </span>
         )}
       </div>

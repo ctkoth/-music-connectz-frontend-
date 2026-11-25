@@ -259,3 +259,241 @@ test("tracks stop at the tier's count (3 / 6 / unlimited), and a session over it
   assert.equal(addTrack(s, undefined, 3), s);
   assert.ok(MAX_TRACKS >= 100);
 });
+
+import { addMarker, updateMarker, removeMarker, sortedMarkers, markerAfter, markerBefore, cleanSession as _clean, cleanColor, cleanEmoji, setTrack as _setTrack, newSession as _new, MAX_MARKERS } from "./session.js";
+
+test("markers: add at the playhead with a default name and colour, edit name, emoji, colour and time, remove", () => {
+  let s = _new();
+  s = addMarker(s, 12.5);
+  assert.equal(s.markers.length, 1);
+  assert.equal(s.markers[0].name, "Marker 1");
+  assert.match(s.markers[0].color, /^#[0-9a-f]{6}$/);
+  const id = s.markers[0].id;
+  s = updateMarker(s, id, { name: "Verse 2", emoji: "🎤", color: "#FF0000", t: 20 });
+  assert.deepEqual([s.markers[0].name, s.markers[0].emoji, s.markers[0].color, s.markers[0].t], ["Verse 2", "🎤", "#ff0000", 20]);
+  assert.equal(removeMarker(s, id).markers.length, 0);
+});
+
+test("markers: two at one moment are nudged apart, order is by time, and next/previous find the neighbours", () => {
+  let s = _new();
+  s = addMarker(s, 30, { name: "Chorus" }); s = addMarker(s, 10, { name: "Intro" }); s = addMarker(s, 10, { name: "Intro 2" });
+  const ts = sortedMarkers(s).map((m) => m.t);
+  assert.ok(ts[0] < ts[1] && ts[1] < ts[2]);
+  assert.equal(markerAfter(s, 5).name, "Intro");
+  assert.equal(markerAfter(s, 31), null);
+  assert.equal(markerBefore(s, 29).name, "Intro 2");
+  assert.equal(markerBefore(s, 1), null);
+});
+
+test("markers: junk is repaired on load, a bad colour or letters-as-emoji are not kept, and the count is bounded", () => {
+  const raw = { ...(_new()), markers: [{ id: "a", t: "7", name: "x".repeat(100), emoji: "abc", color: "red" }, { t: "nope" }, null] };
+  const s = _clean(raw);
+  assert.equal(s.markers.length, 1);
+  assert.equal(s.markers[0].name.length, 40);
+  assert.equal(s.markers[0].emoji, "");
+  assert.match(s.markers[0].color, /^#[0-9a-f]{6}$/);
+  let big = _new(); for (let i = 0; i < MAX_MARKERS + 20; i++) big = addMarker(big, i * 2);
+  assert.equal(big.markers.length, MAX_MARKERS);
+});
+
+test("tracks: a name with an emoji, a colour and an emoji mark can be set, and a bad colour is refused", () => {
+  let s = _new();
+  const id = s.tracks[0].id;
+  s = _setTrack(s, id, { name: "🔥 Lead vox", emoji: "🎤", color: "#a78bfa" });
+  assert.deepEqual([s.tracks[0].name, s.tracks[0].emoji, s.tracks[0].color], ["🔥 Lead vox", "🎤", "#a78bfa"]);
+  const before = s.tracks[0].color;
+  assert.equal(_setTrack(s, id, { color: "javascript:alert(1)" }).tracks[0].color, before);
+  assert.equal(cleanEmoji("🎤🥁🎸"), "🎤🥁");
+  assert.equal(cleanEmoji("🇺🇸"), "🇺🇸");
+  assert.equal(cleanColor("#ABCDEF"), "#abcdef");
+});
+
+import { snapIf as _snapIf, setSession as _setSession, SESSION_KEYS } from "./session.js";
+
+test("snap: a click lands on the grid while Snap is on and exactly where it was while it is off", () => {
+  let s = _setSession(_new(), { bpm: 120, grid: "1/4" });       // a quarter note is 0.5 s
+  assert.equal(_snapIf(s, 1.3), 1.5);
+  assert.equal(_snapIf(s, 1.2), 1);
+  s = _setSession(s, { snap: false });
+  assert.equal(_snapIf(s, 1.3), 1.3);
+  assert.equal(_setSession(_new(), {}).snap, true);
+});
+
+test("project: the key is one of the twenty-four names or empty, and the name is kept short", () => {
+  assert.equal(SESSION_KEYS.length, 24);
+  assert.equal(_setSession(_new(), { key: "A minor" }).key, "A minor");
+  assert.equal(_setSession(_new(), { key: "H sharp" }).key, "");
+  assert.equal(_setSession(_new(), { name: "x".repeat(200) }).name.length, 60);
+  assert.equal(_clean({ ..._new(), key: "Eb major", snap: false }).key, "Eb major");
+  assert.equal(_clean({ ..._new(), key: "Eb major", snap: false }).snap, false);
+});
+
+import { projectTitle } from "./session.js";
+
+test("a project is titled Genre - Key - Name, leaving out what is not set, and keeps its genre and skills used", () => {
+  const s = _setSession(_new("Late night"), { genre: "Trap", key: "F minor", skills: ["rapping", "mixing", "rapping"] });
+  assert.equal(projectTitle(s), "Trap - F minor - Late night");
+  assert.equal(projectTitle(_new("Late night")), "Late night");
+  assert.deepEqual(s.skills, ["rapping", "mixing"]);
+  assert.equal(_setSession(s, { skills: Array.from({ length: 30 }, (_, i) => `s${i}`) }).skills.length, 12);
+  const back = _clean(JSON.parse(JSON.stringify(s)));
+  assert.deepEqual([back.genre, back.key, back.skills], ["Trap", "F minor", ["rapping", "mixing"]]);
+});
+
+import { recordInto as _rec, addSource as _addSource, addRegion as _addRegion, setTrack as _st, playlistOf as _pl, REC_MODES } from "./session.js";
+
+function withTake(mode) {
+  let s = _addSource(_new(), { id: "old", name: "Old", duration: 10, channels: 1, rate: 48000 });
+  const id = s.tracks[0].id;
+  s = _addRegion(s, id, { src: "old", at: 0, name: "Old" });
+  s = _st(s, id, { recMode: mode });
+  s = _addSource(s, { id: "new", name: "New", duration: 2, channels: 1, rate: 48000 });
+  return { ..._rec(s, id, { src: "new", at: 4, name: "New" }), id };
+}
+
+test("record modes: Takes keeps the old take on a new playlist, Replace cuts it out for good, Overdub layers over it", () => {
+  const takes = withTake("takes"), replace = withTake("replace"), over = withTake("overdub");
+  const t = (r) => r.session.tracks[0];
+  assert.equal(takes.keptPrevious, true);
+  assert.equal(t(takes).playlists.length, 2);
+  assert.equal(replace.keptPrevious, false);
+  assert.equal(t(replace).playlists.length, 1);
+  assert.ok(_pl(t(replace)).regions.filter((r) => r.src === "old").every((r) => r.out - r.in + r.at <= 4 || r.at >= 6), "the old audio is gone from 4 to 6 s");
+  assert.equal(over.keptPrevious, false);
+  const regs = _pl(t(over)).regions;
+  assert.equal(regs.length, 2);
+  assert.equal(regs.find((r) => r.src === "old").out, 10, "overdub leaves the old region whole");
+  assert.deepEqual(Object.keys(REC_MODES), ["takes", "replace", "overdub"]);
+  assert.equal(_st(_new(), _new().tracks[0].id, {}).tracks[0].recMode, "takes");
+});
+
+import { rulerTicks, clockLabel } from "./session.js";
+import test2 from "node:test";
+import assert2 from "node:assert/strict";
+test2("ruler: bars, beats and clock ticks", () => {
+  const s = { bpm: 120, meter: 4 };           // beat 0.5s, bar 2s
+  const r = rulerTicks(s, 40, 400);            // 10s wide
+  assert2.equal(r.bars[1].t, 2); assert2.equal(r.bars[1].label, "2");
+  assert2.ok(r.beats.length > 0 && r.beats.every((b) => b.t % 2 !== 0));
+  assert2.equal(r.clock[1].t, 2);              // 60px / 40 = 1.5s -> first nice step is 2s
+  assert2.equal(clockLabel(65), "1:05");
+});
+
+import { setLoop, toggleLoop, loopJump, cleanLoop } from "./session.js";
+test2("loop region: set, order, too short, toggle, wrap", () => {
+  let s = setLoop({ tracks: [] }, 8, 2);
+  assert2.deepEqual(s.loop, { start: 2, end: 8, on: true });
+  assert2.equal(loopJump(s, 7.9), null);
+  assert2.equal(loopJump(s, 8), 2);
+  s = toggleLoop(s); assert2.equal(loopJump(s, 9), null);
+  assert2.equal(setLoop(s, 3, 3.01).loop, null);
+  assert2.equal(setLoop(s, null).loop, null);
+  assert2.equal(cleanLoop({ start: "x", end: 4 }), null);
+  assert2.equal(cleanLoop({ start: -5, end: 4 }).start, 0);
+});
+
+import { emptyTakeCount, removeEmptyTakes, dropIfEmptied, countInPlan, punchPlan } from "./session.js";
+test2("empty take lanes are removed, populated ones and the active take are kept", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id); s = newPlaylist(s, id);                 // 3 lanes, all empty
+  assert2.equal(emptyTakeCount(s), 2);                            // a track keeps one
+  const c = removeEmptyTakes(s);
+  assert2.equal(c.tracks[0].playlists.length, 1);
+  assert2.equal(emptyTakeCount(c), 0);
+  assert2.equal(removeEmptyTakes(s, "nope").tracks[0].playlists.length, 3);
+});
+
+test2("dropIfEmptied removes only the lane just emptied, never a merely-new one", () => {
+  let s = newSession("t"); const id = s.tracks[0].id;
+  s = newPlaylist(s, id);                                          // lane 2 is new and empty (an overdub's)
+  const lane1 = s.tracks[0].playlists[0].id; const lane2 = s.tracks[0].playlists[1].id;
+  const dropped = dropIfEmptied(s, id, lane1);                     // lane 1 "emptied": goes
+  assert2.deepEqual(dropped.tracks[0].playlists.map((p) => p.id), [lane2]);
+  assert2.equal(dropIfEmptied(dropped, id, lane2).tracks[0].playlists.length, 1);   // never the last lane
+  assert2.equal(dropIfEmptied(s, id, "nope"), s);
+});
+
+test2("count-in: a click per beat, the downbeat accented, the right length", () => {
+  const p = countInPlan({ bpm: 120, meter: 4 }, 2);
+  assert2.equal(p.beats.length, 8); assert2.equal(p.seconds, 4);
+  assert2.deepEqual(p.beats.filter((b) => b.accent).map((b) => b.at), [0, 2]);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 0).beats.length, 0);
+  assert2.equal(countInPlan({ bpm: 120, meter: 4 }, 9).seconds, 0);   // junk means off
+});
+
+test2("a ruler stays sane when zoomed far out over a long beat", () => {
+  const r = rulerTicks({ bpm: 90, meter: 4 }, 0.2, 800);            // 4000 s across 800 px
+  assert2.ok(r.bars.length > 1 && r.bars.length <= 2000);
+  assert2.ok(r.clock.length > 1 && r.clock[1].t >= 300);             // clock ticks thin out to minutes, not a wall of marks
+  assert2.equal(r.beats.length, 0);
+});
+
+test2("punch plan: the loop region, a bar of pre-roll, nothing without a region", () => {
+  const s = { bpm: 120, meter: 4, loop: { start: 10, end: 14, on: false } };          // a bar is 2 s; the loop need not be ON to punch
+  assert2.deepEqual(punchPlan(s, true), { from: 8, in: 10, out: 14 });
+  assert2.equal(punchPlan(s, false), null);
+  assert2.equal(punchPlan({ ...s, loop: null }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 1, end: 1.05, on: true } }, true), null);
+  assert2.equal(punchPlan({ ...s, loop: { start: 0.5, end: 4, on: true } }, true).from, 0);   // never before the start of the song
+  assert2.equal(punchPlan({ bpm: 300, meter: 1, loop: { start: 5, end: 9, on: true } }, true).from, 4);   // at least a second of pre-roll
+});
+
+import { addSource as addSrc, setTrack as setTr, newSession as newSes } from "./session.js";
+test2("cycle passes: each lands in its own take lane, the last is active, and the track's own mode comes back", () => {
+  let s = newSes("t"); const id = s.tracks[0].id;
+  s = setTr(s, id, { recMode: "overdub" });                                   // the member's own mode, which a cycle must not keep
+  for (let k = 1; k <= 3; k++) {
+    s = addSrc(s, { id: `src${k}`, name: `t${k}`, duration: 4, channels: 2, rate: 48000 });
+    s = setTr(s, id, { recMode: "takes" });
+    s = recordInto(s, id, { src: `src${k}`, at: 8, name: `take ${k}` }).session;
+    s = setTr(s, id, { recMode: "overdub" });
+  }
+  const t = s.tracks[0];
+  assert2.equal(t.playlists.length, 3);
+  assert2.deepEqual(t.playlists.map((p) => p.regions.map((r) => r.src)), [["src1"], ["src2"], ["src3"]]);   // one region per lane: nothing stacked
+  assert2.equal(t.active, 2);
+  assert2.equal(t.recMode, "overdub");
+});
+
+test("repeating a clip lays copies end to end", async () => {
+  const { newSession, addTrack, addSource, addRegion, repeatRegion, regionsOf, endOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "src1", name: "beat", duration: 2, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "src1", at: 1, name: "beat" });
+  const first = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = repeatRegion(x, first.id, 3);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.equal(rs.length, 4);
+  assert.deepEqual(rs.map((r) => r.at), [1, 3, 5, 7]);
+  assert.equal(endOf(rs[3]), 9);
+  assert.equal(repeatRegion(x, first.id, 0), x);
+});
+
+test("a track group moves volume by the same dB, and mute and solo together; ungrouped tracks change alone", async () => {
+  const { newSession, addTrack, setTrack, setTrackGrouped } = await import("./session.js");
+  let x = addTrack(addTrack(addTrack(newSession(), "B"), "C"), "D");
+  const [a, b, c, d] = x.tracks.map((t) => t.id);
+  x = setTrack(x, a, { group: "A", gain: -6 }); x = setTrack(x, b, { group: "A", gain: -3 }); x = setTrack(x, c, { group: "B" });
+  const up = setTrackGrouped(x, a, { gain: -4 });                         // +2 dB on the one touched
+  assert.equal(up.tracks[0].gain, -4); assert.equal(up.tracks[1].gain, -1);   // its mate moved by the same 2 dB
+  assert.equal(up.tracks[2].gain, 0); assert.equal(up.tracks[3].gain, 0);     // another group and a loner stay
+  const muted = setTrackGrouped(x, b, { mute: true });
+  assert.deepEqual(muted.tracks.map((t) => t.mute), [true, true, false, false]);
+  const alone = setTrackGrouped(x, d, { gain: -2 });
+  assert.equal(alone.tracks[3].gain, -2); assert.equal(alone.tracks[0].gain, -6);
+  assert.equal(setTrack(x, a, { group: "Z" }).tracks[0].group, "");
+});
+
+test("stripping a clip leaves the pieces where they were on the timeline", async () => {
+  const { newSession, addTrack, addSource, addRegion, stripRegion, regionsOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "s1", name: "take", duration: 10, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "s1", at: 2, name: "take" });
+  const r = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = stripRegion(x, r.id, [{ from: 1, to: 3 }, { from: 6, to: 8 }]);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.deepEqual(rs.map((q) => [q.at, q.in, q.out]), [[3, 1, 3], [8, 6, 8]]);   // timeline = 2 + (source - 0)
+  assert.equal(stripRegion(x, r.id, []), x);
+});

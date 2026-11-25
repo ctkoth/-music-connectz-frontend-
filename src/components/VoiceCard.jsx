@@ -33,7 +33,7 @@ export default function VoiceCard() {
 
   return (
     <div className="neon-frame space-y-3 p-4">
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
         <MessageSquare size={13} className="text-mcz-cyan" /> VoiceZ
       </p>
       {rows.map(([key, label, note]) => {
@@ -56,7 +56,7 @@ export default function VoiceCard() {
             </span>
             <span className="min-w-0">
               <span className="block text-sm font-bold text-white">
-                {label} {locked && <Lock size={11} className="ml-1 inline text-white/40" />}
+                {label} {locked && <Lock size={11} className="ml-1 inline text-white/55" />}
               </span>
               <span className="block text-[11px] leading-relaxed text-white/50">{note}</span>
             </span>

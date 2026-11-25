@@ -33,7 +33,7 @@ export default function MasterPresets({ settings, onApply }) {
     <div className="space-y-2 rounded-lg border border-white/10 p-3 text-xs" data-tour="mixz-presets">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold text-white/80">Your mastering presets</h3>
-        <span className="text-white/45">{room.line}</span>
+        <span className="text-white/60">{room.line}</span>
         <span className="text-emerald-300">free</span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +69,7 @@ export default function MasterPresets({ settings, onApply }) {
           ))}
         </ul>
       )}
-      <p className="text-white/40">Keeps how it sounds (style, loudness, intensity, EQ, DynamicZ, VocalZ). Your track presets in the DAWs have their own room.</p>
+      <p className="text-white/55">Keeps how it sounds (style, loudness, intensity, EQ, DynamicZ, VocalZ). Your track presets in the DAWs have their own room.</p>
       {msg && <p className="text-emerald-300">{msg}</p>}
       {err && <p className="text-mcz-ember">{err}</p>}
     </div>

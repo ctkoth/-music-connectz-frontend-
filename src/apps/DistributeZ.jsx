@@ -79,7 +79,7 @@ function ReleaseCard({ r, quota, onChanged }) {
           <p className="truncate text-xs text-white/55">{r.artist_name}{r.genre ? ` · ${genreLabel(r.genre)}` : ""}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
             <span className={`rounded-full border px-2 py-0.5 ${STATUS[r.status]?.[1]}`}>{STATUS[r.status]?.[0] || r.status}</span>
-            {r.submitted_at && <span className="text-white/40">sent {new Date(r.submitted_at).toLocaleDateString()}</span>}
+            {r.submitted_at && <span className="text-white/55">sent {new Date(r.submitted_at).toLocaleDateString()}</span>}
             {r.source_post && <a className="re-link" href={r.source_post.url}>from “{r.source_post.title}” <ExternalLink size={10} className="inline" /></a>}
             {r.source_deal && <button className="re-link" onClick={() => goToSpot("collabz", "collabz-deals")}>from the collab “{r.source_deal.title}”</button>}
           </div>
@@ -108,7 +108,7 @@ function ReleaseCard({ r, quota, onChanged }) {
             Lyrics
             <textarea className="neon-input text-sm" rows={3} value={f.lyrics || ""} onChange={(e) => setF({ ...f, lyrics: e.target.value })} />
           </label>
-          {locked.size > 0 && <p className="text-[11px] text-white/45">It's out, so the title and ISRC are fixed — everything else can still change.</p>}
+          {locked.size > 0 && <p className="text-[11px] text-white/60">It's out, so the title and ISRC are fixed — everything else can still change.</p>}
           <div className="flex flex-wrap items-center gap-2">
             {dirty && <button className="re-btn !w-auto px-4 py-1.5 text-xs" disabled={!!busy} onClick={save}>{busy === "save" ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />} Save</button>}
             {!sent && (
@@ -117,9 +117,9 @@ function ReleaseCard({ r, quota, onChanged }) {
                 {busy === "send" ? <Loader2 className="animate-spin" size={12} /> : <Send size={12} />} Send it — free
               </button>
             )}
-            {!sent && <button className="text-xs text-white/40 hover:text-mcz-ember" disabled={!!busy} onClick={drop}><Trash2 size={12} className="inline" /> Drop the draft</button>}
+            {!sent && <button className="text-xs text-white/55 hover:text-mcz-ember" disabled={!!busy} onClick={drop}><Trash2 size={12} className="inline" /> Drop the draft</button>}
           </div>
-          {!sent && !r.ready && <p className="text-[11px] text-white/45">Send unlocks once nothing is missing.</p>}
+          {!sent && !r.ready && <p className="text-[11px] text-white/60">Send unlocks once nothing is missing.</p>}
           {!sent && r.ready && quota?.per_month != null && quota.left <= 0 && (
             <p className="text-[11px] text-mcz-ember">This month's Free release is used — it stays ready here for next month.</p>
           )}
@@ -202,8 +202,9 @@ export default function DistributeZ() {
       {d && (
         <div className="space-y-1 rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-white/65">
           <p>{d.how_it_works}</p>
+          {d.royalty_tax?.note ? <p className="text-mcz-ember">{d.royalty_tax.note}</p> : null}
           <p><QuotaLine q={d.quota} /></p>
-          {d.required?.length > 0 && <p className="text-white/45">Every release needs {d.required.join(", ")}.</p>}
+          {d.required?.length > 0 && <p className="text-white/60">Every release needs {d.required.join(", ")}.</p>}
         </div>
       )}
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
@@ -212,7 +213,7 @@ export default function DistributeZ() {
       {d?.is_owner && <OwnerQueue />}
 
       <section className="space-y-2" data-tour="distributez-releases">
-        <h3 className="font-semibold">Your releases {d && <span className="text-white/40">({d.releases.length})</span>}</h3>
+        <h3 className="font-semibold">Your releases {d && <span className="text-white/55">({d.releases.length})</span>}</h3>
         {d?.releases.length === 0 && <p className="text-sm text-white/55">None yet — fill one from a post below.</p>}
         {(d?.releases || []).map((r) => <ReleaseCard key={`${r.id}-${r.status}`} r={r} quota={d.quota} onChanged={load} />)}
       </section>
@@ -236,7 +237,7 @@ export default function DistributeZ() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-white/40">Collabs can be released too — open the deal in CollabZ and use “Distribute”.</p>
+        <p className="text-[11px] text-white/55">Collabs can be released too — open the deal in CollabZ and use “Distribute”.</p>
       </section>
     </div>
   );

@@ -158,6 +158,7 @@ const KEYS = {
   "directz.episodez.jpg": "episodez.png",
   "directz.moviez.jpg": "moviez.png",
   "directz.voicezstylez.jpg": "voicezstylez.png",
+  "studioz.mixez.jpg": "mixez.png",
   "designz.mangaz.jpg": "mangaz.png",
   "designz.animez.jpg": "animez.png",
   "intelligencez.animeconnectz.jpg": "animeconnectz.png",

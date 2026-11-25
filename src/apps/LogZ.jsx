@@ -149,7 +149,7 @@ function Row({ e, onDone }) {
           </span>
         )}
         <span className="flex-1 text-[12px] leading-relaxed text-white/70">{e.note || e.kind}</span>
-        <span className="shrink-0 text-[11px] text-white/35" title={new Date(e.at).toLocaleString()}>
+        <span className="shrink-0 text-[11px] text-white/50" title={new Date(e.at).toLocaleString()}>
           {when(e.at)}
         </span>
         <ChevronDown size={13} className={`shrink-0 text-white/25 ${open ? "rotate-180" : ""}`} />
@@ -207,7 +207,7 @@ export default function LogZ() {
         <IconImg icon="logz.png" alt="LogZ" className="h-11 w-11 rounded-xl" />
         <div className="flex-1">
           <h2 className="font-display text-xl font-extrabold">LogZ</h2>
-          <p className="text-xs text-white/45">What Music ConnectZ did — every move, and when.</p>
+          <p className="text-xs text-white/60">What Music ConnectZ did — every move, and when.</p>
         </div>
         <button onClick={() => load(filter)} title="Refresh"
           className="rounded-lg p-2 text-white/50 hover:bg-white/[0.06] hover:text-white">
@@ -229,7 +229,7 @@ export default function LogZ() {
                 {t.amount > 0 ? "+" : ""}
                 {t.resource === "money" ? (t.amount / 100).toFixed(2) : t.amount.toLocaleString()}
               </span>{" "}
-              <span className="text-white/40">net</span>
+              <span className="text-white/55">net</span>
             </span>
           ))}
         </div>
@@ -250,7 +250,7 @@ export default function LogZ() {
 
       <div className="neon-frame divide-y divide-white/[0.06]">
         {entries.length === 0 && (
-          <p className="flex items-center gap-2 p-4 text-sm text-white/45">
+          <p className="flex items-center gap-2 p-4 text-sm text-white/60">
             <ScrollText size={15} />
             {filter ? "Nothing moved here yet." : "Nothing logged yet — earn or spend something and it shows up here."}
           </p>
@@ -261,7 +261,7 @@ export default function LogZ() {
       </div>
 
       {data?.count > entries.length && (
-        <p className="text-[11px] text-white/35">
+        <p className="text-[11px] text-white/50">
           Showing the {entries.length} most recent of {data.count}.
         </p>
       )}

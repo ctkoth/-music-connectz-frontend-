@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import SelectAllBar from "../components/SelectAllBar.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
@@ -31,14 +32,14 @@ function Price({ s }) {
   if (s.free_today) {
     return (
       <span className="text-[11px] text-emerald-300">
-        Free today <span className="text-white/45">— uses 1 of the {s.daily_prompts_left} {PROMPTZ} you have left</span>
+        Free today <span className="text-white/60">— uses 1 of the {s.daily_prompts_left} {PROMPTZ} you have left</span>
       </span>
     );
   }
   return (
     <span className="text-[11px]">
       <span className="font-semibold text-mcz-ember">−{s.cost_cents} {PROMPTZ}</span>
-      {!s.affordable && <span className="ml-1 text-white/45">— today's free prompts are spent</span>}
+      {!s.affordable && <span className="ml-1 text-white/60">— today's free prompts are spent</span>}
     </span>
   );
 }
@@ -51,8 +52,8 @@ function Shelf({ items, note }) {
         <li key={p.key} className="rounded-xl border border-white/10 bg-white/[0.03] p-2.5">
           <p className="text-[13px] font-semibold text-white/90">
             {p.label}
-            {p.score != null && <span className="ml-1.5 text-[11px] font-normal text-white/45">for {p.factor_label} · {p.score}/10</span>}
-            {p.score == null && <span className="ml-1.5 text-[11px] font-normal text-white/45">for {p.factor_label}</span>}
+            {p.score != null && <span className="ml-1.5 text-[11px] font-normal text-white/60">for {p.factor_label} · {p.score}/10</span>}
+            {p.score == null && <span className="ml-1.5 text-[11px] font-normal text-white/60">for {p.factor_label}</span>}
           </p>
           <p className="text-[11px] leading-snug text-white/60">{p.why}</p>
           {p.caution && <p className="text-[11px] leading-snug text-mcz-gold">⚠ {p.caution}</p>}
@@ -66,7 +67,7 @@ function Shelf({ items, note }) {
           </div>
         </li>
       ))}
-      {note && <li className="text-[11px] text-white/40">{note}</li>}
+      {note && <li className="text-[11px] text-white/55">{note}</li>}
     </ul>
   );
 }
@@ -76,14 +77,14 @@ function Shelf({ items, note }) {
 function HowItsRated({ meta }) {
   return (
     <details className="rounded-xl border border-white/10 bg-white/[0.02] p-2.5">
-      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-widest text-white/45">What, why and how — every factor</summary>
+      <summary className="cursor-pointer text-[11px] font-semibold uppercase tracking-widest text-white/60">What, why and how — every factor</summary>
       <dl className="mt-2 space-y-2">
         {Object.entries(meta.factor_info || {}).map(([f, i]) => (
           <div key={f}>
             <dt className="text-[12px] font-semibold text-white/90">{i.label}</dt>
-            <dd className="text-[11px] leading-snug text-white/65"><span className="text-white/40">What: </span>{i.what}</dd>
-            <dd className="text-[11px] leading-snug text-white/65"><span className="text-white/40">Why: </span>{i.why}</dd>
-            <dd className="text-[11px] leading-snug text-emerald-200/80"><span className="text-white/40">How: </span>{i.how}</dd>
+            <dd className="text-[11px] leading-snug text-white/65"><span className="text-white/55">What: </span>{i.what}</dd>
+            <dd className="text-[11px] leading-snug text-white/65"><span className="text-white/55">Why: </span>{i.why}</dd>
+            <dd className="text-[11px] leading-snug text-emerald-200/80"><span className="text-white/55">How: </span>{i.how}</dd>
           </div>
         ))}
       </dl>
@@ -137,8 +138,14 @@ function Sector({ k, meta, data, shop, affiliate }) {
         </div>
       )}
       {k === "body" && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p className="text-[11px] text-white/60">{data?.sessions_28d ?? 0} session{data?.sessions_28d === 1 ? "" : "s"} logged in the last 28 days — shown, never scored: turning up is not the same as getting stronger.</p>
+          {(data?.doors || []).map((dr) => (
+            <button key={dr.factor} type="button" className="re-btn !w-auto mr-1.5 px-3 text-[12px]"
+              onClick={() => { try { sessionStorage.setItem("bodiez.prefillMuscle", dr.open_in.muscle); } catch { /* blocked */ } goToTab("bodiez"); }}>
+              {dr.open_in.label} · {dr.score}/10
+            </button>
+          ))}
           <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("bodiez")}>
             {data?.open_in?.label || "Open BodieZ"}
           </button>
@@ -146,9 +153,9 @@ function Sector({ k, meta, data, shop, affiliate }) {
       )}
       {shop?.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">Worth a look · lowest first</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">Worth a look · lowest first</p>
           <Shelf items={shop} />
-          <p className="text-[10px] text-white/35">{affiliate}</p>
+          <p className="text-[10px] text-white/50">{affiliate}</p>
         </div>
       )}
       <HowItsRated meta={meta} />
@@ -191,7 +198,7 @@ function Markets({ info, onChange }) {
           {info.markets.map((m) => <li key={m.key}>{m.name}</li>)}
         </ol>
       )}
-      {!statz && info.saved > 0 && <p className="text-[11px] text-white/45">Your saved list of {info.saved} comes back with StatZ.</p>}
+      {!statz && info.saved > 0 && <p className="text-[11px] text-white/60">Your saved list of {info.saved} comes back with StatZ.</p>}
       {!statz && (
         <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("membershipz", "membershipz-plans")}>
           <Lock size={12} /> Choose your own marketplaces — StatZ
@@ -211,7 +218,7 @@ function Markets({ info, onChange }) {
               <button type="button" aria-label="Remove marketplace" onClick={() => setRows((r) => r.filter((_, j) => j !== i))} className="re-btn !w-auto px-1.5"><Trash2 size={12} /></button>
             </div>
           ))}
-          <p className="text-[11px] text-white/45">{info.rule} Up to {info.custom_max}.</p>
+          <p className="text-[11px] text-white/60">{info.rule} Up to {info.custom_max}.</p>
           <div className="flex flex-wrap gap-1.5">
             <button type="button" className="re-btn !w-auto px-3 text-[12px]" disabled={rows.length >= info.custom_max}
               onClick={() => setRows((r) => [...r, { key: "", name: "", url: "" }])}><Plus size={12} /> Add marketplace</button>
@@ -242,7 +249,7 @@ function PhotoPick({ d, file, setFile, url, setUrl, label }) {
       <input className="neon-input w-full text-[12px]" inputMode="url" value={url} disabled={!!file}
         onChange={(e) => setUrl(e.target.value)} aria-label={`${label} — or its image address`}
         placeholder="…or paste the photo's image address (Instagram, Facebook, X, TikTok…)" />
-      <p className={`text-[11px] ${page ? "text-mcz-gold" : "text-white/40"}`}>
+      <p className={`text-[11px] ${page ? "text-mcz-gold" : "text-white/55"}`}>
         {page ? "That's a link to a post or page, not the photo. Open the photo, copy its IMAGE address (long-press or right-click → Copy image address), or save it and attach it."
           : d.link_note}
       </p>
@@ -367,15 +374,15 @@ function Inspiration({ d, openShelf }) {
   }
   return (
     <section className="neon-frame space-y-3 p-4" data-tour="lookmax-inspire">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">✨ Look Inspiration — anyone's photo</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">✨ Look Inspiration — anyone's photo</p>
       <p className="text-[12px] leading-snug text-white/70">{d.inspire?.what}</p>
-      <p className="text-[11px] leading-snug text-white/45">{d.inspire?.rule}</p>
+      <p className="text-[11px] leading-snug text-white/60">{d.inspire?.rule}</p>
       <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of a look you want" />
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="re-btn !w-auto px-4" disabled={busy || !ready} onClick={run}>
           {busy ? <><Loader2 size={14} className="animate-spin" /> Reading…</> : "Describe this look"}
         </button>
-        <Price s={d} /> <span className="text-[11px] text-white/45">— not charged if there's no look to describe.</span>
+        <Price s={d} /> <span className="text-[11px] text-white/60">— not charged if there's no look to describe.</span>
       </div>
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
       {look && (look.parts?.length ? (
@@ -464,7 +471,10 @@ export default function LookmaxZ() {
         <section className="neon-frame space-y-2 border-mcz-ember/30 p-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-mcz-ember"><Lock size={14} /> 18+ only</p>
           <p className="text-[12px] text-white/70">{d.locked}</p>
-          <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+            <Link className="re-btn !w-auto px-3 text-[12px]" to="/lookmaxz/sample">See an example reading first</Link>
+          </div>
         </section>
       ) : (
         <>
@@ -475,7 +485,7 @@ export default function LookmaxZ() {
             </p>
           )}
           <section className="neon-frame space-y-3 p-4" data-tour="lookmax-read">
-            <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Read one photo</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/60">Read one photo</p>
             <SelectAllBar all={d.photo_sectors.filter((k) => !d.opt_in_sectors?.includes(k))} picked={picked || []}
                           onChange={setPicked} allLabel="Select all standard" />
             <div className="flex flex-wrap gap-1.5">
@@ -490,7 +500,7 @@ export default function LookmaxZ() {
               <div key={k} className="space-y-1.5 rounded-xl border border-mcz-gold/30 bg-mcz-gold/[0.04] p-2.5">
                 <p className="text-[11px] font-semibold text-mcz-gold">{meta[k].emoji} {meta[k].label} — read this first</p>
                 <p className="text-[11px] leading-snug text-white/70">{k === "proportions" ? d.proportions_disclaimer : d.physique_disclaimer}</p>
-                {k === "proportions" && <p className="text-[10px] leading-snug text-white/45">{d.proportions_rule}</p>}
+                {k === "proportions" && <p className="text-[10px] leading-snug text-white/60">{d.proportions_rule}</p>}
                 <label className="flex items-start gap-2 text-[12px] text-white/80">
                   <input type="checkbox" checked={!!acks[k]} onChange={(e) => setAcks((a) => ({ ...a, [k]: e.target.checked }))} className="mt-0.5" />
                   I've read this and want {meta[k].label.toLowerCase()} included.
@@ -504,7 +514,7 @@ export default function LookmaxZ() {
             {d.keep_note && (
               <label className="flex items-start gap-2 text-[12px] text-white/70">
                 <input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} className="mt-0.5" />
-                <span>Keep my photo with this reading <span className="block text-[11px] text-white/40">{d.keep_note}</span></span>
+                <span>Keep my photo with this reading <span className="block text-[11px] text-white/55">{d.keep_note}</span></span>
               </label>
             )}
             <PhotoPick d={d} file={file} setFile={setFile} url={url} setUrl={setUrl} label="Photo of yourself" />
@@ -514,11 +524,11 @@ export default function LookmaxZ() {
               </button>
               <Price s={d} /> <AiEnergy className="text-[11px]" />
             </div>
-            <p className="text-[11px] leading-snug text-white/45">{d.cost_note}</p>
-            {!d.configured && <p className="text-[11px] text-white/40">The reader isn't switched on yet.</p>}
-            <p className="text-[11px] leading-snug text-white/45">{d.caveat}</p>
+            <p className="text-[11px] leading-snug text-white/60">{d.cost_note}</p>
+            {!d.configured && <p className="text-[11px] text-white/55">The reader isn't switched on yet.</p>}
+            <p className="text-[11px] leading-snug text-white/60">{d.caveat}</p>
             <div className="space-y-1 rounded-lg border border-white/10 p-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/40">How it's rated</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">How it's rated</p>
               <p className="text-[11px] leading-snug text-white/60">{d.rating_rule}</p>
               <ul className="grid gap-x-4 sm:grid-cols-2">
                 {d.scale.map((b) => <li key={b.band} className="text-[11px] text-white/60"><span className="font-semibold text-white/80">{b.band}</span> — {b.means}</li>)}
@@ -545,7 +555,7 @@ export default function LookmaxZ() {
                       <img src={res.kept_photo?.url || readPhoto} alt="The photo that was read" className="max-h-72 rounded-lg" />
                     )}
                     {res.kept_photo && !res.kept_photo.url && <p className="text-[11px] text-mcz-gold">{res.kept_photo.note}</p>}
-                    {res.kept_photo?.url && <p className="text-[11px] text-white/45">Kept as one of your uploads — delete it there any time.</p>}
+                    {res.kept_photo?.url && <p className="text-[11px] text-white/60">Kept as one of your uploads — delete it there any time.</p>}
                     <RatingRow value={res.overall} label="Overall — plain average of the sectors you asked for"
                       detail={res.verdict} size="lg" outOf />
                     {res.photo_quality != null && <RatingRow value={res.photo_quality} label="Photo quality — how well this photo shows you, not a score of you" size="sm" />}
@@ -579,7 +589,7 @@ export default function LookmaxZ() {
             {shelf && Object.entries(shelf.shop).map(([k, items]) => (
               <div key={k} className="space-y-1.5">
                 <Shelf items={items} />
-                <p className="text-[10px] text-white/35">{shelf.affiliate_note}</p>
+                <p className="text-[10px] text-white/50">{shelf.affiliate_note}</p>
               </div>
             ))}
           </section>
@@ -591,7 +601,7 @@ export default function LookmaxZ() {
         </>
       )}
 
-      <p className="text-[11px] leading-snug text-white/40">{d.care_note}</p>
+      <p className="text-[11px] leading-snug text-white/55">{d.care_note}</p>
     </div>
   );
 }

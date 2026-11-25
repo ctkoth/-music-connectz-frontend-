@@ -42,7 +42,7 @@ function Price({ s, failed, onRetry }) {
       <span className="text-[11px] text-mcz-ember">
         Couldn't check the price. <button className="re-link" onClick={onRetry}>Try again</button>
       </span>
-    ) : <span className="text-[11px] text-white/40">Checking the price…</span>;
+    ) : <span className="text-[11px] text-white/55">Checking the price…</span>;
   }
   const split = splitCost(s.price_cents, s.promptz);
   return (
@@ -53,7 +53,7 @@ function Price({ s, failed, onRetry }) {
           {split.cents > 0 && <>−{money(split.cents)} {MONEY}</>}
         </>
       ) : <>−{s.price_cents} {PROMPTZ}</>}{" "}
-      <span className="text-white/45">
+      <span className="text-white/60">
         {split && split.cents > 0 ? `— ${PROMPTZ} first, then your balance` : ""}
         {" "}— held while it renders, refunded in full if it fails
       </span>
@@ -225,7 +225,7 @@ export default function VideoConnectZ() {
         </div>
 
         <div className="space-y-2">
-          <p className="text-sm text-white/70">Star in it <span className="text-white/40">(optional — your FaceZ photo becomes the first frame)</span></p>
+          <p className="text-sm text-white/70">Star in it <span className="text-white/55">(optional — your FaceZ photo becomes the first frame)</span></p>
           {s?.faces?.length ? (
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setFace(null)}
@@ -244,7 +244,7 @@ export default function VideoConnectZ() {
             <div className="flex flex-wrap items-center gap-2 text-[11px]">
               <button className="re-btn !w-auto px-3 text-xs" onClick={() => handOff("videoz", "videoz-timeline", { url: f.url, name: "Your FaceZ photo", kind: "image", lip: true })}>
                 👄 Lip-sync this face to your track</button>
-              <span className="text-white/45">StatZ (or the daily free sample), free to use, in VideoZ: the mouth follows your track's sound, not its words. A rendered video can't be re-lip-synced; this uses the photo.</span>
+              <span className="text-white/60">StatZ (or the daily free sample), free to use, in VideoZ: the mouth follows your track's sound, not its words. A rendered video can't be re-lip-synced; this uses the photo.</span>
             </div>) : null; })()}
           {/* Said BEFORE a file is chosen: this posts to the same endpoint as
               FaceZ, so a photo added here is a FaceZ face with everything that
@@ -330,7 +330,7 @@ export default function VideoConnectZ() {
           {s.works.map((w) => (
             <button key={w.id} onClick={() => setWork(w)}
               className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
-              {w.label} <span className="text-white/45">— {w.status === "done" ? "ready" : w.status === "pending" ? "rendering…" : "didn't render"} · {w.prompt.slice(0, 60)}</span>
+              {w.label} <span className="text-white/60">— {w.status === "done" ? "ready" : w.status === "pending" ? "rendering…" : "didn't render"} · {w.prompt.slice(0, 60)}</span>
             </button>
           ))}
         </div>

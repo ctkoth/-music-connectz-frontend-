@@ -84,7 +84,7 @@ export default function FaceZ() {
 
       {d && (
         <section className="neon-frame space-y-3 p-4">
-          <h3 className="font-semibold">Your faces <span className="text-white/40">({d.mine.length}{d.faces_limit != null ? ` of ${d.faces_limit}` : " · unlimited"})</span></h3>
+          <h3 className="font-semibold">Your faces <span className="text-white/55">({d.mine.length}{d.faces_limit != null ? ` of ${d.faces_limit}` : " · unlimited"})</span></h3>
           {d.faces_full && (
             <p className="text-xs text-mcz-gold">Full — your tier keeps {d.faces_limit} faces. Delete one, or{" "}
               <button className="re-link" onClick={() => goToTab("membershipz")}>upgrade (Premium keeps more; StatZ is unlimited)</button>.</p>
@@ -98,7 +98,7 @@ export default function FaceZ() {
               <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={upload} />
             </label>
           </div>
-          <p className="text-[11px] text-white/45">Free. Tagging a member tells them. Faces aren't counted toward your storage allowance.</p>
+          <p className="text-[11px] text-white/60">Free. Tagging a member tells them. Faces aren't counted toward your storage allowance.</p>
           {/* Before the file is chosen, not after: adding a face is entering the
               feed below, and the only way back out is deleting it. */}
           <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/65">{d.ratings_note || FACE_FEED_NOTE}</p>

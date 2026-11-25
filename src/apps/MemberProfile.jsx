@@ -5,6 +5,7 @@
 // shows up here.
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
+import CoachBest from "../components/CoachBest.jsx";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { playSound } from "../sound.js";
@@ -78,7 +79,7 @@ function CardActions({ username, data }) {
 
       {data?.reach_block && <p className="text-[11px] text-amber-200">{data.reach_block}</p>}
       <div className="space-y-1">
-        <p className="flex items-center gap-1 text-[11px] text-white/45"><Heart size={11} /> Rate attractiveness
+        <p className="flex items-center gap-1 text-[11px] text-white/60"><Heart size={11} /> Rate attractiveness
           {data?.rating_reward?.amount > 0 && <span className="text-emerald-300">+{data.rating_reward.amount} {ENERGY} for a first rating</span>}
         </p>
         <div className="flex flex-wrap gap-1">
@@ -94,7 +95,7 @@ function CardActions({ username, data }) {
       <a href={`/u/${encodeURIComponent(username)}`} className="inline-flex items-center gap-1 text-xs text-mcz-cyan hover:underline">
         <Star size={12} /> Rate their skills — on their work{data?.pieces ? ` (${data.pieces} pieces)` : ""}
       </a>
-      <p className="text-[10px] text-white/35">
+      <p className="text-[10px] text-white/50">
         Skill ratings come from rating someone's actual work, never a number given to the person, so they stay a measure of the work.
         {perMin > 0 && ` Calls are charged per minute at @${username}'s rate; the price is held before it rings.`}
       </p>
@@ -198,7 +199,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
               </h3>
               {/* The handle and the way to hand it to somebody, together.
                   A profile is a pitch, and a pitch you cannot send is a page. */}
-              <p className="flex items-center gap-1 text-xs text-white/45">
+              <p className="flex items-center gap-1 text-xs text-white/60">
                 <span className="truncate">@{username}</span>
                 <CopyLink username={username} label="" />
               </p>
@@ -267,6 +268,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}
+            <CoachBest rows={data.coach_best} username={username} />
             <BadgeWearList badges={data.badges} />
             <ViewCount target={`profile:${username}`} />
 
@@ -284,7 +286,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             {data.personas?.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">PersonaZ</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/55">PersonaZ</p>
                 <div className="flex flex-wrap gap-1.5">
                   {/* A persona is {key, name, skills} since the skill picker
                       landed. Rendering it raw put an object where React wants
@@ -298,7 +300,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             {data.nationalities?.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">NationalitieZ</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/55">NationalitieZ</p>
                 <div className="flex flex-wrap gap-1.5">
                   {data.nationalities.map((n) => <Pill key={n}>{FLAG_FOR[n] || "🌐"} {n}</Pill>)}
                 </div>
@@ -312,7 +314,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
                 stated, before the link is pressed rather than after. */}
             {data.links?.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/40">Links</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/55">Links</p>
                 <LinkList links={data.links} owner={data.mine ? "" : username} />
               </div>
             )}
@@ -322,7 +324,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
             <SuperfanZ username={username} />
 
             {data.mine && (
-              <p className="text-[11px] text-white/35">This is you — edit any of it in ProfileZ.</p>
+              <p className="text-[11px] text-white/50">This is you — edit any of it in ProfileZ.</p>
             )}
           </div>
         )}

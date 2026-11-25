@@ -2543,3 +2543,311 @@ the ⚡ (`<AiEnergy engine=…>`) and whether a free prompt covers it. **A free 
 engine isn't covered (Fable)**: the price line says so and how to use a free one, and the out-of-takes upsell does not show.
 Radar reads, reference listens, the trial and the standalone shells get no picker and are priced without an engine, because
 no Claude pass runs for them. Driven in a browser at Free, Premium and StatZ (default engine, locked rows, switch re-prices).
+
+## Chrome's translate rewrites our text, and React must survive it (`domGuard.js`)
+
+A member reading the app in Portuguese got "Failed to execute 'insertBefore' on 'Node'" and Arsenal went down. Page
+translators replace React's text nodes with `<font>` wrappers (React issue #11538). `guardDomForTranslators()` runs in
+`main.jsx` before React and makes `insertBefore` / `removeChild` aim at the wrapper instead of throwing; normal calls are
+untouched. Also: a one-word product name ending in a capital Z is never sent to our own translator (`uiLang.worth`) —
+"STATZ" came back "ESTADO". The translator shows a status line when a screen is still half English.
+
+## DAW: copies, clipping, ticking tracks, and the StatZ checks
+
+- **Copies of one recording on several tracks sound like static** (they comb and cancel). `dupes.js` compares each
+  track's loudness envelope; only a near-exact match at the same level counts, so different stems are never called
+  copies. A banner offers Mute / Remove the copies (free). On StatZ, copies that arrive WITH an import are removed by
+  themselves; the watch ends 1.5 s after the import so an Undo sticks.
+- **Clipping is said while it plays**: the master's loudest peak since Play; over 0 dBFS a red line offers one free,
+  undoable "turn every fader down N dB". There is no master limiter, on purpose (drawn = heard = bounced).
+- **Ticking tracks is free; "Select all tracks" is StatZ** (SelectAllBar, Corey's select-all rule). Mute / unmute /
+  solo / unsolo / remove apply to the ticked set; remove always leaves one track.
+- **Import stems** lands each file on its own track at 0:00 with a guessed role. **Mix check** (headroom, frequency-clash
+  EQ dips, ducking), **timing & polarity** and **gain staging from a prompt** are StatZ (or the sample), measured on the
+  device; the prompt one sends numbers only. All three work on one of each recording (copies skipped). Every strip has
+  a free Ø polarity button. A session can be copied in from another DAW (the original is untouched).
+
+## The home screen and the first session
+
+- `focus.js` `HOME_PARENTS` / `HOME_APPS` are Corey's set, always shown at the top whatever folds below. StudioZ is a
+  category (DawZ, MangaZ, AnimeZ on one screen); its name was my pick and is one line to change. The grid uses
+  `auto-fill` so one tile never stretches into a giant box, and Poppins, not Courier New.
+- OnboardZ leads with ONE step, "Get your first score", on the coach they tried (else picked, else SingZ), then one
+  next step at a time; profile fields come after posting and rating. The bonus needs a score, a post and 3 ratings and
+  the server checks it (`onboard/complete/` GET has `progress`). FunnelZ shows "Joined → first scored take within 24h".
+- Logged-out visitors get `/explore` (public posts) and a Join bar with one-tap OAuth on every public page; sign-up and
+  log-in lead with OAuth.
+- The trial recorder says why the mic did not open right under the button, and says when the browser is still
+  deciding (Chrome's quiet permission prompt left the button looking dead), with Upload instead.
+
+## The coach's two big controls, and skill experience in decimal years
+
+`BossTake` leads with two equal tiles: a round **Record** button and **Upload a clip** (on the trial Upload goes
+first, as before); camera and discard sit smaller beneath, and while recording it is one large red Stop with the
+clock. Same handlers and `data-tour` anchors as before. Checked in a 390px browser: both tiles are on the first
+screen.
+
+A skill's experience is **years with one decimal** (`skillsUsed.decimalYears`, `personaSkills.skillYearsDecimal`):
+`.5` is six months, so nobody does the sum. The line says when it STARTED (full date, or just the year when that
+is all the member gave, then "about") — never months. Who rated a skill, and on which post, is StatZ's (or the
+sample's): the server sends `raters` only then and `raters_locked` otherwise; the median and count stay everybody's.
+
+## The Grok mockups: what was matched, and what was deliberately not
+
+Matched app-wide through shared pieces: every rating row carries a progress bar under its number and stars
+(`RatingRow`), the coach's headline score is a ring (`RatingRing`, same `ratingTone` colours, no ring fill for a
+missing score), and `.re-card` is rounder. Big Record/Upload tiles: coach, composer recorder; larger primary
+controls on tuner, DAW record, interest voice and calls.
+NOT changed: the neon-tube button language, Corey's own icons, and the PickConnectZ dock / menu layout — the
+mockups are flat purple and the app's identity is the neon art he drew. Matching the flat look everywhere would be
+a redesign of every screen, which is his call.
+
+## SplitZ sits side by side wherever each pane keeps its width (`splitLayout`)
+
+The split was `lg:grid-cols-2` (1024px), so a tablet in portrait, a landscape phone and any 700-1000px window stacked
+the two apps and left half the screen empty. `splitLayout({w,h})` in `useScreenShape.js` decides from the measured screen:
+side by side once each pane keeps 340px (and the screen is at least 360px tall), else stacked. Each pane scrolls inside
+itself (`paneMax`), so the app being worked in is never pushed a full screen away. Driven in a browser at 390x844 (stacked),
+844x390 and 768x1024 (side by side), no sideways scroll at any. 1024 and 1280 were not driven: the day's free split opens
+ran out on the test account.
+
+## PaneZ, the tuner's verdict, ScaleZ, and the whole kit on one page
+
+- **The split is called PaneZ everywhere a member reads it** (it was SplitZ on the pane header and the dock). Opens a day are the
+  server's `split_opens` (Free 3, Premium 6, StatZ unlimited); mini panes are not counted. No time-of-day windows were added:
+  a per-day count is the one number `/panez/` serves and a second rule would be a second place the limit lives.
+- **TunerZ had the flat/sharp words backwards.** Cents are positive when the note is ABOVE the pitch, i.e. sharp, and the screen
+  printed "cents flat" for them, so somebody following the arrow tuned the wrong way. `tuning.js` `tuneVerdict` is the one
+  wording (positive = sharp, "bring it down"; negative = flat, "bring it up"; within 5 cents in tune), tested. The screen names the
+  note being played above it.
+- **ScaleZ lives in ChordZ** (`scales.js`, pure and tested): seven scales from the chord's own root, the notes as tappable chips
+  (tap to hear, or play the whole scale rising), and the chords of the key for major and natural minor. Sine-wave audio on the
+  same context as the chord player.
+- **"Whole kit on one page"** (DAW header) fires `mcz-kit`: MetZ, TunerZ, ChordZ and Sentence ConnectZ open as mini panes beside
+  the DAW; again closes them. Minis already existed (`MAX_MINIS` 4, zoomed to 0.72, free at every tier).
+
+## Songs say their key — estimated, on the device, and it opens ChordZ
+
+`songKey.js` reads a recording's key (Goertzel energy per pitch class over C2..B6, Krumhansl-Kessler major/minor
+profiles in 12 rotations) with no upload and no charge; silence or no tonal content is `null`, never a guess, and every
+answer names its relative key because relative keys share every note and are how it goes wrong. `components/KeyBadge.jsx`
+sits under the audio in PostZ cards ("Find the key", on demand — a feed of forty cards must not decode forty songs),
+the coach's take player and result (automatic), a DAW bounce (automatic) and Mix ConnectZ's masters. The label says
+"estimated"; "Notes & chords in this key" hands the key to ChordZ, which shows it in letters at the very top with its
+notes, and sets the root, scale and chord type to it. Tested on synthesised tunes (C major, A minor, D major) and
+driven in a browser; **not tested on real mixes**, where drums and vocals blur the picture more than a test tone does.
+
+**DAW tracks too.** Every track header with clips has a small 🎹 (`KeyChip`, in `KeyBadge.jsx`): it reads the key of that track
+as the DAW renders it solo (`measureTrackAudio`, the same render Mix check and Autotune use, so other tracks never muddy it),
+then shows "Am" / "C" and opens ChordZ on it. It resets when the track's clips change. Driven in a browser with an A-minor
+tune imported into Arsenal: the chip read "🎹 Am", no console errors, header fits without crowding.
+
+## A track keeps playing while somebody designs
+
+PostZ audio plays in the app-wide `NowPlayingBar`, which already survived a tab change (verified: a track started on PostZ
+kept advancing after the shell switched to ImageZ, no console errors). What it got wrong for DESIGN screens: the bar sat over
+the bottom of the editor. Now `<main>` adds bottom room while a track plays (`pb-64`, `pb-52` compact), and the bar has a small
+mode (⤡ / ⤢, kept on this device as `mcz_np_compact`): a round play/pause and the title, bottom-left, with the track
+playing either way. Beside each other, PostZ and ImageZ also work in PaneZ. Video posts (`ListenedMedia`) are the element
+in the card and still stop with it; only audio plays in the bar.
+
+## SkillZ is the featured tile on the home screen; the coaches live inside it
+
+SkillZ was one small tile among fifteen (and SingZ, RapZ, GuitarZ and DrumZ were repeated beside it), so Corey's art
+read as buried. `FeaturedSkillZ` (`ToolZMenu.jsx`, `HOME_FEATURED` in `focus.js`) is now a wide tile above the grid with the art
+large, a line on what it is and the coaches it holds. SingZ, RapZ, GuitarZ and DrumZ are no longer tiles on the home grid (Corey:
+they belong in SkillZ); they are still in the SkillZ screen, still routed, and a coach opened often still lands in "Your apps".
+The art itself was never lost: `skillz.png` is his image (committed at 480px by the size pass) and the `SkillZ.<coach>.png` files
+are byte-for-byte the same art as the root coach icons. Driven in a 412px browser: icon left, title and coaches right.
+
+## DesignZ is in SkillZ: designers put work up to be rated, and ImageZ's coach notes open there
+
+`apps/DesignZ.jsx` (tab `designz`, listed in the SkillZ category under "Designers") is a gallery of design work from PostZ's own feed
+(`/api/economy/postz/?sort=hot|new|top`; `designz.js` keeps a post that carries a picture or names a design skill and pads nothing in).
+Under every design is the one `SocialBar` on `post:<id>` — Karma (vote + mood), Rate, Comment, Share, Open — the same item PostZ rates,
+so a design has one number wherever it is seen. Posting is PostZ's composer (one tap, its price shown there). It decides nothing.
+
+**ImageZ's coach notes open in DesignZ.** `ImageScore` (ImageZ's "Score it") scores the picture's CRAFT with why and how; after a score it
+offers "Read the full coach notes in DesignZ · free" (`handOff("designz", …, {notes, image})`), and DesignZ shows them in full — the ring,
+every dimension's why and how, Next — with doors back to ImageZ and on to PostZ. `notesFromHandoff` refuses a payload with a missing label
+and only shows a data-URL picture. **It never rates anybody's looks**, which is Corey's repeated ask and stays refused (a number on a kid's
+looks on a platform with strangers is harm; LookZMaxZ is verified adults, own photo); the notes panel says so. Driven in a 412px browser:
+the tab loads, the handed-over notes render, no console errors, no sideways scroll. The gallery was empty in the local seed (no design
+posts), so the SocialBar under a real design card was not seen.
+
+**A looks-rating door, for verified adults only (`LooksDoor.jsx`).** AI feedback on a member's own looks (LookZMaxZ / AttractivenessZ) and
+other members rating them (the attractiveness rating on a profile) already exist, 18+ verified and own photo only. Corey asked for it to be here
+so nobody leaves for another app; the answer is a door, not a widening. `LooksDoor` sits under ImageZ's score and DesignZ's coach notes and renders
+ONLY when `/economy/identity/` says `verified_18plus` — nothing at all for anyone else, because inviting a minor (or someone who may be one) to
+have their face scored is the harm the feature is built around, and a locked door is still an invitation. Not widened to minors or to other
+people's photos (Corey has asked more than once; refused each time for the same reason). Not driven in a browser: it needs a verified account.
+
+## The ID check could say "still checking" for weeks, and a profile photo gets photo feedback with no overall
+
+**ID verification (`Verify18Card`).** A member's check read "reading your ID" for weeks. Server cause (backend `identity.py`): `refresh` only re-asked
+Stripe about checks younger than two days, so one that ended while no webhook listened stayed open for ever, and a "processing" row also made
+`POST` answer "pending" instead of starting a new check. Screen cause: the button was disabled for ANY pending result. Now pending is three
+states: **Stripe really is checking** (spinner, button waits), **`needs_you`** (started, not finished: amber, "Open the check again") and
+**`stale`** (Stripe has had it for hours/days: says how long, "Start a new check"). Only the first holds the button, and only it keeps polling.
+A check Stripe no longer knows is closed; a link unfinished after 48h is closed as abandoned. Any old check is re-read on the next visit, so
+someone whose pass was never recorded gets it applied. Tested server-side (six cases); not driven against real Stripe.
+
+**Profile photo, as a photograph.** ImageZ's "Check my profile photo" (`purpose: "profile"` on `/imagez/rate/`) scores framing, lighting,
+background, sharpness and colour — what the maker can change in a minute — and judges NOTHING about the person (no face, body, age,
+expression, looks). There is **no overall number** (one number beside a face reads as a score on the face), the caveat says so, and any age may
+use it for that reason. The notes open in DesignZ like the craft score, without the ring and without `LooksDoor`. This is the safe version of
+"feedback on my profile photo" for teens: it was offered in place of rating their looks, which stays refused.
+
+## Steps from a phone and watch: StepZ's second card, and where it cannot work
+
+`components/WatchSteps.jsx`, the top of BodieZ's StepZ tab. A web page and a Trusted Web Activity cannot read Health Connect, so
+the card does only what a page can: it asks the server for a pairing code (`/api/economy/health/pair/`), shows it, and on
+Android opens the native Link steps screen in the installed app with an `intent://` link (`healthSteps.js`; the BodieZ shell
+opens the BodieZ package, everything else the main one). Anywhere but Android it says to use an Android phone rather than
+offering a button that does nothing. The days, the note ("your device's count, pays nothing") and whether a phone is linked are the
+server's; a failed fetch renders nothing.
+
+- **Kept apart from the steps a member types.** A device's count and a typed one are different things; they are never summed.
+- **Unlink says what it deletes on the button** (every day held here) and asks first; the phone's own Health Connect data is untouched.
+- **Nothing is invented for a day with no record**, and the card never turns a step count into a score, level or reward.
+- The privacy policy and `play/bodiez/data-safety.md` name step data and Health Connect. **Not done:** the Play Console Health Connect
+  declaration, and none of the native side has been built or run (no Android SDK here) — build `assembleBodiezDebug` in CI and
+  try it on a phone with Health Connect and a watch writing to it. Merge the backend first.
+### DesignZ driven against real design posts
+
+Two seeded image posts rendered in the gallery, each with the whole SocialBar on `post:<id>` (Karma, React, Rate with its
++1 ⚡ stated, Comment, Share, Open in…) and no console errors. One trap when seeding: a post's `visibility` is `"public"`;
+the empty string is only the *score* visibility's public, and a post saved with `""` is silently absent from every feed.
+
+## The Casino look: the lights without the odds
+
+Sound already had the casino half (`PACKS.casino` and `PACKS.highroller` in `sound.js`) and rewards already had a chip and a burst
+(`celebrate.js`, `CelebrationLayer.jsx`). What was missing was the screen and a bigger payoff, so `casinoLook.js` adds them: an opt-in
+**Casino look** (SoundZ → Casino look, `html[data-casino]`, off by default, remembered on the device) that paints marquee bulbs round
+`.re-card`, gold and ruby accents and a gold primary button, plus a **coin shower** on any `celebrate(..., { big: true })` gain (12 coins,
+28 with the look on).
+
+- **Paint, never odds.** The shower fires only from a celebration the SERVER confirmed, every amount is the server's, and there is no spin,
+  no near-miss, no fake jackpot and no random draw (`coinSpec` is deterministic and a test fails if `Math.random` appears). A platform
+  with 13-year-olds does not borrow a casino's mechanics, only its lighting.
+- **Movement stops for `prefers-reduced-motion`**; the colours stay. Driven in a 412px browser: gold button, bulb ring on a card, 28 coins
+  and a gold "+50 🍥 Level up!" chip, no console errors. Not checked on a real phone, and only `.re-card` and the primary button are restyled —
+  other surfaces (the top status card, tab strips) keep the neon look, so "app-wide" is a start, not a full retheme.
+
+### Reward reels: a neon slot-style reveal of a reward that is already decided
+
+`reelReveal.js` + `components/RewardReels.jsx`, shown under a big gain's chip when the Casino look is on. Neon-tube reels (cyan frame, pink glow) spin
+through the resource emoji and each digit and **land on exactly the amount the server paid** (`1,250` reads 🍥 1 , 2 5 0); commas and `$` do not spin. Each
+strip is deterministic and its last symbol is the true one (`reelReveal.test.mjs`), the reels stop left to right, and `prefers-reduced-motion` shows the
+landed number with no spin.
+
+**What was deliberately NOT built** when "slot-style reward mechanics" was asked for: random prizes, a spin the member triggers, a stake, a second spin,
+a near-miss, or any reward that depends on the animation. Variable payouts of 🍥 (a cent each) to a platform with 13-year-olds is gambling mechanics,
+and Play treats simulated gambling in a family app as a policy problem. The reels *show* a result; they never *decide* one. A test fails if the reveal
+gains a random source or a button. If randomized rewards are ever wanted, that is an owner and legal decision (adults verified, nothing purchasable, odds
+published), not a styling one. The big-win layer now stays up 3.2 s so the last reel is seen landing.
+
+## DAW: name and save a session, and key + BPM from the instrumental
+
+Arsenal (every DAW, `Workspace.jsx`) kept sessions on the device as you worked but never said so, and an untouched "Untitled session" looked unsaved.
+- **💾 Name & save** beside the session name (it reads **Save** once named): asks for a name when it is still "Untitled session", saves to the
+  device at once (cancel changes nothing) and the line beside it says "Saved on this device · 9:47 PM". It is the device only; the tooltip says a copy
+  of the sound is bounce → Save to FileZ.
+- **🎹 Detect key & BPM** listens to the audio and sets the project key and tempo, and **says what it heard in a sentence** under the toolbar. Free, on the device.
+  - **Key** listens to the *instrumental*: every track that is not a lead vocal, backing vocal or drums (`instrumentalKey.js`, roles from import or `guessRole`).
+    Drums have no pitch and a lead vocal follows the tune rather than the harmony. It names the relative key too, because they share every note.
+  - **Tempo** (`tempo.js`) listens to everything but the vocals, **drums included**, because they carry the pulse. It counts how often the loudness jumps repeat
+    (60–180 BPM), names the half/double-time twin instead of hiding it ("if it feels twice as fast, 186 BPM"), and says when the pulse is weak.
+  - **Honesty:** `null` and a sentence ("I couldn't find a clear key / a steady beat") rather than a number, for drums-only, a held pad, silence or free time.
+    With no instrumental track it falls back to the whole mix and says so. A song that changes tempo will not read well.
+  - Driven in a browser: an A-minor tune read A minor / 120; a 93 BPM drum beat moved the project from 120 to 93 and, correctly, reported no key.
+    Unit tests cover 70–160 BPM, hats between the beats not doubling the tempo, and a steady tone or silence reading as nothing. **Not tested on real mixes**, where
+    a swung or live-drummer track will be less exact than a click.
+
+### A picked tone made the FX button vanish, and the FX panel now says "FX chains"
+
+Picking a tone put its confirmation sentence under the compact Tone menu in the track header. That grew the block, and the FX button beside it (`items-center`)
+was centred in the taller row and slid out of the track's visible height — so the only way into the FX panel was gone. Fixed in two places: the row is
+`items-start` so FX stays level with the menu, and in the compact header the message is one trimmed line (`truncate`, full text in the tooltip) that clears itself
+after 7 s. Driven in a browser: FX and the Tone menu stay at the same y before and after picking, and the message is gone after 7.5 s.
+The FX panel's chain menu is now labelled **FX chains** ("🎛️ Pick an FX chain…", with a sentence saying it replaces the track's effects and Undo brings them back);
+it lists all 130 chains (voice, guitar, bass, keys, drums, mix, StatZ and the member's own) and applying one fills the panel's effect list ("FX 2").
+
+## Studio Dragon 🐉: one window, drag and drop, and a song map that moves the music
+
+`src/apps/StudioDragon.jsx` is a workflow on the shared DAW engine, not a codebase: `oneWindow` puts the mixer under the arrangement
+instead of behind a tab, `browser` shows `DragonBrowser.jsx`, `arranger` shows the section track. The three flags are the whole of
+what makes it Studio Dragon; any other DAW can switch them on. It has no art of its own yet and wears the DawZ mark (`studiodragon.png`
+is mapped to `dawz.png` in `App.jsx`) until Corey draws one.
+
+- **The arranger is a map, and moving a section moves its music** (`arranger.js`, pure, 9 tests). Sections are named spans on the
+  session; a gap between two belongs to the one before, so nothing is left behind. `arrange(session, plan)` lays the song out as a list
+  of section ids: audio is split at the edges, markers and automation points go along, and **every take lane moves together** so takes
+  stay lined up. A section id twice is a copy, left out is a cut. Fades stay at the true start and end of a take, not at the cuts.
+  Audio before the first section stays; audio after the last follows the new end. "Remove label" and "Cut with its music" are different
+  buttons and the cut says so (and confirms) because it deletes music.
+- **A drop is only taken if it decodes to something the browser offers** (`dragPayload.js`): a known effect, a known loop, a tone by
+  key, or a saved tone the member really has. Anything else, including text dragged from another page, is not a drop.
+  Audio and video files from the desktop can be dropped on a track too; other files are counted and said.
+- **Every drag also has a button** (the + beside each item) for a phone or a keyboard: HTML5 drag and drop does not work on touch.
+- **Tiers stay where they were**: StatZ effects and loops past the plan's count show locked in the browser and refuse on a drop, with
+  the same sentence the track menus use. Nothing here is charged; loops are made on the device.
+- **Driven in a real browser** (Playwright): sections added and dragged into a new order, an effect dragged from the browser onto a
+  track, a stray text drop ignored. **Not checked:** dropping a real audio file from the desktop (the file path is the same `bring()`
+  the Import button uses), loops dropped on a lane at a time, touch, or Safari.
+
+## Comping: the takes are never touched, and the comp remembers where every piece came from
+
+Cycle and punch recording leave a take lane per pass; comping is how they become one finished take. `✂ Comp` on a track with more
+than one take opens its takes as rows under it. Dragging across a take's row takes that stretch into the **comp**, one more lane
+(`comp: true`) that is the one that plays. `comp.js` is pure and tested (9 tests); the screen only draws it.
+
+- **The take lanes are never edited**, so any swipe can be redone from the originals, and "Use all" restarts the comp as a copy of
+  one whole take. Clearing the comp takes the one lane away and leaves every take.
+- **Every piece in the comp carries `from`** (the lane it came from), which is how each take row lights up green where it is being
+  used (`compSpans`). `cleanSession` keeps both `comp` and `from`; a session saved and reopened still shows what came from where.
+- **A join is a true crossfade** (`XFADE`, 20 ms): the incoming piece starts half a fade early and the outgoing one keeps playing half a
+  fade late, so both sound while one rises and the other falls. The engine plays every region on its own with its own fades, so overlapping
+  regions in the comp lane ARE the crossfade; no engine change. It replaced a fade-out then fade-in that dipped about 5 dB over the join
+  (measured by bouncing two identical sine takes through the real engine: 0.1189 against a nominal 0.2099; with the crossfade every join
+  reads 0.2099, level to four places). A piece only reaches as far past a cut as its own take has audio, and the very start of a take is
+  never faded. Overlap in the comp lane is therefore normal and bounded by `XFADE`; `compSpans` reads overlapping same-lane pieces as one stretch.
+- **A track holding the most lanes has no room for a comp** and the swipe is refused with a sentence, rather than overwriting a take.
+- Swipes snap to the grid when Snap is on. Driven in a real browser: three takes, a swipe across take 2, the comp row reading
+  take 1 | take 2 | take 1, the green markers, Clear. **Not checked:** by ear (the audio is assembled from the same regions the
+  engine already plays), on a phone, or with a swipe that crosses a take's own fades.
+
+## FX chains are searchable, and the ones that suit the track come first
+
+The FX panel's chain picker was a 130-option dropdown. `FxChainBrowser.jsx` replaces it with a search box (every word must
+match a chain's name, group or what it does) and a list that puts chains written for the track's role first (`chainSearch.js`:
+role from import or `guessRole`, mapped to chain groups). The role only ORDERS; nothing is hidden. Applying replaces the track's
+effects and says Undo brings them back; StatZ chains show 🔒 and refuse with the way to try them. The member's saved presets stay
+in the `TonePicker` beneath, labelled "Your saved presets". "Do best ft" (a cut-off message) was read as "make FX chains easy to
+find"; reversible by restoring the old picker in `EditWindow.jsx`.
+
+## MixEZ: mix-engineer ear training, scored by measurement (first slice)
+
+`src/apps/MixEZ.jsx` (StudioZ, `public/icons/studioz.mixez.jpg` is Corey's logo at 512px) with three drills (the third, **Balance the mix**, plays rendered drums and chords on separate gains and scores the dB gap between your chord level and the hidden target; within 1 dB is matched) — the first two on a rendered chord loop
+through real peaking filters: **Find the frequency** (name the boosted band) and **Match the EQ** (five sliders against a hidden
+curve; score = RMS dB between the two RBJ responses, under 1.5 dB is "matched"). `src/mixez.js` is pure and tested. Free, on the
+device, no AI, nothing charged, and a wrong answer costs nothing. Progress is a practice count kept in localStorage, never a rating,
+and the screen says "no certificates" because we cannot issue one. Not built: a course library, compression/level drills,
+anything graded by opinion. Driven in headless Chromium (both drills, no console errors); not heard by ear or on a phone.
+
+## Tapping a CoachZ best score opens the work and the coach's feedback
+
+`CoachBest.jsx` (member profile modal and CreatorProfile) rows are buttons when given a `username`: a tap opens, under the
+row, the take that scored highest (`/api/economy/coachbest/<user>/<app>/`) — the post it scored with its player and a link
+to it, or the YouTube video, or "recorded in the coach and not posted" — and the coach's read drawn by `CoachReadCard`.
+The server picks the take and decides what work this viewer may open; the screen picks nothing. Driven at 412px.
+
+`chunkError.isChunkError` also recognises Vite's **"Unable to preload CSS for /assets/…"** — a phone showed it on the
+error card instead of reloading, because only the JS forms of the stale-deploy error were listed (`chunkError.test.mjs`).
+
+## A lift's target sets can change mid-session
+
+Tap the "3/5 sets ✎" pill on a live lift: −/+ set today's target (1-20), "Make it 3/3" stops at what is done. Today only,
+kept per session on the device (`mcz_bodiez_sets_<id>`, like the drag order). "Also save N sets to the routine · free"
+PATCHes the routine. The screen says the end-of-session report counts against the ROUTINE (server `completion_pct`), so a
+today-only change still reads as part of the plan undone — saving it is how the report agrees. Driven at 412px.

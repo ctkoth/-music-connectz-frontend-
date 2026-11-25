@@ -1,4 +1,6 @@
 import Doors from "../components/Doors.jsx";
+import MerchDesigner from "../components/MerchDesigner.jsx";
+import ShopList from "../components/ShopList.jsx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, ShoppingBag, Trash2, Undo2 } from "lucide-react";
 import { api } from "../api.js";
@@ -24,6 +26,7 @@ const usd = (c) => `$${(c / 100).toFixed(2).replace(/\.00$/, "")}`;
 
 function MerchZInner() {
   const [items, setItems] = useState(null);
+  const [shopTick, setShopTick] = useState(0);
   const [fees, setFees] = useState(null);
   const [money, setMoney] = useState(null);
   const [cat, setCat] = useState("");
@@ -83,6 +86,8 @@ function MerchZInner() {
           <p className="text-sm text-white/60">Sell and buy from other creators — apparel, art, beats, packs, routines. Legal goods only.</p>
         </div>
       </header>
+      <MerchDesigner onListed={() => setShopTick((n) => n + 1)} />
+      <ShopList refresh={shopTick} />
       {money != null && <p className="text-xs text-white/50">Your balance: {usd(money)} {MONEY}</p>}
       {msg && <p className="text-sm text-emerald-300">{msg}</p>}
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
@@ -104,7 +109,7 @@ function MerchZInner() {
               : <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-white/5"><ShoppingBag className="text-white/30" /></div>}
             <p className="font-semibold">{it.title}</p>
             {it.description && <p className="text-xs text-white/60">{it.description}</p>}
-            <p className="text-[11px] text-white/45">{CATS.find(([k]) => k === it.category)?.[1] || it.category} · {it.sold} sold</p>
+            <p className="text-[11px] text-white/60">{CATS.find(([k]) => k === it.category)?.[1] || it.category} · {it.sold} sold</p>
             <MemberName username={it.seller} />
             {it.mine && it.image_url && <Doors item={{ title: it.title, url: it.image_url, kind: "image", text: it.description || "" }} />}
             {it.mine ? (
@@ -117,7 +122,7 @@ function MerchZInner() {
               </button>
             )}
             {!it.mine && !it.bought && money != null && money < it.price_cents && (
-              <p className="text-[11px] text-white/45">Your balance is {usd(money)} — top up in your wallet first.</p>
+              <p className="text-[11px] text-white/60">Your balance is {usd(money)} — top up in your wallet first.</p>
             )}
           </div>
         ))}
@@ -187,7 +192,7 @@ function MySales() {
         {sales.map((s) => (
           <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
             <div>
-              <p className="font-medium">{s.item_title} <span className="text-xs text-white/45">to @{s.buyer}</span></p>
+              <p className="font-medium">{s.item_title} <span className="text-xs text-white/60">to @{s.buyer}</span></p>
               <p className="text-xs text-white/55">
                 {s.refunded ? (
                   <span className="text-mcz-ember">Refunded{s.refund_reason ? ` — ${s.refund_reason}` : ""}</span>

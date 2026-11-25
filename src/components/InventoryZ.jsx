@@ -21,13 +21,13 @@ import { totalLine, worthOf } from "../inventoriez.js";
 
 function AiPrice({ ai }) {
   if (!ai) return null;
-  if (!ai.configured) return <span className="text-[11px] text-white/45">The AI isn't switched on yet.</span>;
+  if (!ai.configured) return <span className="text-[11px] text-white/60">The AI isn't switched on yet.</span>;
   return (
     <span className="text-[11px]">
       {ai.free_today
-        ? <span className="text-emerald-300">Free today <span className="text-white/45">— uses 1 of your {ai.daily_prompts_left} free prompts</span></span>
+        ? <span className="text-emerald-300">Free today <span className="text-white/60">— uses 1 of your {ai.daily_prompts_left} free prompts</span></span>
         : <span className="font-semibold text-mcz-ember">−{ai.cost_cents} {PROMPTZ}</span>}
-      <span className="text-white/45"> · {ai.cost_note}</span>
+      <span className="text-white/60"> · {ai.cost_note}</span>
     </span>
   );
 }
@@ -105,7 +105,7 @@ export default function InventoryZ({ username = "", refreshKey = 0 }) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 font-semibold">
           <IconImg icon="inventoriez.png" alt="" className="h-9 w-9 rounded-lg" />
-          {d.name || "InVenTorieZ"} <span className="text-xs font-normal text-white/45">gear, equipment &amp; wardrobe</span>
+          {d.name || "InVenTorieZ"} <span className="text-xs font-normal text-white/60">gear, equipment &amp; wardrobe</span>
         </h3>
         {!d.mine && reward && (
           <span className="text-[11px] text-emerald-300">
@@ -116,7 +116,7 @@ export default function InventoryZ({ username = "", refreshKey = 0 }) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-xs text-white/45">
+        <p className="text-xs text-white/60">
           Nothing listed yet.{" "}
           <button className="underline hover:text-white" onClick={() => goToSpot(d.edit_in?.tab || "profilez", d.edit_in?.target || "profile-fields")}>
             Add your gear, equipment and clothes in your profile fields
@@ -133,9 +133,9 @@ export default function InventoryZ({ username = "", refreshKey = 0 }) {
               <AiLine r={{ ...d.ai_set, why: `the whole kit together — ${d.ai_set.why}` }} mine={d.mine} onShow={() => show("*", !d.ai_set.shown)} />
             </div>
           )}
-          {worth && <p className="text-xs text-white/75"><span className="text-white/45">Worth:</span> {worth}</p>}
-          <p className="text-[11px] text-white/45">{d.rating_note}{d.mine && d.rename_note ? ` ${d.rename_note}` : ""}</p>
-          {d.mine && d.value_privacy && <p className="text-[11px] text-white/40">{d.value_privacy}</p>}
+          {worth && <p className="text-xs text-white/75"><span className="text-white/60">Worth:</span> {worth}</p>}
+          <p className="text-[11px] text-white/60">{d.rating_note}{d.mine && d.rename_note ? ` ${d.rename_note}` : ""}</p>
+          {d.mine && d.value_privacy && <p className="text-[11px] text-white/55">{d.value_privacy}</p>}
 
           <ul className="grid gap-2 sm:grid-cols-2">
             {items.map((it) => (
@@ -202,7 +202,7 @@ export default function InventoryZ({ username = "", refreshKey = 0 }) {
                   </div>
                   {tooMany && <p className="text-xs text-mcz-gold">Up to {d.ai.max_pieces} pieces in one run — untick some.</p>}
                   {!d.ai.affordable && d.ai.configured && <p className="text-xs text-mcz-ember">Today's free prompts are spent and you don't have the {PROMPTZ} for a run.</p>}
-                  <p className="text-[11px] text-white/40">{d.ai.show_note}</p>
+                  <p className="text-[11px] text-white/55">{d.ai.show_note}</p>
                 </>
               )}
               {run && (

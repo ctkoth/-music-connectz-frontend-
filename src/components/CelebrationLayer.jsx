@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EMOJI } from "../celebrate.js";
+import { coinCount, coinSpec, isCasinoLook } from "../casinoLook.js";
+import RewardReels from "./RewardReels.jsx";
 
 // Renders celebrate()'s chips. Decorative only: aria-live announces the text
 // once for screen readers, and reduced-motion members get the chip without
@@ -11,13 +13,23 @@ export default function CelebrationLayer() {
     const on = (e) => {
       const n = ++id.current;
       setChips((c) => [...c.slice(-4), { n, ...e.detail }]);
-      setTimeout(() => setChips((c) => c.filter((x) => x.n !== n)), e.detail.big ? 2200 : 1500);
+      setTimeout(() => setChips((c) => c.filter((x) => x.n !== n)), e.detail.big ? 3200 : 1500);
     };
     window.addEventListener("mcz-celebrate", on);
     return () => window.removeEventListener("mcz-celebrate", on);
   }, []);
+  const bigNow = chips.find((c) => c.big && c.gain);
+  const coins = bigNow ? coinCount({ big: true, casino: isCasinoLook() }) : 0;
   return (
     <div className="pointer-events-none fixed inset-x-0 top-20 z-[120] flex flex-col items-center gap-2" aria-live="polite">
+      {coins > 0 && (
+        <div key={bigNow.n} className="mcz-coins" aria-hidden="true">
+          {Array.from({ length: coins }, (_, i) => {
+            const c = coinSpec(i, coins);
+            return <i key={i} style={{ left: `${c.left}%`, animationDelay: `${c.delay}s`, animationDuration: `${c.fall}s`, "--drift": `${c.drift}px` }}>🪙</i>;
+          })}
+        </div>
+      )}
       {chips.map((c) => (
         <div key={c.n} className={`mcz-chip ${c.big ? "mcz-chip-big" : ""} ${c.gain ? "text-emerald-300 border-emerald-400/50" : "text-mcz-ember border-mcz-ember/50"}`}>
           {c.big && <span className="mcz-burst" aria-hidden="true">{Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--a": `${i * 30}deg` }} />)}</span>}
@@ -27,6 +39,9 @@ export default function CelebrationLayer() {
           {c.label && <span className="ml-1">{c.label}</span>}
         </div>
       ))}
+      {bigNow && bigNow.resource && bigNow.amount > 0 && isCasinoLook() && (
+        <RewardReels key={`r${bigNow.n}`} resource={bigNow.resource} amount={bigNow.amount} />
+      )}
     </div>
   );
 }

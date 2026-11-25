@@ -54,7 +54,7 @@ export function ClassToggles({ value = {}, onChange }) {
           <b className="text-white/75">{c.label} only</b>: {c.rule}. Anyone without that is out, including members not rated enough yet.
         </p>
       ))}
-      {on.length > 0 && <p className="text-[10px] leading-relaxed text-white/35">{d.note}</p>}
+      {on.length > 0 && <p className="text-[10px] leading-relaxed text-white/50">{d.note}</p>}
     </div>
   );
 }
@@ -84,7 +84,7 @@ export function MyClassZ({ className = "" }) {
   if (!d?.classes?.length) return null;
   return (
     <div className={`space-y-1.5 rounded-xl border border-white/10 bg-white/[0.03] p-3 ${className}`} data-tour="classz-mine">
-      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Your classes</p>
+      <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Your classes</p>
       {d.classes.map((c) => {
         const mine = d.mine?.[c.key];
         if (!mine) return null;
@@ -95,12 +95,12 @@ export function MyClassZ({ className = "" }) {
             <div className="min-w-0 text-[12px]">
               <p className={`font-semibold ${mine.is ? "text-mcz-gold" : "text-white/80"}`}>{c.label}{mine.is ? " — yours" : ""}</p>
               <p className="text-white/60">{mine.line}</p>
-              <p className="text-[10px] text-white/35">{c.rule}.</p>
+              <p className="text-[10px] text-white/50">{c.rule}.</p>
             </div>
           </div>
         );
       })}
-      <p className="text-[10px] leading-relaxed text-white/35">
+      <p className="text-[10px] leading-relaxed text-white/50">
         {d.note}{" "}
         <button type="button" className="underline text-mcz-cyan" onClick={() => goToSpot("singz", "bosstake-mic")}>
           Score a take with the coach

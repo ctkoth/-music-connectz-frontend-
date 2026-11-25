@@ -60,7 +60,7 @@ export default function SessionBar({ hold, activeTab, labelOf, onOpen }) {
           <span className="font-semibold">{hold.title || "Session"}</span>
           {/* aria-hidden: a status region re-announces whatever changes inside it, and this changes every second. */}
           <span className={`tabular-nums ${r?.done ? "text-emerald-300" : "text-white/80"}`} aria-hidden="true">{restLineText(r, next)}</span>
-          {sinceSec != null && <span className="tabular-nums text-white/40" aria-hidden="true">· {clockText(sinceSec)} in</span>}
+          {sinceSec != null && <span className="tabular-nums text-white/55" aria-hidden="true">· {clockText(sinceSec)} in</span>}
         </span>
         {r && (
           <span className="h-1 w-full overflow-hidden rounded-full bg-white/10 sm:w-24" aria-hidden="true">

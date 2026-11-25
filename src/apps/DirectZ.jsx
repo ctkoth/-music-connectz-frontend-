@@ -193,7 +193,7 @@ export default function DirectZ() {
       )}
 
       <form onSubmit={submit} className="neon-frame space-y-3 p-4" data-tour="directz-releases">
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/45">
+        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/60">
           <Clapperboard size={14} /> Post a video
         </p>
 
@@ -239,7 +239,7 @@ export default function DirectZ() {
         <MediaFields value={work} onChange={setWork} label="The video" />
 
         {seconds > 0 && (
-          <p className={`text-[11px] ${fits ? "text-white/45" : "text-mcz-ember"}`}>
+          <p className={`text-[11px] ${fits ? "text-white/60" : "text-mcz-ember"}`}>
             {fits
               ? `${mmss(seconds)} — fits ${chosen?.name}.`
               : `${mmss(seconds)} doesn't fit ${chosen?.name} (${chosen?.length}). `
@@ -263,12 +263,12 @@ export default function DirectZ() {
                   is the paradigm pointing the wrong way. */}
               {spec.craft.free_today
                 ? <span className="text-emerald-300">
-                    Free today <span className="text-white/45">
+                    Free today <span className="text-white/60">
                       — uses 1 of the {spec.craft.daily_prompts_left} 🏷️ you have left
                     </span>
                   </span>
                 : <span className="text-mcz-ember">−{spec.craft.cost_cents} 🏷️</span>} <AiEnergy />
-              <span className="block text-white/35">
+              <span className="block text-white/50">
                 {spec.craft.note}
                 {!spec.craft.affordable && " You're out of prompts and balance for today."}
                 {spec.craft.max_mb > 0 && !tooBigToRate
@@ -290,7 +290,7 @@ export default function DirectZ() {
         {spec?.craft?.configured && form.craft_rating && Object.keys(spec.craft.extras || {}).length > 0 && (
           // Options, not part of the rating: each sits beside the score and never moves it, at no extra price.
           <fieldset className="ml-6 space-y-1 text-[11px] text-white/60">
-            <legend className="text-white/70">Add to the rating <span className="text-white/35">(optional, same price)</span></legend>
+            <legend className="text-white/70">Add to the rating <span className="text-white/50">(optional, same price)</span></legend>
             <SelectAllBar all={Object.keys(spec.craft.extras)} picked={form.craft_extras}
                           onChange={(next) => setForm({ ...form, craft_extras: next })} />
             {Object.entries(spec.craft.extras).map(([k, label]) => (

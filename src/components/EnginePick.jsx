@@ -38,7 +38,7 @@ export default function EnginePick({ think, onChanged }) {
           ))}
         </select>
       </label>
-      {think.note && <span className="text-white/40">{think.note}</span>}
+      {think.note && <span className="text-white/55">{think.note}</span>}
       {err && <span role="alert" className="text-mcz-ember">{err}</span>}
     </span>
   );

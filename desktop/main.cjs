@@ -12,6 +12,7 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("path");
 const vst = require("./vst.cjs");
+const files = require("./files.cjs");
 
 const SITE = "https://musicconnectz.net";
 const SCHEME = "net.musicconnectz.app";
@@ -62,6 +63,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     vst.setup();
+    files.setup();
     createWindow();
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

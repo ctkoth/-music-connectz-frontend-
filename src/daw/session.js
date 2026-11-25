@@ -42,9 +42,34 @@ export const uid = (p = "x") => `${p}${Date.now().toString(36)}${(seq++).toStrin
 
 // ---- making things ----------------------------------------------------------------------------
 
+/** A colour as "#rrggbb", or the fallback: a stored or typed value is never trusted to be a colour. */
+export function cleanColor(c, fallback = COLORS[0]) {
+  const v = String(c || "").trim();
+  return /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : fallback;
+}
+
+/** An emoji mark for a track or marker: at most two characters as a person sees them (a flag or a family is one), nothing
+ *  that is only letters and digits, so the field stays a mark and the name stays the name. */
+export function cleanEmoji(e) {
+  const chars = typeof Intl !== "undefined" && Intl.Segmenter
+    ? Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(String(e || "").trim()), (x) => x.segment)
+    : Array.from(String(e || "").trim());
+  return chars.slice(0, 2).join("").replace(/[A-Za-z0-9\s]/g, "").slice(0, 16);
+}
+
+/** How a recording lands on a track that already has audio under it. Takes keeps what was there on a new playlist (the default, and
+ *  the only one that never loses anything); Replace cuts it out of THIS playlist for good; Overdub lays the new audio on top and
+ *  leaves what was there playing underneath it. */
+export const REC_MODES = {
+  takes: { label: "Takes", what: "Keeps what was there: the old take is the previous take in the playlist menu." },
+  replace: { label: "Replace", what: "Cuts the old audio out of this take where you record (Undo brings it back)." },
+  overdub: { label: "Overdub", what: "Records on top of what is there; both play together." },
+};
+export const cleanRecMode = (m) => (m in REC_MODES ? m : "takes");
+
 export function newTrack(n = 1, name) {
   return {
-    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length],
+    id: uid("t"), name: name || `Audio ${n}`, color: COLORS[(n - 1) % COLORS.length], emoji: "", recMode: "takes",
     gain: 0, pan: 0, mute: false, solo: false, armed: false, inserts: [], auto: {},
     input: { device: "", channel: "both" },
     playlists: [{ id: uid("p"), name: "Take 1", regions: [] }], active: 0,
@@ -59,7 +84,104 @@ export function cleanInput(i) {
 
 export function newSession(name = "Untitled session") {
   const t = newTrack(1);
-  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t] };
+  return { v: 1, name, bpm: BPM.default, meter: 4, editMode: "slip", grid: "1/4", master: 0, sources: {}, tracks: [t], markers: [], sections: [], key: "", snap: true, genre: "", skills: [] };
+}
+
+// ---- count-in ----------------------------------------------------------------------------------
+export const COUNT_INS = [0, 1, 2];                  // bars of click before a recording starts
+/** The clicks of a count-in: one per beat, the first of each bar accented, and how long it all lasts. Pure, so it is tested. */
+export function countInPlan(s, bars) {
+  const n = COUNT_INS.includes(bars) ? bars : 0;
+  const beat = beatSeconds(s);
+  const beats = Array.from({ length: n * s.meter }, (_, i) => ({ at: i * beat, accent: i % s.meter === 0 }));
+  return { beats, seconds: n * s.meter * beat };
+}
+
+// ---- punch in / out ----------------------------------------------------------------------------
+export const PREROLL_MIN = 1;                        // seconds of the session heard before a punch-in, at least
+/** Recording only inside the loop region. The transport starts a bar early so you hear what you are coming in on; the take is
+ *  trimmed to [in, out] and the take stops itself at `out`. Null when there is no region to punch (or the flag is off). */
+export function punchPlan(s, on) {
+  const lp = s.loop;
+  if (!on || !lp || !(lp.end - lp.start >= 0.1)) return null;
+  const preroll = Math.max(PREROLL_MIN, beatSeconds(s) * s.meter);
+  return { from: Math.max(0, lp.start - preroll), in: lp.start, out: lp.end };
+}
+
+// ---- loop region -------------------------------------------------------------------------------
+// One region on the session: { start, end, on }. Playback wraps from `end` back to `start` while `on`.
+export const MIN_LOOP = 0.1;
+export function cleanLoop(raw) {
+  const start = Math.max(0, num(raw?.start, NaN)); const end = num(raw?.end, NaN);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start < MIN_LOOP) return null;
+  return { start, end, on: raw?.on !== false };
+}
+/** Set the region (start/end in seconds, either order) or clear it with null. Too short to be a loop = cleared. */
+export function setLoop(s, a, b, on = true) {
+  if (a == null) return { ...s, loop: null };
+  return { ...s, loop: cleanLoop({ start: Math.min(a, b), end: Math.max(a, b), on }) };
+}
+export const toggleLoop = (s) => (s.loop ? { ...s, loop: { ...s.loop, on: !s.loop.on } } : s);
+/** Where playback goes next: the loop's start once the position reaches its end, else null (carry on). */
+export const loopJump = (s, pos) => (s.loop && s.loop.on && pos >= s.loop.end ? s.loop.start : null);
+
+// ---- markers ----------------------------------------------------------------------------------
+// A marker is a named, coloured, optionally emoji'd point on the timeline ("Verse 2", "🔥 Drop"). It belongs to the
+// SESSION, not a track, so it is the same in every DAW and survives a session being copied from one DAW to another.
+export const MAX_MARKERS = 200;
+export const MAX_PROJECT_SKILLS = 12;
+export const MARKER_COLORS = COLORS;
+
+export function sortedMarkers(s) { return [...(s.markers || [])].sort((a, b) => a.t - b.t); }
+
+/** Add a marker at `t` seconds. A second one at the same moment is nudged out of the first's way rather than refused. */
+export function addMarker(s, t, { name, emoji = "", color } = {}) {
+  const list = s.markers || [];
+  if (list.length >= MAX_MARKERS) return s;
+  const n = list.length + 1;
+  let at = Math.max(0, num(t, 0));
+  while (list.some((m) => Math.abs(m.t - at) < 0.05)) at += 0.1;
+  const m = { id: uid("m"), t: at, name: String(name || `Marker ${n}`).slice(0, 40), emoji: cleanEmoji(emoji),
+              color: cleanColor(color, MARKER_COLORS[(n - 1) % MARKER_COLORS.length]) };
+  return { ...s, markers: [...list, m] };
+}
+
+export function updateMarker(s, id, patch) {
+  return { ...s, markers: (s.markers || []).map((m) => (m.id !== id ? m : {
+    ...m, ...(patch.name !== undefined ? { name: String(patch.name).slice(0, 40) || m.name } : {}),
+    ...(patch.emoji !== undefined ? { emoji: cleanEmoji(patch.emoji) } : {}),
+    ...(patch.color !== undefined ? { color: cleanColor(patch.color, m.color) } : {}),
+    ...(patch.t !== undefined ? { t: Math.max(0, num(patch.t, m.t)) } : {}),
+  })) };
+}
+
+export function removeMarker(s, id) { return { ...s, markers: (s.markers || []).filter((m) => m.id !== id) }; }
+
+/** The next marker after `t`, or the previous one before it (null at either end) — for jumping around a song. */
+export function markerAfter(s, t) { return sortedMarkers(s).find((m) => m.t > t + 0.01) || null; }
+export function markerBefore(s, t) { return [...sortedMarkers(s)].reverse().find((m) => m.t < t - 0.01) || null; }
+
+export function cleanMarkers(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_MARKERS).filter((m) => m && Number.isFinite(Number(m.t))).map((m, i) => ({
+    id: String(m.id || uid("m")), t: Math.max(0, num(m.t, 0)), name: String(m.name || `Marker ${i + 1}`).slice(0, 40),
+    emoji: cleanEmoji(m.emoji), color: cleanColor(m.color, MARKER_COLORS[i % MARKER_COLORS.length]),
+  }));
+}
+
+// ---- song sections (the arranger) ---------------------------------------------------------------
+// Named stretches of the song: { id, name, start, end, color }, sorted, never overlapping. Moving them is arranger.js's job; the
+// stored shape and its repair are here so every DAW opens a session that has them.
+export const MAX_SECTIONS = 64;
+export function cleanSections(raw) {
+  const rows = (Array.isArray(raw) ? raw : []).slice(0, MAX_SECTIONS)
+    .filter((x) => x && Number.isFinite(Number(x.start)) && Number.isFinite(Number(x.end)))
+    .map((x, i) => ({ id: String(x.id || uid("sec")), name: String(x.name || `Section ${i + 1}`).slice(0, 40),
+      start: Math.max(0, num(x.start, 0)), end: Math.max(0, num(x.end, 0)), color: cleanColor(x.color, COLORS[i % COLORS.length]) }))
+    .filter((x) => x.end - x.start >= 0.1)
+    .sort((a, b) => a.start - b.start);
+  const out = [];
+  for (const x of rows) { if (out.length && x.start < out.at(-1).end - 1e-6) continue; out.push(x); }           // an overlapping one is dropped, not guessed at
+  return out;
 }
 
 // ---- reading ----------------------------------------------------------------------------------
@@ -106,10 +228,51 @@ export const minSec = (sec, tenths = true) => {
   return `${m}:${(tenths ? rest.toFixed(2) : Math.floor(rest).toString()).padStart(tenths ? 5 : 2, "0")}`;
 };
 
+/** Clock label for a ruler tick: 0:05, 1:30, 12:00 (sub-second steps get a tenth). */
+export const clockLabel = (sec, tenths = false) => {
+  const t = Math.max(0, sec);
+  const m = Math.floor(t / 60);
+  const r = t - m * 60;
+  return `${m}:${tenths ? r.toFixed(1).padStart(4, "0") : String(Math.floor(r + 1e-6)).padStart(2, "0")}`;
+};
+
+/** The ruler's marks for a view `width` px wide at `zoom` px/s: bars (always), beats (once they are 14px apart),
+ *  and clock ticks at the first "nice" step at least 60px apart. Pure, so it is tested. */
+export function rulerTicks(s, zoom, width) {
+  const beat = beatSeconds(s);
+  const bar = beat * s.meter;
+  const end = width / zoom;
+  const barEvery = Math.max(1, Math.ceil(44 / (bar * zoom)));
+  const bars = [];
+  for (let i = 0; i * bar <= end && bars.length < 2000; i += barEvery) bars.push({ t: i * bar, label: String(i + 1) });
+  const beats = [];
+  if (beat * zoom >= 14 && barEvery === 1) {
+    for (let i = 0; i * beat <= end && beats.length < 8000; i++) {
+      if (i % s.meter) beats.push({ t: i * beat, label: beat * zoom >= 30 ? `${Math.floor(i / s.meter) + 1}.${(i % s.meter) + 1}` : "" });
+    }
+  }
+  const NICE = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 1800, 3600];
+  const every = NICE.find((n) => n * zoom >= 60) || 3600;
+  const clock = [];
+  for (let i = 0; i * every <= end && clock.length < 2000; i++) clock.push({ t: i * every, label: clockLabel(i * every, every < 1) });
+  return { bars, beats, clock };
+}
+
 export function snapTime(s, sec) {
   const g = gridSeconds(s);
   return Math.max(0, Math.round(sec / g) * g);
 }
+/** What a project is called when it is saved or exported: "Genre - Key - Name", leaving out what was not set. */
+export const projectTitle = (s) => [s.genre, s.key, s.name].map((x) => String(x || "").trim()).filter(Boolean).join(" - ");
+
+/** The time a click or a new marker lands on: the nearest grid line while Snap is on (the default), exactly where it was while it is off. */
+export const snapIf = (s, sec) => (s.snap === false ? Math.max(0, sec) : snapTime(s, sec));
+
+// The project's key, same twenty-four names as Instrumental ConnectZ and the key estimator, or "" for not set.
+export const SESSION_KEYS = [
+  ...["C", "G", "D", "A", "E", "B", "F#", "Db", "Ab", "Eb", "Bb", "F"].map((k) => `${k} major`),
+  ...["A", "E", "B", "F#", "C#", "G#", "Eb", "Bb", "F", "C", "G", "D"].map((k) => `${k} minor`),
+];
 
 // ---- writing ----------------------------------------------------------------------------------
 
@@ -131,6 +294,13 @@ export function setSession(s, patch) {
   if (!EDIT_MODES.includes(out.editMode)) out.editMode = "slip";
   if (!(out.grid in GRIDS)) out.grid = "1/4";
   out.master = clamp(num(out.master, 0), GAIN_DB.min, GAIN_DB.max);
+  out.masterInserts = Array.isArray(out.masterInserts) ? out.masterInserts.slice(0, 8) : [];
+  out.buses = cleanBuses(out.buses);     // the master track's own effects
+  out.name = String(out.name || "Untitled session").slice(0, 60);
+  out.key = SESSION_KEYS.includes(out.key) ? out.key : "";
+  out.snap = out.snap !== false;
+  out.genre = String(out.genre || "").trim().slice(0, 60);
+  out.skills = [...new Set((Array.isArray(out.skills) ? out.skills : []).map((k) => String(k).slice(0, 60)).filter(Boolean))].slice(0, MAX_PROJECT_SKILLS);
   return out;
 }
 
@@ -160,13 +330,55 @@ export function setAuto(s, id, param, lane) {
   return mapTrack(s, id, (t) => ({ ...t, auto: { ...(t.auto || {}), [param]: cleanLane(param, lane) } }));
 }
 
+export const GROUPS = ["A", "B", "C", "D"];
+/** A change to one track, carried to every track in its group (Pro Tools' track groups): a volume move moves them all by the
+ *  same number of dB (so their balance is kept), and mute and solo are set to the same value. Everything else, and a track
+ *  in no group, changes alone. */
+export function setTrackGrouped(s, id, patch) {
+  const t = s.tracks.find((x) => x.id === id);
+  if (!t || !t.group || !GROUPS.includes(t.group)) return setTrack(s, id, patch);
+  const mates = s.tracks.filter((x) => x.group === t.group);
+  let out = setTrack(s, id, patch);
+  const linked = {};
+  if (patch.mute !== undefined) linked.mute = !!patch.mute;
+  if (patch.solo !== undefined) linked.solo = !!patch.solo;
+  const delta = patch.gain !== undefined ? num(patch.gain, 0) - num(t.gain, 0) : 0;
+  for (const m of mates) {
+    if (m.id === id) continue;
+    const p2 = { ...linked };
+    if (delta) p2.gain = (m.gain || 0) + delta;
+    if (Object.keys(p2).length) out = setTrack(out, m.id, p2);
+  }
+  return out;
+}
+
+export const MAX_BUSES = 4;
+/** A track's send amounts: { busId: 0-100 }, only for real numbers above 0. */
+export function cleanSends(raw) {
+  const out = {};
+  if (raw && typeof raw === "object") for (const [k, v] of Object.entries(raw)) { const n = clamp(Math.round(num(v, 0)), 0, 100); if (n > 0) out[String(k).slice(0, 24)] = n; }
+  return out;
+}
+/** The send buses: shared effects (a reverb, a delay) that several tracks feed by an amount. */
+export function cleanBuses(raw) {
+  return (Array.isArray(raw) ? raw : []).slice(0, MAX_BUSES).map((b, i) => ({
+    id: String(b?.id || `bus${i + 1}`).slice(0, 24), name: String(b?.name || `Bus ${i + 1}`).slice(0, 24),
+    inserts: Array.isArray(b?.inserts) ? b.inserts.slice(0, 8) : [], level: clamp(num(b?.level, 0), GAIN_DB.min, GAIN_DB.max),
+  }));
+}
+
 export function setTrack(s, id, patch) {
   return mapTrack(s, id, (t) => {
     const out = { ...t, ...patch };
     out.gain = clamp(num(out.gain, 0), GAIN_DB.min, GAIN_DB.max);
     out.pan = clamp(num(out.pan, 0), -1, 1);
     out.name = String(out.name || t.name).slice(0, 40);
+    out.color = cleanColor(out.color, t.color);
+    out.emoji = cleanEmoji(out.emoji);
+    out.recMode = cleanRecMode(out.recMode);
     out.input = cleanInput(out.input);
+    out.sends = cleanSends(out.sends);
+    out.group = GROUPS.includes(out.group) ? out.group : "";
     return out;
   });
 }
@@ -286,6 +498,34 @@ export function duplicateRegion(s, id) {
   return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, copy]) })));
 }
 
+/** Lay `times` more copies of a clip end to end after it (Mixcraft's "# Loops"): a bar of beat becomes a verse's worth. */
+export function repeatRegion(s, id, times) {
+  const hit = findRegion(s, id);
+  const n = Math.max(0, Math.min(64, Math.floor(Number(times) || 0)));
+  if (!hit || !n) return s;
+  const len = endOf(hit.region) - hit.region.at;
+  if (!(len > 0)) return s;
+  const room = Math.max(0, MAX_REGIONS - regionCount(s));
+  const copies = Array.from({ length: Math.min(n, room) }, (_, k) => ({ ...hit.region, id: uid("r"), at: hit.region.at + len * (k + 1) }));
+  if (!copies.length) return s;
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions, ...copies]) })));
+}
+
+/** Replace one clip with the pieces of it worth keeping (Strip Silence). `segments` are {from, to} in seconds of the SOURCE;
+ *  each piece stays exactly where it was on the timeline, so the gaps between them are real gaps. */
+export function stripRegion(s, id, segments) {
+  const hit = findRegion(s, id);
+  if (!hit) return s;
+  const r = hit.region;
+  const pieces = (segments || []).map((g) => ({ from: Math.max(r.in, g.from), to: Math.min(r.out, g.to) })).filter((g) => g.to - g.from >= MIN_LEN);
+  if (!pieces.length || regionCount(s) - 1 + pieces.length > MAX_REGIONS) return s;
+  const made = pieces.map((g, i) => ({
+    ...r, id: i === 0 ? r.id : uid("r"), at: r.at + (g.from - r.in), in: g.from, out: g.to,
+    fadeIn: g.from > r.in ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeIn, fadeOut: g.to < r.out ? Math.min(0.01, (g.to - g.from) / 2) : r.fadeOut,
+  }));
+  return mapTrack(s, hit.track.id, (tr) => mapPlaylist(tr, (p) => ({ ...p, regions: settle(s, [...p.regions.filter((x) => x.id !== id), ...made]) })));
+}
+
 /** Nudge by grid steps (negative is earlier), whatever the edit mode. */
 export function nudgeRegion(s, id, steps) {
   const hit = findRegion(s, id);
@@ -306,9 +546,10 @@ export function recordInto(s, trackId, { src, at, name }) {
   const from = Math.max(0, at);
   const to = from + source.duration;
   const hits = playlistOf(t).regions.some((r) => r.at < to && endOf(r) > from);
-  const keep = hits && t.playlists.length < MAX_PLAYLISTS;
+  const mode = cleanRecMode(t.recMode);
+  const keep = mode === "takes" && hits && t.playlists.length < MAX_PLAYLISTS;
   let out = keep ? newPlaylist(s, trackId, { copy: true }) : s;
-  if (hits) {
+  if (hits && mode !== "overdub") {
     out = mapTrack(out, trackId, (tr) => mapPlaylist(tr, (p) => ({
       ...p,
       regions: p.regions.flatMap((r) => {
@@ -352,6 +593,40 @@ export function deletePlaylist(s, trackId) {
   }));
 }
 
+/** Take lanes (playlists) with nothing in them, beyond the one every track must keep. Overdubbing and "new take" leave these behind. */
+export function emptyTakeCount(s, trackId) {
+  return s.tracks.reduce((n, t) => {
+    if (trackId && t.id !== trackId) return n;
+    const empties = t.playlists.filter((p) => !p.regions.length).length;
+    return n + (empties === t.playlists.length ? empties - 1 : empties);   // an all-empty track keeps one
+  }, 0);
+}
+/** Delete the empty take lanes (one track, or all). The active take stays the same take; a track left with only empties keeps its first. */
+export function removeEmptyTakes(s, trackId) {
+  return pruneSources({
+    ...s,
+    tracks: s.tracks.map((t) => {
+      if (trackId && t.id !== trackId) return t;
+      const keepIdx = t.playlists.map((p, i) => (p.regions.length || i === (t.playlists.every((q) => !q.regions.length) ? t.active : -1) ? i : -1)).filter((i) => i >= 0);
+      if (keepIdx.length === t.playlists.length) return t;
+      const playlists = keepIdx.map((i) => t.playlists[i]);
+      const at = keepIdx.indexOf(t.active);
+      return { ...t, playlists, active: at >= 0 ? at : Math.min(t.active, playlists.length - 1) };
+    }),
+  });
+}
+
+/** Remove a take lane only if it is empty AND there is another lane on the track. For StatZ's automatic clean-up after a
+ *  deletion: it targets the one lane the member just emptied, never a lane that is merely new (an overdub's). */
+export function dropIfEmptied(s, trackId, playlistId) {
+  const t = s.tracks.find((x) => x.id === trackId);
+  const i = t ? t.playlists.findIndex((p) => p.id === playlistId) : -1;
+  if (i < 0 || t.playlists[i].regions.length || t.playlists.length < 2) return s;
+  const playlists = t.playlists.filter((_, k) => k !== i);
+  const active = t.active === i ? Math.min(i, playlists.length - 1) : t.active > i ? t.active - 1 : t.active;
+  return pruneSources({ ...s, tracks: s.tracks.map((x) => (x.id === trackId ? { ...x, playlists, active } : x)) });
+}
+
 // ---- loading ----------------------------------------------------------------------------------
 
 /** Repair a stored session: anything missing gets its default, anything out of range is clamped, regions pointing at a missing source are dropped. */
@@ -361,23 +636,25 @@ export function cleanSession(raw) {
   const tracks = raw.tracks.slice(0, MAX_TRACKS).map((t, i) => {
     const d = newTrack(i + 1);
     const playlists = (Array.isArray(t?.playlists) && t.playlists.length ? t.playlists : d.playlists).slice(0, MAX_PLAYLISTS).map((p) => ({
-      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40),
+      id: String(p?.id || uid("p")), name: String(p?.name || "Take").slice(0, 40), ...(p?.comp ? { comp: true } : {}),
       regions: (Array.isArray(p?.regions) ? p.regions : []).filter((r) => r && base.sources[r.src]).map((r) => ({
         id: String(r.id || uid("r")), src: r.src, name: String(r.name || "").slice(0, 80),
         at: Math.max(0, num(r.at, 0)), in: Math.max(0, num(r.in, 0)), out: Math.max(num(r.in, 0) + MIN_LEN, num(r.out, MIN_LEN)),
         gain: clamp(num(r.gain, 0), GAIN_DB.min, GAIN_DB.max), fadeIn: clamp(num(r.fadeIn, 0), 0, FADE_MAX), fadeOut: clamp(num(r.fadeOut, 0), 0, FADE_MAX),
         // A transposed region plays a shifted copy; `orig` is the recording it was made from, so a
         // new key is always made from the original and 0 gives the original back exactly.
-        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(num(r.semis, 0) | 0, -12, 12) } : {}),
+        ...(r.from ? { from: String(r.from).slice(0, 60) } : {}),
+        ...(r.orig && base.sources[r.orig] ? { orig: String(r.orig), semis: clamp(Math.round(num(r.semis, 0) * 100) / 100, -12, 12) } : {}),
       })),
     }));
     return {
       ...d, ...t, id: String(t?.id || d.id), name: String(t?.name || d.name).slice(0, 40),
+      color: cleanColor(t?.color, d.color), emoji: cleanEmoji(t?.emoji), recMode: cleanRecMode(t?.recMode),
       gain: clamp(num(t?.gain, 0), GAIN_DB.min, GAIN_DB.max), pan: clamp(num(t?.pan, 0), -1, 1),
       mute: !!t?.mute, solo: !!t?.solo, armed: false, inserts: Array.isArray(t?.inserts) ? t.inserts : [],
       input: cleanInput(t?.input), auto: cleanAuto(t?.auto),
       playlists, active: clamp(num(t?.active, 0) | 0, 0, playlists.length - 1),
     };
   });
-  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)] };
+  return { ...base, tracks: tracks.length ? tracks : [newTrack(1)], markers: cleanMarkers(raw.markers), sections: cleanSections(raw.sections), loop: cleanLoop(raw.loop) };
 }

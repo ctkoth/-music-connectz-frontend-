@@ -18,6 +18,7 @@ import { api } from "../api.js";
 import { PACKS, PACK_KEYS, SOUND_KEYS, playSoundNow, setSoundPack,
          isSoundOn, setSoundOn } from "../sound.js";
 import { goToTab } from "../goto.js";
+import { isCasinoLook, setCasinoLook } from "../casinoLook.js";
 
 // The sounds worth auditioning, in the order they make sense as a demo: money
 // moving, then the things that happen to you, then the things you do.
@@ -118,12 +119,14 @@ export default function SoundZ() {
             {on ? "On" : "Off"}
           </button>
         </div>
-        <p className="text-[11px] leading-relaxed text-white/45">
+        <p className="text-[11px] leading-relaxed text-white/60">
           Off by default, because a site that makes noise at a stranger is
           hostile. Every sound accompanies a number that's already on screen —
           nothing here is the only way to know something happened.
         </p>
       </div>
+
+      <CasinoLookToggle />
 
       <div className="space-y-2">
         <p className="re-label">Sound pack</p>
@@ -143,7 +146,7 @@ export default function SoundZ() {
                   {active && <span className="re-badge">On</span>}
                   {locked && <Lock size={12} className="text-white/30" />}
                 </span>
-                <span className="block text-[11px] leading-relaxed text-white/45">
+                <span className="block text-[11px] leading-relaxed text-white/60">
                   {p.blurb}
                 </span>
                 <span className="block text-[10px] text-white/30">
@@ -192,7 +195,7 @@ export default function SoundZ() {
       {state.can_customize && (
         <div className="space-y-2">
           <p className="re-label">One sound at a time</p>
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/60">
             Like the house set but want a louder coin? Take a single sound from
             another pack. {Object.keys(overrides).length}/{state.max_overrides} set.
           </p>
@@ -231,6 +234,32 @@ export default function SoundZ() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+
+// The look half of the casino set: the Casino and High Roller sound packs are the sound half. Off until chosen, kept on this
+// device. It changes how things are painted and nothing else — no odds, no spins, no number is drawn or changed.
+function CasinoLookToggle() {
+  const [on, setOn] = useState(isCasinoLook());
+  useEffect(() => {
+    const h = (e) => setOn(!!e.detail);
+    window.addEventListener("mcz-casino-changed", h);
+    return () => window.removeEventListener("mcz-casino-changed", h);
+  }, []);
+  return (
+    <div className="space-y-2" data-tour="casino-look">
+      <p className="re-label">Casino look</p>
+      <button type="button" role="switch" aria-checked={on} className={`pill ${on ? "!border-amber-300 !text-amber-200" : ""}`}
+              onClick={() => setCasinoLook(!on)}>
+        {on ? "🎰 On" : "🎰 Off"}
+      </button>
+      <p className="text-[11px] leading-relaxed text-white/60">
+        Marquee-bulb cards, gold and ruby, and a coin shower on a big win. It is paint only: every number is still the server's,
+        there is nothing to spin and nothing is random. Pair it with the Casino or High Roller sound pack below. The movement
+        stops if your device asks for reduced motion.
+      </p>
     </div>
   );
 }

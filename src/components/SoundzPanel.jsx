@@ -96,9 +96,9 @@ export default function SoundzPanel({ isOpen, onClose }) {
               </h2>
             </div>
           </div>
-          <button
+          <button aria-label="Close"
             onClick={onClose}
-            className="text-white/40 hover:text-white/70 transition"
+            className="text-white/55 hover:text-white/70 transition"
           >
             <X size={20} />
           </button>
@@ -160,7 +160,7 @@ export default function SoundzPanel({ isOpen, onClose }) {
                       disabled={saving}
                       className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-mcz-cyan"
                     />
-                    <p className="text-xs text-white/40 mt-2">{volume}%</p>
+                    <p className="text-xs text-white/55 mt-2">{volume}%</p>
                   </div>
                 </div>
               )}

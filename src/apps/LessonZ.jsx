@@ -225,7 +225,7 @@ function Browse({ setView }) {
           Your balance: <span className="text-emerald-300">💵 ${(wallet.money_cents / 100).toFixed(2)}</span>
         </div>
       )}
-      {!walletLoading && !wallet && <p className="text-sm text-white/45">Couldn't load wallet balance.</p>}
+      {!walletLoading && !wallet && <p className="text-sm text-white/60">Couldn't load wallet balance.</p>}
       {showMap && <OfferMap offers={offers} center={coords ? [Number(coords.lat), Number(coords.lng)] : null} />}
       {loading && <p className="flex items-center gap-2 text-white/50"><Loader2 className="animate-spin" size={16} /> Searching…</p>}
 
@@ -245,7 +245,7 @@ function Browse({ setView }) {
               </span>
             </div>
             {o.description && <p className="text-sm text-white/60"><MentionText text={o.description} /></p>}
-            <p className="flex flex-wrap gap-2 text-xs text-white/45">
+            <p className="flex flex-wrap gap-2 text-xs text-white/60">
               {o.city && <span><MapPin size={11} className="mr-0.5 inline" />{o.city}</span>}
               {o.distance_km != null && <span>{o.distance_km} km away</span>}
               {o.remote_ok && <span><Wifi size={11} className="mr-0.5 inline" />Remote OK</span>}
@@ -325,13 +325,13 @@ function MyListings() {
       {msg && <p className="text-sm text-mcz-pink">{msg}</p>}
       {offers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Live lesson offers</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/60">Live lesson offers</p>
           {offers.map((o) => <OfferRow key={o.id} offer={o} onChanged={load} />)}
         </div>
       )}
       {posts.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Recorded lesson posts</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-white/60">Recorded lesson posts</p>
           {posts.map((p) => <PostRow key={p.id} post={p} onChanged={load} />)}
         </div>
       )}
@@ -649,7 +649,7 @@ function Teach() {
       <button className="neon-btn-primary" disabled={busy || (elig && !elig.can_teach)} onClick={publish}>
         {busy ? <Loader2 className="animate-spin" size={16} /> : null} Publish offer
       </button>
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-white/55">
         You set the price; students pay it. You never pay a student. Rating 6★+ required per skill.
       </p>
     </div>
@@ -691,7 +691,7 @@ function Bookings() {
 
   const Section = ({ title, rows, teacher }) => (
     <div>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/45">{title}</h3>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/60">{title}</h3>
       <div className="neon-frame divide-y divide-white/5">
         {rows.length === 0 && (
           <Empty className="p-4" text={teacher ? "Nobody has booked you yet." : "No bookings yet."}
@@ -883,7 +883,7 @@ function PostForm() {
           <option value="statz">StatZ tier</option>
           <option value="private">Only me</option>
         </select>
-        <p className="text-xs text-white/40 sm:col-span-2">
+        <p className="text-xs text-white/55 sm:col-span-2">
           {{
             public: "Anyone who can open LessonZ can see this lesson.",
             premium: "Members on Premium or StatZ can see this lesson.",
@@ -895,11 +895,11 @@ function PostForm() {
         <div>
           <input className={`neon-input ${errors.media_ref ? "border-mcz-pink" : ""}`} placeholder="Media ref (upload id)" value={form.media_ref} onChange={set("media_ref")} title="The media file ID from your upload (audio/video)" />
           {errors.media_ref && <p className="text-xs text-mcz-pink mt-1"><AlertCircle size={12} className="inline mr-1" />{errors.media_ref}</p>}
-          {!errors.media_ref && <p className="text-xs text-white/40 mt-1">The uploaded audio or video file ID</p>}
+          {!errors.media_ref && <p className="text-xs text-white/55 mt-1">The uploaded audio or video file ID</p>}
         </div>
         <div>
           <input className="neon-input" placeholder="Preview ref (optional)" value={form.preview_ref} onChange={set("preview_ref")} title="The thumbnail/preview image ID from your upload" />
-          <p className="text-xs text-white/40 mt-1">Thumbnail image to show before unlock</p>
+          <p className="text-xs text-white/55 mt-1">Thumbnail image to show before unlock</p>
         </div>
         <textarea className="neon-input sm:col-span-2" rows={2} placeholder="What students will learn…" value={form.description} onChange={set("description")} />
       </div>
@@ -907,7 +907,7 @@ function PostForm() {
       <button className="neon-btn-primary" disabled={busy} onClick={publish}>
         {busy ? <Loader2 className="animate-spin" size={16} /> : null} Publish lesson post
       </button>
-      <p className="text-xs text-white/40">Visible to whoever your visibility allows; they pay your price to unlock. All ages can learn — only verified adults with 6★+ can teach.</p>
+      <p className="text-xs text-white/55">Visible to whoever your visibility allows; they pay your price to unlock. All ages can learn — only verified adults with 6★+ can teach.</p>
     </div>
   );
 }

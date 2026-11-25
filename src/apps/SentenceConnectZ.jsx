@@ -42,14 +42,14 @@ function BriefCount({ s, value, cut = 0 }) {
   if (!s || s.brief_limit == null) return null;
   const used = (value || "").length;
   if (s.brief_unlimited) {
-    return <p className="text-[11px] text-white/35">{used.toLocaleString()} characters · no limit on your plan</p>;
+    return <p className="text-[11px] text-white/50">{used.toLocaleString()} characters · no limit on your plan</p>;
   }
   const near = used >= s.brief_limit * 0.9;
   const next = IN_SHELL ? null : nextTierBrief(s);
   return (
     <div className="space-y-1">
       <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
-        <span className={used >= s.brief_limit ? "text-mcz-ember" : near ? "text-mcz-gold" : "text-white/35"}>
+        <span className={used >= s.brief_limit ? "text-mcz-ember" : near ? "text-mcz-gold" : "text-white/50"}>
           {used.toLocaleString()} / {s.brief_limit.toLocaleString()}
           {used >= s.brief_limit && " · limit reached"}
         </span>
@@ -81,7 +81,7 @@ function VoiceNote({ kind }) {
     : kind.voice === "koth"
     ? "Written in K-Oth's voice."
     : kind.voice === "academic"
-      ? "Written in K-Oth's academic register: every heading and paragraph opens with an emoji, Music ConnectZ is the recurring example, and it cites in APA 7 only the sources you list — anything else is marked [CITATION NEEDED]."
+      ? "Written in K-Oth's academic register: every heading and paragraph opens with an emoji, contractions and em dashes, and it cites in APA 7 only the sources you list — anything else is marked [CITATION NEEDED]."
       : kind.invents_nothing
         ? "Written plainly from only what you give it. Anything you leave out becomes a [BRACKETED] blank — it adds nothing you did not say."
         : "Written plainly, to what you ask for.";
@@ -99,7 +99,7 @@ function ReportOutput({ work }) {
   if (done) return <p className="text-xs text-white/55">{done}</p>;
   if (!open) {
     return (
-      <button className="inline-flex items-center gap-1 text-[11px] text-white/45 hover:text-white" onClick={() => setOpen(true)}>
+      <button className="inline-flex items-center gap-1 text-[11px] text-white/60 hover:text-white" onClick={() => setOpen(true)}>
         <Flag size={11} /> Report this output
       </button>
     );
@@ -186,7 +186,7 @@ function RevisionChanges({ r, note }) {
         </div>
       ))}
       {!r.changes?.length && <p className="text-white/60">Nothing needed fixing on what you picked — your lyrics came back as they were.</p>}
-      {note && <p className="text-[11px] text-white/45">{note}</p>}
+      {note && <p className="text-[11px] text-white/60">{note}</p>}
     </div>
   );
 }
@@ -211,6 +211,7 @@ export default function SentenceConnectZ() {
   const [picked, setPicked] = useState([]);      // which of them the member is using
   const [hidden, setHidden] = useState(false);   // the suggestions, minimised
   const [fixFactors, setFixFactors] = useState([]);   // Fix my lyrics: only these change
+  const [goal, setGoal] = useState("");                 // the inspiration's principles, applied to the member's own lyrics
   const [fixNotes, setFixNotes] = useState({});       // what Inspiration said about each, if it came from there
   const timer = useRef(null);
 
@@ -275,7 +276,7 @@ export default function SentenceConnectZ() {
     if (dialsHere && Object.keys(prio).length) body.priorities = prio;
     if (inspHere && insp) body.reference = insp.url;
     if (kind === "lyrics") Object.assign(body, { majority, minority });
-    if (kind === "revise") Object.assign(body, { factors: fixFactors, notes: fixNotes });
+    if (kind === "revise") Object.assign(body, { factors: fixFactors, notes: fixNotes, ...(goal ? { goal } : {}) });
     if (current?.hashtags) Object.assign(body, hashtagBody(tags));
     let w;
     try {
@@ -376,7 +377,18 @@ export default function SentenceConnectZ() {
             {!IN_SHELL && current?.takes_voice && <SpeakingIn surface="writer" />}
             {!IN_SHELL && (current?.fixer || ["lyrics", "poem"].includes(kind)) && (
               <SentenceInspiration info={s} kind={kind} label={current?.label || kind}
-                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)} />
+                onDirection={(d) => takeBrief(`${topic}${topic ? "\n\n" : ""}Inspiration direction (how a song I admire does this; use none of its words): ${d}`)}
+                onRewrite={(d) => {
+                  // The box becomes the member's lyrics again: the direction rides as the edit's goal, not in the text.
+                  setGoal(d); setKind("revise");
+                  takeBrief(topic.split("\n\nInspiration direction")[0].replace(/^Inspiration direction[\s\S]*/, ""));
+                }} />
+            )}
+            {kind === "revise" && goal && (
+              <p className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/5 px-3 py-2 text-xs text-white/80">
+                <span className="font-semibold text-mcz-cyan">🎯 Rewriting toward the inspiration:</span> {goal}{" "}
+                <button type="button" className="text-white/55 underline" onClick={() => setGoal("")}>remove</button>
+              </p>
             )}
             {kind === "revise" && (
               <FixPicker factors={current?.factors || []} picked={fixFactors} notes={fixNotes}
@@ -417,11 +429,11 @@ export default function SentenceConnectZ() {
               {/* Live only once the price is known and the run can be paid for: with
                   no answer from the server there is no price to have stated. */}
               <button className="neon-btn-primary !w-auto px-5"
-                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run || (kind === "revise" && !fixFactors.length)} onClick={write}>
+                      disabled={busy || !topic.trim() || !s || !s.configured || !s.can_run || (kind === "revise" && !fixFactors.length && !goal)} onClick={write}>
                 {busy ? <Loader2 className="animate-spin" size={16} /> : <PenLine size={16} />} Write it
               </button>
               <RunPrice s={s} noun="writes" inShell={IN_SHELL} failed={!s && !!err} onRetry={load} />
-              <span className="text-[11px] text-white/40">A run that comes back empty isn't charged.</span>
+              <span className="text-[11px] text-white/55">A run that comes back empty isn't charged.</span>
               <RunClock running={busy} budgetSeconds={budgetOf(s)} what="Writing" />
             </div>
             {royaltyLine && <p className="text-xs text-white/50">{royaltyLine}</p>}
@@ -437,11 +449,11 @@ export default function SentenceConnectZ() {
             {!IN_SHELL && royalty && (
               <span className="text-xs text-white/60">
                 If used in DistributeZ, CollabZ or BattleZ: <span className="text-mcz-ember">−{royalty.royalty_pct}%</span> to K-Oth
-                <span className="text-white/40"> ({Math.round(royalty.kept_share * 100)}% {work.kind === "revise" ? "of the song is the writer's fixes" : "of the original kept"})</span>
+                <span className="text-white/55"> ({Math.round(royalty.kept_share * 100)}% {work.kind === "revise" ? "of the song is the writer's fixes" : "of the original kept"})</span>
               </span>
             )}
           </div>
-          <p className="text-[11px] text-white/45">Written by AI. Check it before you use it.</p>
+          <p className="text-[11px] text-white/60">Written by AI. Check it before you use it.</p>
           {work.legal_note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.legal_note}</p>}
           {work.note && <p className="rounded-lg bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">{work.note}</p>}
           {work.revision && <RevisionChanges r={work.revision} note={work.revise_note} />}
@@ -468,7 +480,7 @@ export default function SentenceConnectZ() {
                     {" · "}
                     {it.community
                       ? <span className="text-emerald-300">members rate this kind {it.community.avg}★ ({it.community.n} ratings)</span>
-                      : <span className="text-white/45">no member ratings for this kind yet — rate it to help rank them</span>}
+                      : <span className="text-white/60">no member ratings for this kind yet — rate it to help rank them</span>}
                   </p>
                   {it.why && <p className="text-[12px] text-white/70">{it.why}</p>}
                   <div className="flex items-center gap-1" role="group" aria-label="Rate this suggestion">
@@ -481,7 +493,7 @@ export default function SentenceConnectZ() {
                   </div>
                 </div>
               ))}
-              {!hidden && <p className="text-[11px] text-white/45">
+              {!hidden && <p className="text-[11px] text-white/60">
                 Tick the ones you will use — the box below holds exactly those. Using them anywhere that earns pays
                 K-Oth's royalty on the part you keep, shown under the box before you attach anything.
               </p>}
@@ -521,7 +533,7 @@ export default function SentenceConnectZ() {
             <button key={w.id} onClick={() => open(w)}
               className="block w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-sm hover:border-white/30">
               <span className="text-white/80">{w.label}</span>
-              <span className="text-white/40"> — {w.topic.slice(0, 80)}</span>
+              <span className="text-white/55"> — {w.topic.slice(0, 80)}</span>
             </button>
           ))}
         </div>

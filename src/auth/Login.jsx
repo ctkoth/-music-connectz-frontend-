@@ -128,14 +128,14 @@ export default function Login() {
       )}
       <OAuthButtons first onSuccess={() => navigate(home)} onError={setError} />
       {!import.meta.env.VITE_STANDALONE && (
-        <div className="flex items-center gap-3 text-xs text-white/40">
+        <div className="flex items-center gap-3 text-xs text-white/55">
           <span className="h-px flex-1 bg-white/10" /> or log in with email <span className="h-px flex-1 bg-white/10" />
         </div>
       )}
 
       <form onSubmit={submit} className="space-y-3">
         <div className="relative">
-          <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+          <UserCircle2 size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/50" />
           <input
             className="neon-input pl-10"
             placeholder="Username, email, or phone" aria-label="Username, email, or phone"

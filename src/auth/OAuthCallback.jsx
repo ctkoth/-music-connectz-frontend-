@@ -138,7 +138,7 @@ export default function OAuthCallback() {
             You're signed in with the provider. Finish in the Music ConnectZ app.
           </p>
           <a href={handoff} className="neon-btn-primary block w-full">Open Music ConnectZ</a>
-          <p className="text-xs text-white/40">You can close this tab afterwards.</p>
+          <p className="text-xs text-white/55">You can close this tab afterwards.</p>
         </div>
       </AuthShell>
     );

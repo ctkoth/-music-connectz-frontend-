@@ -186,7 +186,7 @@ export default function IntentPicker() {
         </>
       ) : (
         <>
-          <button className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-mcz-ember"
+          <button className="flex items-center gap-1 text-[11px] font-semibold text-white/55 hover:text-mcz-ember"
                   onClick={() => setRoleKey(null)}>
             <ArrowLeft size={12} /> Not {role.label.toLowerCase()}?
           </button>
@@ -200,7 +200,7 @@ export default function IntentPicker() {
                       onClick={() => go(p)}>
                 <span>
                   <span className="block text-sm font-semibold text-white">{p.label}</span>
-                  <span className="block text-[11px] text-white/45">{p.desc}</span>
+                  <span className="block text-[11px] text-white/60">{p.desc}</span>
                 </span>
                 <ArrowRight size={14} className="shrink-0 text-white/30" />
               </button>

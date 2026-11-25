@@ -35,7 +35,7 @@ function ShotEditor({ work, cast, onSaved }) {
     <div className="space-y-2">
       {shots.map((s, i) => (
         <div key={i} className="space-y-1 rounded-lg bg-white/5 p-2 text-sm">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/45">Shot {i + 1} · {mmss(i * 8)}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Shot {i + 1} · {mmss(i * 8)}</p>
           <div className="grid gap-1 sm:grid-cols-2">
             <input className="neon-input !py-1 text-xs" value={s.camera} aria-label={`Shot ${i + 1} camera`} placeholder="Camera"
                    onChange={(e) => edit(i, { camera: e.target.value })} />
@@ -89,7 +89,7 @@ function Piece({ s, work: initial, chars, onChange }) {
     <div className="re-card space-y-3" data-tour="animez-piece">
       <div className="flex flex-wrap items-baseline gap-2">
         <h3 className="font-semibold text-white">{fmt?.emoji} {work.title}</h3>
-        <span className="text-[11px] text-white/45">{fmt?.label} · {work.total} shots · about {mmss(work.seconds)} · {work.aspect}</span>
+        <span className="text-[11px] text-white/60">{fmt?.label} · {work.total} shots · about {mmss(work.seconds)} · {work.aspect}</span>
       </div>
       <p className="text-[11px] text-mcz-gold">{work.ai_label}</p>
       {work.status === "planned" && (
@@ -100,7 +100,7 @@ function Piece({ s, work: initial, chars, onChange }) {
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Render {work.total} shot{work.total === 1 ? "" : "s"}
             </button>
             <span className="text-[11px]">
-              <Price amount={work.render_price_cents} emoji={PROMPTZ} /> <span className="text-white/40">
+              <Price amount={work.render_price_cents} emoji={PROMPTZ} /> <span className="text-white/55">
                 ({work.total} × {s.clip_price_cents}) · a shot that fails is refunded and left out · starts {s.concurrent} at a time</span>
             </span>
           </div>
@@ -110,7 +110,7 @@ function Piece({ s, work: initial, chars, onChange }) {
         <p className="text-sm text-white/70" role="status">
           <Loader2 size={13} className="mr-1 inline animate-spin" />
           {work.rendered} of {work.total} shots rendered · {work.rendering} rendering · {work.queued} waiting{work.failed ? ` · ${work.failed} failed (refunded)` : ""}.
-          <span className="block text-[11px] text-white/45">Each shot takes a minute or two. You can leave — it carries on, and this page picks up where it is.</span>
+          <span className="block text-[11px] text-white/60">Each shot takes a minute or two. You can leave — it carries on, and this page picks up where it is.</span>
         </p>
       )}
       {work.status === "failed" && <p className="text-sm text-mcz-ember">{work.error}</p>}
@@ -188,7 +188,7 @@ export default function AnimeConnectZ() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-white/45">{s.length_note}</p>
+          <p className="text-[11px] text-white/60">{s.length_note}</p>
           <div className="flex flex-wrap items-center gap-3 text-xs">
             {f.min !== f.max && (
               <label className="flex items-center gap-2">Shots
@@ -196,7 +196,7 @@ export default function AnimeConnectZ() {
                 <span className="tabular-nums text-white">{n} · about {mmss(n * s.clip_seconds)}</span>
               </label>
             )}
-            <span className="text-white/45">
+            <span className="text-white/60">
               {s.shot_cap == null ? "Unlimited shots on your plan, up to the length's own ceiling" : `Your plan holds ${s.shot_cap} shots a piece`}
               {s.shot_cap != null && s.shot_cap < 60 && ` · Premium ${s.ladder.premium}, StatZ every one`}
             </span>
@@ -210,7 +210,7 @@ export default function AnimeConnectZ() {
               </button>
             ))}
             <button className="re-link text-[12px]" onClick={() => goToSpot("characterz", "")}>+ character</button>
-            <span className="text-[11px] text-white/45">{picked.length} of {s.max_characters} in the cast</span>
+            <span className="text-[11px] text-white/60">{picked.length} of {s.max_characters} in the cast</span>
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens?"
                     value={idea} onChange={(e) => setIdea(e.target.value)} aria-label="Idea" />
@@ -230,7 +230,7 @@ export default function AnimeConnectZ() {
               {busy ? <Loader2 size={14} className="animate-spin" /> : <PenLine size={14} />} Plan {n} shot{n === 1 ? "" : "s"}
             </button>
             <span className="text-[11px]"><Price amount={s.plan.cost_cents} emoji={PROMPTZ} freeToday={s.plan.free_today} /> <AiEnergy />{" "}
-              <span className="text-white/40">for the plan, not charged if nothing comes back · rendering is after, at {n} × {s.clip_price_cents}</span></span>
+              <span className="text-white/55">for the plan, not charged if nothing comes back · rendering is after, at {n} × {s.clip_price_cents}</span></span>
           </div>
           {!s.configured && <p className="text-xs text-mcz-ember">Anime ConnectZ isn't switched on yet.</p>}
           {msg && <p role="alert" className="text-xs text-mcz-ember">{msg}</p>}
@@ -242,7 +242,7 @@ export default function AnimeConnectZ() {
           <p className="re-label">Your anime</p>
           {s.works.map((w) => (
             <button key={w.id} className="block w-full rounded-lg bg-white/5 px-3 py-2 text-left text-sm hover:bg-white/10" onClick={() => setOpen(w)}>
-              {w.title} <span className="text-[11px] text-white/40">· {s.formats.find((x) => x.key === w.fmt)?.label} · {w.total} shots · {w.status}</span>
+              {w.title} <span className="text-[11px] text-white/55">· {s.formats.find((x) => x.key === w.fmt)?.label} · {w.total} shots · {w.status}</span>
             </button>
           ))}
         </div>

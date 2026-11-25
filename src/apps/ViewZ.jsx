@@ -100,7 +100,7 @@ function Timeline() {
     return (
       <div className="neon-frame space-y-2 p-4">
         <StatzSample what="The ViewZ timeline" />
-        <p className="text-xs text-white/45">Everyone can see the total views under each post and profile, and the numbers for their own posts under My posts.</p>
+        <p className="text-xs text-white/60">Everyone can see the total views under each post and profile, and the numbers for their own posts under My posts.</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ function Timeline() {
             {scope === "all" ? "Everything (owner)" : "Mine"}
           </button>
         )}
-        {busy && <Loader2 className="animate-spin text-white/40" size={16} />}
+        {busy && <Loader2 className="animate-spin text-white/55" size={16} />}
       </div>
       {d && (
         <div className="flex flex-wrap gap-2 text-sm">
@@ -142,7 +142,7 @@ function Timeline() {
           <span key={k} className="inline-flex items-center gap-1"><span className={`inline-block h-2.5 w-4 rounded border ${cls}`} /> {KIND_LABEL[k]}</span>
         ))}
       </div>
-      {d?.notice && <p className="text-[11px] text-white/40">{d.notice}</p>}
+      {d?.notice && <p className="text-[11px] text-white/55">{d.notice}</p>}
       {err && <p role="alert" className="text-sm text-mcz-ember">{err}</p>}
     </>
   );
@@ -167,7 +167,7 @@ function Numbers({ d }) {
           {a.acted != null && <> — {a.acted} acted in some way</>}
         </p>
       )}
-      <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-white/40">
+      <ul className="list-disc space-y-0.5 pl-4 text-[11px] text-white/55">
         <li><b>Views</b> — {d.definitions?.views}</li>
         <li><b>Stayed</b> — {d.definitions?.stayed}</li>
         <li><b>Came back</b> — {d.definitions?.came_back}</li>
@@ -187,7 +187,7 @@ function Sources({ d }) {
   const total = src.reduce((n, x) => n + x.visits, 0) || 1;
   return (
     <div data-viewz-sources className="space-y-1.5">
-      <p className="text-[11px] uppercase tracking-wide text-white/40">Where the visits came from</p>
+      <p className="text-[11px] uppercase tracking-wide text-white/55">Where the visits came from</p>
       <ul className="space-y-1">
         {src.map((x) => (
           <li key={x.src} className="flex items-center gap-2 text-[12px]">
@@ -198,7 +198,7 @@ function Sources({ d }) {
         ))}
       </ul>
       <p className="text-[12px] text-white/55">On: {dev.map((x) => `${DEVICE_LABEL[x.dev] || x.dev} ${x.visits}`).join(" · ")}</p>
-      <p className="text-[11px] text-white/35">A source is the <code>?src=</code> on the link a visitor used (your share links carry one); "direct" is a visit that carried none.</p>
+      <p className="text-[11px] text-white/50">A source is the <code>?src=</code> on the link a visitor used (your share links carry one); "direct" is a visit that carried none.</p>
     </div>
   );
 }
@@ -211,11 +211,11 @@ const ACTION_ICON = { rating: "⭐", comment: "💬", like: "👍", share: "🔁
 function ActionZ({ d }) {
   return (
     <div className="space-y-1.5" data-actionz>
-      <p className="text-[11px] uppercase tracking-wide text-white/40">ActionZ — what people did from this post</p>
+      <p className="text-[11px] uppercase tracking-wide text-white/55">ActionZ — what people did from this post</p>
       {d.action_log == null ? (
         <div className="neon-frame space-y-2 p-4">
           <StatzSample what="ActionZ by name" />
-          <p className="text-xs text-white/45">{d.action_log_locked}</p>
+          <p className="text-xs text-white/60">{d.action_log_locked}</p>
         </div>
       ) : d.action_log.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">Nobody has rated, commented, liked or shared this yet.</p>
@@ -227,7 +227,7 @@ function ActionZ({ d }) {
               <button className="font-semibold text-mcz-cyan hover:underline" onClick={() => window.dispatchEvent(new CustomEvent("mcz-goto-profile", { detail: a.who }))}>@{a.who}</button>
               <span className="text-white/60">{a.label}</span>
               {a.detail && <span className="min-w-0 truncate text-white/75">{a.detail}</span>}
-              <span className="ml-auto text-white/35" title={a.via_page ? "Also looked at the post's page" : "Acted from the feed, without opening the post"}>
+              <span className="ml-auto text-white/50" title={a.via_page ? "Also looked at the post's page" : "Acted from the feed, without opening the post"}>
                 {a.via_page ? "saw it here · " : "from the feed · "}{new Date(a.at).toLocaleString()}
               </span>
             </li>
@@ -242,7 +242,7 @@ function History({ days }) {
   const max = Math.max(1, ...days.map((x) => x.views));
   return (
     <div>
-      <p className="mb-1 text-[11px] uppercase tracking-wide text-white/40">Views by day</p>
+      <p className="mb-1 text-[11px] uppercase tracking-wide text-white/55">Views by day</p>
       <div className="flex h-16 items-end gap-1">
         {days.map((x) => (
           <div key={x.day} className="flex flex-1 flex-col items-center justify-end" title={`${new Date(`${x.day}T12:00`).toLocaleDateString()} — ${x.views} views (${x.members} members, ${x.visitors} visitors)`}>
@@ -250,7 +250,7 @@ function History({ days }) {
           </div>
         ))}
       </div>
-      <div className="mt-0.5 flex justify-between text-[10px] text-white/35">
+      <div className="mt-0.5 flex justify-between text-[10px] text-white/50">
         <span>{new Date(`${days[0].day}T12:00`).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
         <span>today</span>
       </div>
@@ -274,7 +274,7 @@ function PostDetail({ id, onBack }) {
     <div className="space-y-3">
       <button className="re-link text-sm" onClick={onBack}>← All my posts</button>
       <ShareStats endpoint={`/api/economy/views/post/${id}/share/`} />
-      {!d ? (err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />) : (
+      {!d ? (err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/55" />) : (
         <>
           <div className="flex items-center gap-2">
             <h3 className="font-display text-xl font-bold">{d.post.title || `Post #${d.post.id}`}</h3>
@@ -286,11 +286,11 @@ function PostDetail({ id, onBack }) {
           <Sources d={d} />
           <ActionZ d={d} />
           <div className="space-y-1.5" data-tour="viewz-tracks">
-            <p className="text-[11px] uppercase tracking-wide text-white/40">Every viewer, every visit — time, date and length</p>
+            <p className="text-[11px] uppercase tracking-wide text-white/55">Every viewer, every visit — time, date and length</p>
             {d.viewers == null ? (
               <div className="neon-frame space-y-2 p-4">
                 <StatzSample what="Who viewed your post, as tracks" />
-                <p className="text-xs text-white/45">{d.viewers_locked}</p>
+                <p className="text-xs text-white/60">{d.viewers_locked}</p>
               </div>
             ) : d.viewers.length === 0 ? (
               <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/60">Nobody has viewed this post yet.</p>
@@ -298,7 +298,7 @@ function PostDetail({ id, onBack }) {
               <DawLanes lanes={lanes} from={Date.parse(d.from)} to={Date.parse(d.to)} kinds={{ post: KIND.post }} />
             )}
           </div>
-          <p className="text-[11px] text-white/40">{d.notice} Updates every {POLL_MS / 1000} seconds while this is open.</p>
+          <p className="text-[11px] text-white/55">{d.notice} Updates every {POLL_MS / 1000} seconds while this is open.</p>
         </>
       )}
     </div>
@@ -308,7 +308,7 @@ function PostDetail({ id, onBack }) {
 function MyPosts({ open, setOpen }) {
   const { d, err } = useLive(open ? "" : "/api/economy/views/mine/", [open]);
   if (open) return <PostDetail id={open} onBack={() => setOpen(null)} />;
-  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
+  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/55" />;
   if (!d.posts.length) return <p className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-white/60">You haven't posted yet. <button className="re-link" onClick={() => goToTab("postz")}>Post in PostZ</button> and its results land here.</p>;
   return (
     <ul className="space-y-1.5">
@@ -335,7 +335,7 @@ const COUNT_LABEL = { rating: "⭐ rated", comment: "💬 commented", like: "�
 // that post's own results.
 function AllActionZ({ openPost }) {
   const { d, err } = useLive("/api/economy/views/mine/");
-  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
+  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/55" />;
   const counts = d.action_counts || {};
   const total = Object.values(counts).reduce((n, x) => n + x, 0);
   return (
@@ -348,7 +348,7 @@ function AllActionZ({ openPost }) {
         total > 0 && (
           <div className="neon-frame space-y-2 p-4">
             <StatzSample what="ActionZ by name" />
-            <p className="text-xs text-white/45">{d.action_log_locked}</p>
+            <p className="text-xs text-white/60">{d.action_log_locked}</p>
           </div>
         )
       ) : (
@@ -360,20 +360,20 @@ function AllActionZ({ openPost }) {
               <span className="text-white/60">{a.label}</span>
               <button className="min-w-0 truncate text-white/80 hover:underline" onClick={() => openPost(a.post)}>{a.post_title}</button>
               {a.detail && <span className="min-w-0 truncate text-white/55">{a.detail}</span>}
-              <span className="ml-auto text-white/35">{new Date(a.at).toLocaleString()}</span>
+              <span className="ml-auto text-white/50">{new Date(a.at).toLocaleString()}</span>
             </li>
           ))}
         </ul>
       )}
       <Sources d={d} />
-      <p className="text-[11px] text-white/40">Messages are not listed here: a message is about a person, not a post, so it appears on a post's own page when it follows a visit to it. Updates every {POLL_MS / 1000} seconds.</p>
+      <p className="text-[11px] text-white/55">Messages are not listed here: a message is about a person, not a post, so it appears on a post's own page when it follows a visit to it. Updates every {POLL_MS / 1000} seconds.</p>
     </div>
   );
 }
 
 function MyLinks() {
   const { d, err } = useLive("/api/economy/views/mine/");
-  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/40" />;
+  if (!d) return err ? <p className="text-sm text-mcz-ember">{err}</p> : <Loader2 className="animate-spin text-white/55" />;
   const KIND_W = { take: "Score card", win: "Improvement card", recap: "Monthly recap" };
   return (
     <div className="space-y-3">
@@ -392,7 +392,7 @@ function MyLinks() {
             <li key={l.token} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-white/5 px-3 py-2 text-[13px]">
               <span className="font-semibold">{KIND_W[l.kind] || "Card"}</span>
               <span className="text-white/55">{l.app_key} · {l.score}/10{l.genre ? ` · ${genreLabel(l.genre)}` : ""}</span>
-              <span className="text-white/40">{new Date(l.at).toLocaleDateString()}</span>
+              <span className="text-white/55">{new Date(l.at).toLocaleDateString()}</span>
               {l.human && <span className="text-emerald-300/80">human-made, declared</span>}
               <span className="ml-auto"><Eye size={12} className="mr-1 inline" />{l.opens} {l.opens === 1 ? "open" : "opens"}</span>
               <a href={l.url} target="_blank" rel="noreferrer" className="text-mcz-cyan underline">See the card</a>
@@ -400,7 +400,7 @@ function MyLinks() {
           ))}
         </ul>
       )}
-      <p className="text-[11px] text-white/40">An open is someone loading the card's page — a crawler fetching the preview image is not one. Who opened a link isn't recorded, so none is claimed. Updates every {POLL_MS / 1000} seconds.</p>
+      <p className="text-[11px] text-white/55">An open is someone loading the card's page — a crawler fetching the preview image is not one. Who opened a link isn't recorded, so none is claimed. Updates every {POLL_MS / 1000} seconds.</p>
     </div>
   );
 }

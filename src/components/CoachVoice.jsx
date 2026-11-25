@@ -65,7 +65,7 @@ export default function CoachVoice({ text }) {
         </select>
       )}
       {!voices.can_sample && (
-        <span className="text-white/35">
+        <span className="text-white/50">
           Premium can sample other voices; StatZ can save one —{" "}
           <button className="re-link" onClick={() => goToSpot("membershipz")}>upgrade</button>
         </span>

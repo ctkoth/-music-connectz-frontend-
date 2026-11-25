@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { onHandoff } from "../handoff.js";
+import { getProjectBpm, onProjectBpm } from "../dawTempo.js";
 
 function MetZ() {
   // A tempo handed over from another app — read as a HANDOFF, not off the
@@ -12,7 +13,13 @@ function MetZ() {
     return p.get("bpm") ? parseInt(p.get("bpm"), 10) : null;
   });
 
-  const [bpm, setBpm] = useState(urlBpm || 120);
+  const [bpm, setBpm] = useState(urlBpm || (getProjectBpm() ? Math.max(40, Math.min(240, Math.round(getProjectBpm()))) : 120));
+  // Beside an open DAW, the click is the PROJECT's tempo and follows it when it changes.
+  const [followed, setFollowed] = useState(!urlBpm && !!getProjectBpm());
+  useEffect(() => onProjectBpm((v) => {
+    if (!v) { setFollowed(false); return; }
+    setFollowed(true); setBpm(Math.max(40, Math.min(240, Math.round(v))));
+  }), []);
 
   useEffect(() => onHandoff("metz", (d) => {
     const next = d?.bpm != null ? Number(d.bpm) : null;
@@ -147,7 +154,7 @@ function MetZ() {
         <div className="mb-12 text-center">
           <h1 className="mb-2 text-5xl font-bold text-white">MetZ</h1>
           <p className="text-lg text-slate-400">
-            {urlBpm ? "Practice tempo from coach feedback" : "(metronome)"}
+            {urlBpm ? "Practice tempo from coach feedback" : followed ? `Following your project's tempo (${bpm} BPM)` : "(metronome)"}
           </p>
         </div>
 
@@ -259,7 +266,7 @@ function MetZ() {
             <Pause size={20} /> Stop
           </button>
 
-          <button
+          <button aria-label="Reset"
             onClick={handleReset}
             className="flex items-center justify-center gap-2 rounded-lg bg-slate-700 px-6 py-3 font-bold text-white transition-all hover:bg-slate-600"
           >

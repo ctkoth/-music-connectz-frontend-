@@ -5,8 +5,8 @@
 // two kinds of slot: apps the member pinned themselves, and "AI picks", which
 // are simply the apps they open most (tracked locally, never sent anywhere).
 //
-// Pin allowance follows the blueprint: Free pins 2 and lets the picks fill the
-// rest, Premium and StatZ pin as many as they like.
+// Pin allowance is the plan's count (3 / 6 / unlimited) and lets the picks fill the
+// rest.
 //
 // "Way less appz, more memberz": a brand-new member with no pins and no usage
 // used to see one line of hint text and an empty bar — technically minimal,
@@ -17,17 +17,18 @@
 // (not pins, so they never eat into the Free tier's 2-pin limit) until the
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
-import { Columns2, Home, LayoutGrid, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
+import { AudioLines, Columns2, Compass, Home, LayoutGrid, User, Minus, Pencil, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
 import { IconImg, pathFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 import { FOCUS_MODE, inFocus } from "./focus.js";
 
+import { loadLimits } from "./limits.js";
 import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency, readSeeds } from "./yourApps.js";
 const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
-const FREE_PIN_LIMIT = 2;
+const FREE_PIN_LIMIT = 3;   // Corey's tier numbers: Free 3, Premium 6, StatZ unlimited (served `imagez_layers`)
 // The one loop a new member needs before anything else means anything: post
 // something, have it coached, be heard from, be findable. Four apps, not
 // forty-five — everything past this is one search away, never deleted, never
@@ -51,7 +52,7 @@ export const writeStore = (k, v) => {
   }
 };
 
-/** Premium and StatZ pin without limit; everyone else gets FREE_PIN_LIMIT. */
+/** Fallback label and limit only; the live count is the server's (see Dock). */
 export function tierInfo(tier) {
   const t = (tier || "").toLowerCase();
   if (t.includes("statz") || t.includes("stats")) return { label: "StatZ", limit: Infinity };
@@ -141,6 +142,15 @@ function DockButton({ app, active, badge, onClick }) {
   );
 }
 
+// Phones get four labelled tabs instead of the pinned-app strip (the strip stays from 640px up).
+// Home again, while already on Home, opens the all-apps drawer, so the search is still one tap away.
+const PHONE_TABS = [
+  { key: "toolz", label: "Home", Icon: Home },
+  { key: "discover", label: "Explore", Icon: Compass },
+  { key: "connect", label: "Connect", Icon: AudioLines },
+  { key: "profilez", label: "Profile", Icon: User },
+];
+
 export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen, onTogglePin, onToggleHide, onSplit, onMini, minis = [] }) {
   const [drawer, setDrawer] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
@@ -159,7 +169,12 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   // than recall". Searching by WHAT YOU WANT TO DO is the fix: "record" finds
   // SingZ, "where did my money go" finds LogZ. See appPurpose.js.
   const [q, setQ] = useState("");
-  const { label: tierLabel, limit } = tierInfo(tier);
+  const { label: tierLabel, limit: fallbackLimit } = tierInfo(tier);
+  // How many apps may be pinned is the plan's count from the server (the same one tracks and layers use),
+  // never a number typed here. Until it answers, the lowest plan's number applies.
+  const [cap, setCap] = useState(undefined);
+  useEffect(() => { loadLimits().then((l) => setCap(l && "imagez_layers" in l ? l.imagez_layers : undefined)).catch(() => {}); }, []);
+  const limit = cap === undefined ? Math.min(fallbackLimit, FREE_PIN_LIMIT) : cap == null ? Infinity : cap;
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
   const pinnedApps = pins.map((k) => byKey[k]).filter(Boolean);
@@ -223,7 +238,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               {hiddenCount > 0 && (
                 <button
                   onClick={() => setShowHidden((s) => !s)}
-                  className="text-[11px] text-white/45 underline hover:text-white/70"
+                  className="text-[11px] text-white/60 underline hover:text-white/70"
                 >
                   {showHidden ? "Hide cleared apps" : `${hiddenCount} cleared — show`}
                 </button>
@@ -239,7 +254,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
             </div>
           </div>
           <label className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
-            <Search size={14} className="shrink-0 text-white/40" />
+            <Search size={14} className="shrink-0 text-white/55" />
             {/* A placeholder is not a label: it disappears the moment you type
                 and screen readers are inconsistent about announcing it. The
                 visible text stays a placeholder because the magnifier already
@@ -255,7 +270,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
               className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none"
             />
             {q && (
-              <button onClick={() => setQ("")} className="shrink-0 text-white/40 hover:text-white">
+              <button onClick={() => setQ("")} className="shrink-0 text-white/55 hover:text-white">
                 <X size={13} />
               </button>
             )}
@@ -268,7 +283,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
           </p>
 
           {shown.length === 0 && (
-            <p className="py-6 text-center text-[13px] text-white/40">
+            <p className="py-6 text-center text-[13px] text-white/55">
               Nothing matches "{q}". Try what you want to do rather than the app's name.
             </p>
           )}
@@ -303,7 +318,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                         are invented — SpinaZ, MimeZ, OmviardZ — so the label
                         alone tells a new member nothing, and a picture tells
                         them less. */}
-                    <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-white/35">
+                    <span className="line-clamp-2 w-full text-center text-[8px] leading-tight text-white/50">
                       {purposeOf(a.key)}
                     </span>
                   </a>
@@ -322,7 +337,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                         ? "bg-mcz-gold text-black"
                         : pinDisabled
                         ? "bg-white/5 text-white/20"
-                        : "bg-black/70 text-white/45 hover:text-white"
+                        : "bg-black/70 text-white/60 hover:text-white"
                     }`}
                   >
                     <Pin size={9} />
@@ -342,7 +357,7 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                     className={`absolute -left-1 -top-1 rounded-full p-1 transition ${
                       isHidden
                         ? "bg-emerald-500/80 text-black"
-                        : "bg-black/70 text-white/35 hover:text-white/70"
+                        : "bg-black/70 text-white/50 hover:text-white/70"
                     }`}
                   >
                     {isHidden ? <Plus size={9} /> : <Minus size={9} />}
@@ -369,8 +384,8 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
                   {canSplit && current !== a.key && (
                     <button
                       onClick={() => { onSplit(a.key); setDrawer(false); }}
-                      aria-label={`SplitZ: open ${a.label} beside the current app`}
-                      title={`SplitZ: open ${a.label} beside the current app`}
+                      aria-label={`PaneZ: open ${a.label} beside the current app`}
+                      title={`PaneZ: open ${a.label} beside the current app`}
                       className="absolute -bottom-1 -right-1 rounded-full bg-mcz-cyan/80 p-1 text-black transition hover:bg-mcz-cyan"
                     >
                       <Columns2 size={9} />
@@ -391,7 +406,22 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
         </div>
       )}
 
-      <div className="neon-frame flex items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur">
+      <nav aria-label="Main" className="neon-frame flex items-stretch justify-around bg-mcz-bg/95 backdrop-blur sm:hidden"
+           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {PHONE_TABS.map(({ key, label, Icon }) => {
+          const on = current === key || (key === "connect" && ["social", "collabz", "battlez", "venuez"].includes(current));
+          return (
+            <button key={key} aria-current={on ? "page" : undefined}
+              onClick={() => (key === "toolz" && on ? setDrawer((v) => !v) : onOpen(key))}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${on ? "text-mcz-cyan" : "text-white/55"}`}>
+              <Icon size={22} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="neon-frame hidden items-center gap-1.5 bg-mcz-bg/90 p-1.5 backdrop-blur sm:flex">
         <a
           {...openable(pathFor(apps[0]?.key || "postz"), () => onOpen(apps[0]?.key))}
           title="PickConnectZ — home · ctrl/cmd-click for a new tab"
@@ -406,11 +436,11 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
         <div className="flex flex-1 items-center gap-1 overflow-x-auto">
           {aiPicks.length === 0 && pinnedApps.length === 0 ? (
             <>
-              <span className="shrink-0 px-1 text-[11px] text-white/35">Start here:</span>
+              <span className="shrink-0 px-1 text-[11px] text-white/50">Start here:</span>
               {starterApps.map((a) => (
                 <DockButton key={a.key} app={a} active={current === a.key} onClick={() => onOpen(a.key)} />
               ))}
-              <span className="px-2 text-[11px] text-white/35">
+              <span className="px-2 text-[11px] text-white/50">
                 or tap ⊞ for every app — your most-used ones land here →
               </span>
             </>
@@ -452,6 +482,14 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
           )}
         </div>
 
+        <button
+          onClick={() => setDrawer(true)}
+          title={`Edit the dock: pin apps with the pin on each tile — ${limit === Infinity ? "unlimited" : `${pinnedApps.length} of ${limit}`}, free to change`}
+          aria-label="Edit the dock"
+          className="shrink-0 rounded-xl p-2 text-white/55 transition hover:bg-white/10 hover:text-white"
+        >
+          <Pencil size={16} />
+        </button>
         <button
           onClick={() => setDrawer((v) => !v)}
           title="All apps"

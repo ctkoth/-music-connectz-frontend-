@@ -1,10 +1,11 @@
 import { clearLanding, peekLanding } from "./landing.js";
 import { needsDoorList, trialPathFor, TRIAL_DOOR_FALLBACK } from "./trialLinks.js";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useScreenShape, splitLayout } from "./useScreenShape.js";
 import { api } from "./api.js";
 import { asList } from "./shape.js";
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
-import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X } from "lucide-react";
+import { Loader2, LogOut, ChevronLeft, ChevronRight, Volume2, VolumeX, Bell, X, Settings as GearIcon } from "lucide-react";
 import { isSoundOn, playSoundPreview, setSoundOn } from "./sound.js";
 import { track } from "./track.js";
 import { openable } from "./openable.js";
@@ -14,6 +15,7 @@ import { TabSlotContext, useHolds } from "./useRecordingHold.js";
 import RecordingBar from "./components/RecordingBar.jsx";
 import SessionBar from "./components/SessionBar.jsx";
 import DesktopSiteHint from "./components/DesktopSiteHint.jsx";
+import StorageNotice from "./components/StorageNotice.jsx";
 import { useSessionHoldState } from "./useSessionHold.js";
 import { clearSessionHold, seedSessionHold } from "./sessionHold.js";
 import LangPicker from "./components/LangPicker.jsx";
@@ -24,7 +26,8 @@ import MemberName from "./MemberName.jsx";
 import AccountChoice from "./auth/AccountChoice.jsx";
 import OAuthCallback from "./auth/OAuthCallback.jsx";
 import Dock, { isStatZTier, usePickConnectZ } from "./PickConnectZ.jsx";
-import NowPlayingBar from "./components/NowPlayingBar.jsx";
+import NowPlayingBar, { useNpCompact } from "./components/NowPlayingBar.jsx";
+import { useNowPlaying } from "./nowPlaying.js";
 import { usePageTitle } from "./pageTitle.js";
 import ErrorBoundary from "./ErrorBoundary.jsx";
 import Tour from "./Tour.jsx";
@@ -89,6 +92,10 @@ const FormulaWon = lazy(lazyRoute(() => import("./apps/FormulaWon.jsx")));
 const FruityMobius = lazy(lazyRoute(() => import("./apps/FruityMobius.jsx")));
 const Witchcraft = lazy(lazyRoute(() => import("./apps/Witchcraft.jsx")));
 const Azrael = lazy(lazyRoute(() => import("./apps/Azrael.jsx")));
+const TrumpToupee = lazy(lazyRoute(() => import("./apps/TrumpToupee.jsx")));
+const StudioDragon = lazy(lazyRoute(() => import("./apps/StudioDragon.jsx")));
+const CleanConnectZ = lazy(lazyRoute(() => import("./apps/CleanConnectZ.jsx")));
+const SettingsHub = lazy(lazyRoute(() => import("./apps/SettingsHub.jsx")));
 const PostZ = lazy(lazyRoute(() => import("./apps/PostZ.jsx")));
 const KeyConnectZ = lazy(lazyRoute(() => import("./apps/KeyConnectZ.jsx")));
 const SentenceConnectZ = lazy(lazyRoute(() => import("./apps/SentenceConnectZ.jsx")));
@@ -130,6 +137,7 @@ const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
 const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const LookSample = lazy(lazyRoute(() => import("./apps/LookSample.jsx")));
 const RateInvite = lazy(lazyRoute(() => import("./apps/RateInvite.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
@@ -143,6 +151,10 @@ const FileZ = lazy(lazyRoute(() => import("./apps/FileZ.jsx")));
 const SentenceZ = lazy(lazyRoute(() => import("./apps/SentenceZ.jsx")));
 const CharacterZ = lazy(lazyRoute(() => import("./apps/CharacterZ.jsx")));
 const MangaZ = lazy(lazyRoute(() => import("./apps/MangaZ.jsx")));
+const ConnectHub = lazy(lazyRoute(() => import("./apps/Connect.jsx")));
+const ExploreFeed = lazy(lazyRoute(() => import("./apps/Discover.jsx")));
+const MixEZ = lazy(lazyRoute(() => import("./apps/MixEZ.jsx")));
+const DesignZ = lazy(lazyRoute(() => import("./apps/DesignZ.jsx")));
 const AnimeZ = lazy(lazyRoute(() => import("./apps/AnimeZ.jsx")));
 const AnimeConnectZ = lazy(lazyRoute(() => import("./apps/AnimeConnectZ.jsx")));
 const RoyaltieZ = lazy(lazyRoute(() => import("./apps/RoyaltieZ.jsx")));
@@ -205,6 +217,9 @@ function RouteFallback() {
 export const CUSTOM_ICONS = {
   "arsenal.png": "/icons/arsenal.png",
   "azrael.png": "/icons/azrael.png",
+  "trump_toupee.png": "/icons/trump_toupee.png",
+  // Studio Dragon has no art of its own yet; it wears the DawZ mark rather than falling back to the app logo, until Corey draws one.
+  "studiodragon.png": "/icons/dawz.png",
   "background.png": "/icons/background.png",
   "battlez.1v1.png": "/icons/battlez.1v1-neon.svg",
   "battlez.cypher.png": "/icons/battlez.cypher-neon.svg",
@@ -255,6 +270,7 @@ export const CUSTOM_ICONS = {
   "dawz.png": "/icons/dawz.png",
   "dawz_formulawon.png": "/icons/dawz_formulawon.png",
   "designz.png": "/icons/designz.png",
+  "mixez.png": "/icons/studioz.mixez.jpg",
   "developz.png": "/icons/developz.png",
   "instrumentz.png": "/icons/instrumentz.png",
   "drumz.png": "/icons/drumz-neon.svg",
@@ -466,11 +482,11 @@ export const CUSTOM_ICONS = {
   "badge_brass_blastz.png": "/icons/badge_brass_blastz-neon.svg",
   "badge_royal_ratingz.png": "/icons/badge_royal_ratingz-neon.svg",
   "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
-  "badge_thorough.png": "/icons/badge_thorough-neon.svg",
-  "badge_decent.png": "/icons/badge_decent-neon.svg",
-  "badge_legendary.png": "/icons/badge_legendary-neon.svg",
-  "badge_supreme.png": "/icons/badge_supreme-neon.svg",
-  "badge_perfect.png": "/icons/badge_perfect-neon.svg",
+  "badge_thorough.png": "/icons/badge_thorough.jpg",
+  "badge_decent.png": "/icons/badge_decent.jpg",
+  "badge_legendary.png": "/icons/badge_legendary.jpg",
+  "badge_supreme.png": "/icons/badge_supreme.jpg",
+  "badge_perfect.png": "/icons/badge_perfect.jpg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
@@ -541,6 +557,9 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 // full size; a mini is the small version, free to everybody.
 export const MINI_TOOLS = ["metz", "tunerz", "chordz", "sentenceconnectz"];
 export const canMini = () => true;
+// PaneZ — the split page. Every plan can split; how many times a day is the plan's (`split_opens`: Free 3,
+// Premium 6, StatZ unlimited, Corey's numbers), counted by the server (`/api/economy/panez/`). Swapping the app in a
+// split already open is not a new open. Mini panes are not counted.
 // Four, so a DAW can keep MetZ, TunerZ, ChordZ and Sentence ConnectZ open beside it at once.
 const MAX_MINIS = 4;
 
@@ -649,6 +668,10 @@ const TABS = [
   { key: "sentencez", label: "SentenceZ", icon: "sentencez_editor.png", el: <SentenceZ /> },
   { key: "characterz", label: "CharacterZ", icon: "characterz.png", el: <CharacterZ /> },
   { key: "mangaz", label: "MangaZ", icon: "mangaz.png", el: <MangaZ /> },
+  { key: "designz", label: "DesignZ", icon: "designz.png", el: <DesignZ /> },
+  { key: "mixez", label: "MixEZ", icon: "mixez.png", el: <MixEZ /> },
+  { key: "discover", label: "Explore", icon: "postz.png", el: <ExploreFeed /> },
+  { key: "connect", label: "Connect", icon: "social_connectz.png", el: <ConnectHub /> },
   { key: "animez", label: "AnimeZ", icon: "animez.png", el: <AnimeZ /> },
   { key: "animeconnectz", label: "Anime ConnectZ", icon: "animeconnectz.png", el: <AnimeConnectZ /> },
   { key: "instrumentalconnectz", label: "Instrumental ConnectZ", icon: "instrumentalconnectz.png", el: <InstrumentalConnectZ /> },
@@ -696,6 +719,10 @@ const TABS = [
   { key: "fruitymobius", label: "Fruity Möbius", icon: "fruity_mobius.png", el: <FruityMobius /> },
   { key: "witchcraft", label: "Witchcraft", icon: "witchcraft.png", el: <Witchcraft /> },
   { key: "azrael", label: "Azrael", icon: "azrael.png", el: <Azrael /> },
+  { key: "trumptoupee", label: "Trump Toupee", icon: "trump_toupee.png", el: <TrumpToupee /> },
+  { key: "studiodragon", label: "Studio Dragon", icon: "studiodragon.png", el: <StudioDragon /> },
+  { key: "settingz", label: "Settings", icon: "profilez.png", el: <SettingsHub /> },
+  { key: "cleanconnectz", label: "Clean ConnectZ", icon: "cleanconnectz.png", el: <CleanConnectZ /> },
   { key: "formulawon", label: "FormulaWon", icon: "dawz_formulawon.png", el: <FormulaWon /> },
   { key: "intuition", label: "Intuition", icon: "intuition.png", el: <Intuition /> },
   // Owner-only — filtered out of the Dock for everyone else in Home(),
@@ -751,6 +778,9 @@ function TrialOrApp({ tabKey, children }) {
     return () => { on = false; };
   }, [loading, user, wantsDoors]);
   if (user) return children;
+  // LookZMaxZ opens for anybody, no account and no ID check: what a logged-out visitor gets is the EXAMPLE reading (it
+  // scores nobody). The real reading still needs a verified adult, and says so once they are in.
+  if (tabKey === "lookmaxz" && !loading) return <LookSample />;
   if (loading || (wantsDoors && doors === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-white/50">
@@ -770,6 +800,12 @@ function TrialOrApp({ tabKey, children }) {
 // link like /battle while logged out is someone who already knows what this
 // is, and /login is the right place to send them).
 // Use the landing slot once: a slot left set would keep turning the home screen into a redirect.
+// An old address for a tab: same place, query string kept (?for=, ?look=).
+function TabAlias({ tabKey }) {
+  const loc = useLocation();
+  return <Navigate to={`${pathFor(tabKey)}${loc.search}`} replace />;
+}
+
 function LandOnce({ to }) {
   useEffect(() => { clearLanding(); }, []);
   return <Navigate to={to} replace />;
@@ -837,7 +873,7 @@ function SoundToggle() {
         if (next) playSoundPreview();
       }}
       className={`rounded-lg p-1.5 transition hover:bg-white/10 ${
-        on ? "text-mcz-cyan" : "text-white/40"}`}
+        on ? "text-mcz-cyan" : "text-white/55"}`}
       title={on ? "SoundZ on — resource changes make a sound" : "SoundZ off — turn sounds on"}
       aria-pressed={on}
     >
@@ -1030,6 +1066,10 @@ const TAB_ABOUT = {
   postz: "🎵 Drop your work as a PostZ. After 30s the community can rate it 1–10 (anyone but you); after 60s they can comment. Every rating you give earns +1 Energy.",
   social: "💓 Social matching, message boards and personality-based discovery. Filter creators by NationalitieZ heritage to find your people.",
   characterz: "🦁 CharacterZ — a face, a personality and a voice. MangaZ draws them and writes their lines in that voice.",
+  connect: "🤝 Connect — every way to work with other people: who is here, deals, battles and shared rooms.",
+  discover: "🧭 Explore — what members just posted, hot, new or top rated. Play a track, rate it and comment right here; posting is PostZ.",
+  mixez: "🎚️ MixEZ — mix-engineer ear training: name the boosted frequency, match a hidden EQ by ear. Free, on your device, scored by measurement.",
+  designz: "🎨 DesignZ — designers put their work here to be rated, reacted to and commented on. Karma, Rate, Comment and Share sit under every design, and the rating is the median of what other members gave.",
   mangaz: "📚 MangaZ — your characters and idea, made into an AI manga page: edit the script, then draw it panel by panel or as one page.",
   animez: "🌸 AnimeZ — put an episode together from your manga pages and anime pieces, with subtitles and camera moves, and cut it in VideoZ. Free, on your device.",
   animeconnectz: "🌸 Anime ConnectZ — your characters and idea animated by AI: plan the shots, edit them, then render a PromptZ, ReelZ, EpisodeZ chapter or MovieZ scene.",
@@ -1059,6 +1099,10 @@ const TAB_ABOUT = {
   intuition: "💭 Intuition — a songwriter's DAW on your own device, Logic-style: pick a key and a chord progression, stack pad, keys, bass and arp on it, set the tempo by tapping, add the Smart Drummer, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   formulawon: "🚦 FormulaWon — the beginner's DAW on your own device, GarageBand-style: a Smart Drummer plays in six styles (you set how busy and how hard), you send it to a track, then record over it, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   witchcraft: "🔮 Witchcraft — a loop-first DAW on your own device, Mixcraft-style: pick drums, chords, keys, bass and arps in your key and tempo, stack them on tracks, open MIDI, record over it, mix and bounce a WAV. Free — nothing is uploaded until you save.",
+  studiodragon: "🐉 Studio Dragon — a one-window DAW on your own device, Studio One-style: the arrangement and the mixer together, a browser of effects, tones and loops you drag onto tracks, and a song map of sections you drag into a new order with the music inside them. Free — nothing is uploaded until you save a bounce.",
+  trumptoupee: "🤵🏼‍♂️ Trump Toupee — a modern DAW on your own device, Bitwig-style: record, edit, MIDI, mix and bounce, with automation drawn on any track.",
+  cleanconnectz: "🧹 Clean ConnectZ — free space on your device by a target percent or size from a folder you pick; you see and untick every file before anything is deleted. Every plan; your plan sets how many ways of choosing what goes are open.",
+  settingz: "⚙️ Settings — one door to every control that sets how the app behaves: who sees what, sound, 18+ verification, your plan and your profile.",
   azrael: "☠️ Azrael — a lean DAW on your own device, Reaper-style: set every shortcut yourself, pick a skin, record, edit, open MIDI, mix and bounce a WAV. Free — nothing is uploaded until you save.",
   fruitymobius: "🍑 Fruity Möbius — a pattern-first DAW on your own device, FL Studio-style: tap beats into a 16-step Channel Rack with built-in drums, 808 and pluck, clone patterns, send them to the Playlist, mix with the built-in effects and bounce a WAV. Free — nothing is uploaded until you save.",
   arsenal: "⚔️ Arsenal — a multitrack DAW on your own device, Pro Tools-style: record takes onto tracks, keep every take in playlists, edit in Slip, Grid or Shuffle, mix with built-in EQ, compressor, delay and reverb, and bounce a WAV. Free — nothing is uploaded until you save.",
@@ -1130,7 +1174,12 @@ function Home() {
   // the pane. Nulls out on every tab change: a split is a "look at these two
   // together" moment, not a standing layout that should survive navigating
   // away and quietly still be there ten screens later.
+  const nowPlaying = useNowPlaying();
+  const npCompact = useNpCompact();
   const [splitKey, setSplitKey] = useState(null);
+  // How the split pane sits, from the MEASURED screen (see splitLayout) — not a 1024px breakpoint.
+  const screen = useScreenShape();
+  const split = splitLayout(screen);
   // Mini tools — MetZ, TunerZ, ChordZ docked beside whatever app is open, at
   // a fraction of the size, so a metronome, a tuner and a chord chart can sit
   // next to the coach (and a SplitZ pane) at once: four panes on one screen.
@@ -1139,11 +1188,17 @@ function Home() {
     try { return JSON.parse(localStorage.getItem("mcz_minis") || "[]").filter((k) => TABS.some((t) => t.key === k)); } catch { return []; }
   });
   useEffect(() => { try { localStorage.setItem("mcz_minis", JSON.stringify(minis)); } catch { /* per-session then */ } }, [minis]);
+  const [paneNote, setPaneNote] = useState("");
+  const [paneLeft, setPaneLeft] = useState(null);     // { left, limit } from the server, null until it answers
+  const splitRef = useRef(null);
   useEffect(() => {
     const h = (e) => setMinis((m) => (m.includes(e.detail) ? m.filter((k) => k !== e.detail)
       : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
+    // The whole kit at once: all four tools beside whatever is open, or all closed if they already are.
+    const kit = () => setMinis((m) => (MINI_TOOLS.every((k) => m.includes(k)) ? m.filter((k) => !MINI_TOOLS.includes(k)) : [...new Set([...m.filter((k) => !MINI_TOOLS.includes(k)), ...MINI_TOOLS])].slice(-MAX_MINIS)));
     window.addEventListener("mcz-mini", h);
-    return () => window.removeEventListener("mcz-mini", h);
+    window.addEventListener("mcz-kit", kit);
+    return () => { window.removeEventListener("mcz-mini", h); window.removeEventListener("mcz-kit", kit); };
   }, []);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});
@@ -1214,7 +1269,18 @@ function Home() {
   // ToolZ's ⊞ Split opens the app beside the current one — the same pane the
   // Dock's split opens, with the same StatZ / sample note on it.
   useEffect(() => {
-    const h = (e) => { if (TABS.some((t) => t.key === e.detail)) setSplitKey(e.detail); };
+    const h = async (e) => {
+      if (!TABS.some((t) => t.key === e.detail)) return;
+      // Swapping the app in an open split is free; a new split asks the server, which counts the day.
+      if (splitRef.current) { setSplitKey(e.detail); return; }
+      try {
+        const st = await api("/api/economy/panez/", { method: "POST", body: { app: e.detail } });
+        setPaneLeft(st); setPaneNote(""); setSplitKey(e.detail);
+      } catch (err) {
+        if (err?.status === 429 || /split pages/.test(err?.message || "")) setPaneNote(err.message);
+        else { setPaneNote(""); setSplitKey(e.detail); }      // the counter being down never blocks a split
+      }
+    };
     window.addEventListener("mcz-split", h);
     return () => window.removeEventListener("mcz-split", h);
   }, []);
@@ -1341,7 +1407,7 @@ function Home() {
               <span className="block truncate text-[11px] font-semibold text-white/70">
                 {active?.label} <span className="text-white/30">ⓘ</span>
               </span>
-              <span className="block truncate text-[9px] text-white/35">{today}</span>
+              <span className="block truncate text-[9px] text-white/50">{today}</span>
             </span>
           </button>
 
@@ -1356,6 +1422,8 @@ function Home() {
           <SoundzButton onClick={() => setSoundzOpen(true)} />
           <SoundToggle />
           <LangPicker />
+          <a {...openable("/setting", () => openTab("settingz"))} aria-label="Settings" title="Settings — ctrl/cmd-click for a new tab"
+             className="rounded-lg p-1.5 text-white/60 hover:bg-white/10 hover:text-white"><GearIcon size={16} /></a>
           <button onClick={logout} className="rounded-lg p-1.5 text-white/60 hover:bg-white/10" title="Log out">
             <LogOut size={16} />
           </button>
@@ -1366,10 +1434,13 @@ function Home() {
       </header>
 
       {/* pb leaves room for the fixed PickConnectZ dock */}
-      <main className="mx-auto max-w-4xl px-4 pb-40 pt-5">
-        <p className="mb-4 text-xs text-white/45">
+      {/* A playing track adds its bar (and a compact bar is smaller) above the dock, so the bottom of whatever is
+          open — an editor's last tools, a form's save button — stays reachable instead of sitting under it. */}
+      <main className={`${DAW_TABS.has(tab) ? "max-w-none" : "mx-auto max-w-4xl"} px-4 pt-5 ${nowPlaying.track ? (npCompact ? "pb-52" : "pb-64") : "pb-40"}`}>
+        <p className="mb-4 text-xs text-white/60">
           Signed in as <span className="text-white/80" data-ugc="true">{user?.username}</span>
         </p>
+        <StorageNotice />
         <DesktopSiteHint />
         <CommunityBar onOpenMembership={() => openTab("membershipz")}
                       onOpenBirthday={() => goToSpot("profilez", "birthday")} />
@@ -1382,6 +1453,13 @@ function Home() {
             SplitZ's pane sits beside it as a genuinely separate mounted
             tree with its own boundary — one pane crashing must not take the
             other down with it. */}
+        {paneNote && (
+          <p role="alert" className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-mcz-gold/40 bg-mcz-gold/10 px-3 py-2 text-xs text-mcz-gold">
+            {paneNote}
+            <button type="button" className="underline" onClick={() => openTab("membershipz")}>See the plans</button>
+            <button type="button" className="text-white/60 underline" onClick={() => setPaneNote("")}>OK</button>
+          </p>
+        )}
         <div className={minis.some((k) => k !== tab && canMini(k, user?.tier)) ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]" : ""}>
         {minis.some((k) => k !== tab && canMini(k, user?.tier)) && (
           <aside className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 lg:order-last lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0"
@@ -1396,13 +1474,13 @@ function Home() {
                     </span>
                     <span className="flex items-center gap-1">
                       <button onClick={() => openTab(k)} className="rounded px-1.5 text-[10px] text-white/50 hover:bg-white/10 hover:text-white" title="Open full size">⤢</button>
-                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
+                      <button onClick={() => setMinis((m) => m.filter((x) => x !== k))} className="rounded p-1 text-white/55 hover:bg-white/10 hover:text-white" aria-label={`Close ${t?.label}`}><X size={12} /></button>
                     </span>
                   </div>
                   {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
                       quarter-size tool takes quarter-size room and its
                       controls still hit where they are drawn. */}
-                  <div className="max-h-[38vh] overflow-y-auto p-2 lg:max-h-[30vh]" style={{ zoom: 0.72 }}>
+                  <div className="max-h-[60vh] overflow-y-auto p-2 lg:max-h-[52vh]" style={{ zoom: 0.72 }}>
                     <ErrorBoundary key={k} label={t?.label}>
                       <Suspense fallback={<RouteFallback />}>{t?.el}</Suspense>
                     </ErrorBoundary>
@@ -1412,8 +1490,9 @@ function Home() {
             })}
           </aside>
         )}
-        <div className={splitKey ? "grid min-w-0 gap-4 lg:grid-cols-2" : "min-w-0"}>
-          <div className="min-w-0">
+        <div className={splitKey ? `grid min-w-0 gap-4 ${split.side ? "grid-cols-2" : "grid-cols-1"}` : "min-w-0"}>
+          <div className="min-w-0"
+               style={splitKey && split.capFirst ? { maxHeight: split.paneMax, overflowY: "auto", overscrollBehavior: "contain" } : undefined}>
             <ErrorBoundary key={tab} label={active?.label}>
               <StatzTimerBanner />
               <CelebrationLayer />
@@ -1431,16 +1510,17 @@ function Home() {
             ))}
           </div>
           {splitKey && (
-            <div className="min-w-0">
+            <div className="min-w-0" data-splitpane
+                 style={{ maxHeight: split.paneMax, overflowY: "auto", overscrollBehavior: "contain" }}>
               <div className="mb-2 flex items-center justify-between rounded-lg bg-mcz-cyan/10 px-3 py-1.5">
                 <span className="flex items-center gap-1.5 text-[11px] text-mcz-cyan">
                   <IconImg icon={TABS.find((t) => t.key === splitKey)?.icon} alt=""
                            className="h-4 w-4 rounded object-cover" />
-                  SplitZ — {TABS.find((t) => t.key === splitKey)?.label}
+                  PaneZ — {TABS.find((t) => t.key === splitKey)?.label}
                 </span>
                 <button onClick={() => setSplitKey(null)}
-                        className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white"
-                        aria-label="Close SplitZ">
+                        className="rounded p-1 text-white/55 hover:bg-white/10 hover:text-white"
+                        aria-label="Close PaneZ">
                   <X size={13} />
                 </button>
               </div>
@@ -1448,14 +1528,9 @@ function Home() {
                   every time it opens, cost/gain-style, because a StatZ perk
                   discovered by using it once and losing it the next session
                   reads as a bug rather than a reason to upgrade. */}
-              {!isStatZTier(user?.tier) && (
-                <button
-                  onClick={() => { setSplitKey(null); openTab("membershipz"); }}
-                  className="mb-2 flex w-full items-center justify-between rounded-lg border border-mcz-gold/30 bg-mcz-gold/10 px-3 py-2 text-left text-[11px] text-mcz-gold hover:bg-mcz-gold/15"
-                >
-                  <span>✨ You're sampling SplitZ — StatZ keeps it permanently.</span>
-                  <span className="shrink-0 font-semibold underline">Upgrade →</span>
-                </button>
+
+              {paneLeft && paneLeft.limit != null && (
+                <p className="mb-2 text-[11px] text-white/60">PaneZ · {paneLeft.left} of {paneLeft.limit} split pages left today</p>
               )}
               <ErrorBoundary key={splitKey} label={TABS.find((t) => t.key === splitKey)?.label}>
                 <Suspense fallback={<RouteFallback />}>{appEl(splitKey)}</Suspense>
@@ -1514,14 +1589,14 @@ function Home() {
                           {a.name}
                         </button>
                       ) : (
-                        <span className={a.built ? "text-white/80" : "text-white/40"}>
+                        <span className={a.built ? "text-white/80" : "text-white/55"}>
                           {a.name}
                         </span>
                       )}
                       {!a.built && (
                         <span className="ml-1 text-[10px] text-mcz-gold">not built yet</span>
                       )}
-                      <span className="block text-[11px] leading-relaxed text-white/40">
+                      <span className="block text-[11px] leading-relaxed text-white/55">
                         {a.desc}
                       </span>
                     </span>
@@ -1648,7 +1723,7 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
       </header>
       <h1 className="mb-1 font-display text-2xl font-extrabold tracking-tight text-white">{heading || title}</h1>
       <p className="mb-4 text-sm text-white/55">{blurb ? `${blurb} ` : ""}Free, no account, nothing to install.</p>
-      <Suspense fallback={<div className="py-16 text-center text-white/40">Loading…</div>}>{el}</Suspense>
+      <Suspense fallback={<div className="py-16 text-center text-white/55">Loading…</div>}>{el}</Suspense>
       <div className="mt-8 rounded-xl border border-mcz-ember/25 bg-mcz-ember/[0.07] p-4 text-center">
         <p className="mb-3 text-sm text-white/80">
           {pitch || "The tools are free forever. The coach is the reason people stay — one take, scored, no account needed either."}
@@ -1661,6 +1736,10 @@ function PublicTool({ title, heading, blurb, el, pitch, cta }) {
     </div>
   );
 }
+
+// The DAWs get the whole width of the screen: a 6-minute song and its tracks do not fit in a 896px column, and Mixcraft,
+// Reaper and Pro Tools all use every pixel. Everything else keeps the readable column.
+const DAW_TABS = new Set(["arsenal", "fruitymobius", "witchcraft", "azrael", "trumptoupee", "formulawon", "intuition", "studiodragon"]);
 
 export default function App() {
   const { user } = useAuth();
@@ -1682,6 +1761,9 @@ export default function App() {
       <Route path="/l/:id" element={<PublicLesson />} />
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/rate/:handle" element={<RateInvite />} />
+      <Route path="/lookmaxz/sample" element={<LookSample />} />
+      {/* Invite and share links already sent say /lookmaxz, which was never a route (the tab lives at /lookmax). */}
+      <Route path="/lookmaxz" element={<TabAlias tabKey="lookmaxz" />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       {/* Matched BEFORE /try/:appKey — route order matters here, or the
@@ -1711,6 +1793,7 @@ export default function App() {
              cta="Get your take scored" />} />
       <Route path="/pl/:id" element={<PublicPlaylist />} />
       <Route path="/explore" element={<Explore />} />
+      <Route path="/home" element={<Navigate to="/" replace />} />
       <Route path="/x/:token" element={<PublicShared />} />
       <Route path="/" element={<RootRoute />} />
       {/* LogicZ: one address per tab. Listed explicitly rather than as a

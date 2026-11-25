@@ -35,7 +35,7 @@ function RowOptions({ row, coachOnly = false }) {
     return () => { live = false; };
   }, [row.id]);
   if (err) return <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>;
-  if (!data) return <p className="flex items-center gap-2 text-[11px] text-white/45"><Loader2 className="animate-spin" size={12} /> Loading options…</p>;
+  if (!data) return <p className="flex items-center gap-2 text-[11px] text-white/60"><Loader2 className="animate-spin" size={12} /> Loading options…</p>;
   // coachOnly: just the coach doors (the server marks a SoundCloud-only one `own_copy`),
   // so "Coach it" is one short list instead of every door a post has.
   const destinations = coachOnly ? (data.destinations || []).filter((d) => d.own_copy) : data.destinations;
@@ -207,7 +207,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
     <div ref={root} id="sc-library" className="space-y-3">
     {card}
     <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-      <p className="text-xs font-semibold uppercase tracking-widest text-white/45">Your SoundCloud tracks</p>
+      <p className="text-xs font-semibold uppercase tracking-widest text-white/60">Your SoundCloud tracks</p>
       <p className="text-sm text-white/70">{countsLine(c)}{c.private_on_sc ? ` · ${c.private_on_sc} private on SoundCloud` : ""}</p>
       <details className="text-[11px] text-white/55">
         <summary className="cursor-pointer text-mcz-cyan">Import more from SoundCloud</summary>
@@ -252,7 +252,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
             ))}
           </div>
           <p className="text-[11px] leading-relaxed text-white/60">{data.explain[target]}</p>
-          {target !== "private" && <p className="text-[11px] leading-relaxed text-white/45">{data.dating}</p>}
+          {target !== "private" && <p className="text-[11px] leading-relaxed text-white/60">{data.dating}</p>}
           {pv && <p className="text-sm text-white/85">{previewText(pv)}</p>}
           {needs > 0 && (
             <label className="flex items-start gap-2 text-[11px] text-amber-300">
@@ -267,13 +267,13 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
               {busy ? prog : `Set to ${LABEL[target]}`}
             </button>
             {pv && <span className="text-sm"><Cost cost={pv.cost} /></span>}
-            <span className="text-[10px] text-white/40">A refused or stopped item is not charged.</span>
+            <span className="text-[10px] text-white/55">A refused or stopped item is not charged.</span>
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-2">
             <button className="pill !border-mcz-ember/60 !text-mcz-ember" disabled={busy} onClick={runDelete}>
               Delete {ids.length} selected
             </button>
-            <span className="text-[10px] text-white/45">
+            <span className="text-[10px] text-white/60">
               Free · permanent, can't be undone · SoundCloud isn't touched
             </span>
           </div>
@@ -294,7 +294,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                   title={optionsFor === r.id ? "Hide the options" : "Coach it, collab on it, playlist it, battle it…"}
                   className="text-left hover:text-mcz-gold">
                   {r.title}
-                  <span className={`ml-1.5 text-[10px] ${optionsFor === r.id ? "text-mcz-gold" : "text-white/35"}`}>
+                  <span className={`ml-1.5 text-[10px] ${optionsFor === r.id ? "text-mcz-gold" : "text-white/50"}`}>
                     {optionsFor === r.id ? "▴ options" : "▾ options"}
                   </span>
                 </button>{r.private_on_sc && <span className="ml-1 text-[10px] text-amber-300">🔒 private on SoundCloud</span>}</p>
@@ -305,7 +305,7 @@ export default function SoundCloudLibrary({ refreshKey = 0 }) {
                   🎤 Coach it
                 </button>
               </p>
-              <p className="text-[10px] text-white/35">
+              <p className="text-[10px] text-white/50">
                 {r.released_at ? `Released ${r.released_at.slice(0, 10)}` : `Imported ${r.imported_at.slice(0, 10)}`}
                 {r.soundcloud_url && <> · <a className="underline" href={r.soundcloud_url} target="_blank" rel="noreferrer">SoundCloud</a></>}
               </p>

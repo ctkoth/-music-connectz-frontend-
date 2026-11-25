@@ -61,7 +61,7 @@ export default function Refused({ err, title = "" }) {
           hold, and the only one that decides anything — the difference. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px]">
         <span className="text-mcz-ember">−{need} {mark}</span>
-        <span className="text-white/45">you have {have} {mark}</span>
+        <span className="text-white/60">you have {have} {mark}</span>
         {short > 0 && (
           <span className="font-bold text-white/85">{short} {mark} short</span>
         )}
@@ -70,7 +70,7 @@ export default function Refused({ err, title = "" }) {
       {/* Which priced skills added up to that. A total with no lines under it
           is a bill; this is what makes it a price. */}
       {Array.isArray(d.lines) && d.lines.length > 0 && (
-        <ul className="space-y-0.5 text-[11px] text-white/45">
+        <ul className="space-y-0.5 text-[11px] text-white/60">
           {d.lines.map((l, i) => (
             <li key={`${l.skill}-${i}`} className="flex justify-between gap-3">
               <span className="truncate">{labelForSkill(l.skill)}</span>

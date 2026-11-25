@@ -22,7 +22,7 @@ export default function DeclareHuman({ checked, onChange }) {
       <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>
         I made this myself — my own performance, no AI-generated vocals or audio.
-        <span className="block text-white/40">
+        <span className="block text-white/55">
           Your card then says "Human-made — declared by you". It's your word, so it only goes on if you tick it.
         </span>
       </span>
@@ -45,7 +45,7 @@ export function PlayOnCard({ checked, onChange }) {
       <input type="checkbox" className="mt-0.5" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       <span>
         Let people hear it — the card plays your recording.
-        <span className="block text-white/40">
+        <span className="block text-white/55">
           Anyone with the link can play it. Untick and share again to take it off the card.
         </span>
       </span>

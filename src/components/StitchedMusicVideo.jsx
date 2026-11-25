@@ -29,7 +29,7 @@ function TotalPrice({ cents, promptz }) {
           {split.cents > 0 && <>−{money(split.cents)} {MONEY}</>}
         </>
       ) : <>−{cents} {PROMPTZ}</>}{" "}
-      <span className="text-white/45">
+      <span className="text-white/60">
         — held while it renders. A shot that fails is refunded and left out; if one can't start, nothing is charged.
       </span>
     </span>
@@ -123,7 +123,7 @@ export default function StitchedMusicVideo() {
               <input type="number" min="0" max="3600" className="neon-input !w-20 !py-1 text-xs" aria-label="Start the track at this many seconds"
                 value={startAt} onChange={(e) => setStartAt(e.target.value)} /> s
             </label>
-            <span className="text-[11px] text-white/45">Pick the chorus: it plays for the length of the video (about {seconds || s.clip_seconds * s.min_shots}s).</span>
+            <span className="text-[11px] text-white/60">Pick the chorus: it plays for the length of the video (about {seconds || s.clip_seconds * s.min_shots}s).</span>
           </div>
         ) : (
           <Empty className="text-xs" text="No audio uploads yet. A track you post appears here." action="Post a track" onAction={() => goToSpot("postz", "post-compose")} />
@@ -139,10 +139,10 @@ export default function StitchedMusicVideo() {
         look={look} reference={insp?.url} onShots={setShots} onLook={setLook} />
 
       <div className="space-y-2">
-        <p className="text-sm text-white/70">Shots <span className="text-white/40">({s.min_shots}–{s.max_shots}, each about {s.clip_seconds}s, joined in order)</span></p>
+        <p className="text-sm text-white/70">Shots <span className="text-white/55">({s.min_shots}–{s.max_shots}, each about {s.clip_seconds}s, joined in order)</span></p>
         {shots.map((x, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="w-5 text-xs text-white/40">{i + 1}</span>
+            <span className="w-5 text-xs text-white/55">{i + 1}</span>
             <input className="neon-input w-full text-sm" aria-label={`Shot ${i + 1}`} placeholder={STARTERS[i % STARTERS.length]}
               value={x} onChange={(e) => setShots(shots.map((y, j) => (j === i ? e.target.value : y)))} />
             {shots.length > s.min_shots && (
@@ -183,7 +183,7 @@ export default function StitchedMusicVideo() {
         </button>
         {n >= s.min_shots
           ? <TotalPrice cents={cents} promptz={s.promptz} />
-          : <span className="text-[11px] text-white/45">Write at least {s.min_shots} shots to see the price.</span>}
+          : <span className="text-[11px] text-white/60">Write at least {s.min_shots} shots to see the price.</span>}
       </div>
       {n >= s.min_shots && !enough && (
         <p className="text-xs text-mcz-ember">

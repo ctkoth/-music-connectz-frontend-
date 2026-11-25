@@ -4,6 +4,7 @@
 // each move with its reason; the price is on the button before it is pressed and a failed listen is not charged.
 // Everything here decides nothing: the presets, the moves, their ranges and the wording are the server's, and
 // nothing is mastered until Master it.
+import PlansLink from "./PlansLink.jsx";
 import { useEffect, useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { api } from "../api.js";
@@ -60,11 +61,11 @@ export default function MixAI({ song, settings, onApply, allowedIntensities = []
           {p.free_today ? <span className="text-emerald-300">free today (a daily prompt)</span>
             : <span className="text-mcz-ember">−{p.cost_cents} {PROMPTZ}</span>}
           {p.energy ? <span className="text-mcz-ember"> −{p.energy} {ENERGY}</span> : null}
-          <span className="text-white/45"> · not charged if it can't hear it</span>
+          <span className="text-white/60"> · not charged if it can't hear it</span>
         </span>
       </div>
       {!d.configured && <p className="text-[11px] text-mcz-gold">The AI isn't switched on here yet; the genre presets below still work.</p>}
-      <p className="text-[11px] text-white/45">{d.note}</p>
+      <p className="text-[11px] text-white/60">{d.note}</p>
       {busy && <p className="text-[11px] text-white/60">{busy}…</p>}
       {err && <p role="alert" className="text-[11px] text-mcz-ember">{err}</p>}
       {got && (
@@ -74,20 +75,24 @@ export default function MixAI({ song, settings, onApply, allowedIntensities = []
           {got.moves.length ? got.moves.map((m) => (
             <p key={m.key} className="text-white/75">• <b className="text-white">{MOVE_LABEL[m.key] || m.key} {shown(m.key, m.value)}</b> — {m.why}</p>
           )) : <p className="text-white/60">Nothing to change on top of the preset.</p>}
-          {capped(got.settings) && <p className="text-mcz-gold">{capped(got.settings)}</p>}
-          <p className="text-white/45">It's on the controls below — move anything, then press Master it.{got.charged_cents === 0 ? " A daily prompt covered it." : ""}</p>
+          {capped(got.settings) && <p className="text-mcz-gold">{capped(got.settings)}<PlansLink /></p>}
+          <p className="text-white/60">It's on the controls below — move anything, then press Master it.{got.charged_cents === 0 ? " A daily prompt covered it." : ""}</p>
         </div>
       )}
       <div className="space-y-1">
-        <p className="text-[11px] text-white/55">Or start from a genre — <span className="text-emerald-300">free</span>:</p>
-        <div className="flex flex-wrap gap-1.5">
-          {d.genres.map((g) => (
-            <button key={g.key} title={g.why} className={`pill text-[11px] ${preset === g.label ? "!bg-white/20" : ""}`}
-              onClick={() => { apply(g.settings, g.label); setGot(null); }}>{g.emoji} {g.label}</button>
-          ))}
-        </div>
+        {[...new Set(d.genres.map((g) => g.group || "Genre"))].map((grp) => (
+          <div key={grp} className="space-y-1">
+            <p className="text-[11px] text-white/55">{grp === "Genre" ? "Or start from a genre" : grp === "Rap style" ? "By rap style" : "By singing range"} — <span className="text-emerald-300">free</span>:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {d.genres.filter((g) => (g.group || "Genre") === grp).map((g) => (
+                <button key={g.key} title={g.why} className={`pill text-[11px] ${preset === g.label ? "!bg-white/20" : ""}`}
+                  onClick={() => { apply(g.settings, g.label); setGot(null); }}>{g.emoji} {g.label.replace(/ master$/, "")}</button>
+              ))}
+            </div>
+          </div>
+        ))}
         {preset && !preset.startsWith("AI") && (() => { const g = d.genres.find((x) => x.label === preset); return g ? (
-          <p className="text-[11px] text-white/60">{g.label} is on the controls: {g.why}{capped(g.settings) ? ` ${capped(g.settings)}` : ""}</p>) : null; })()}
+          <p className="text-[11px] text-white/60">{g.label} is on the controls: {g.why}{capped(g.settings) ? ` ${capped(g.settings)}` : ""}{capped(g.settings) && <PlansLink />}</p>) : null; })()}
       </div>
     </div>
   );

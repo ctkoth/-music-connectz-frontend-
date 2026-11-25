@@ -46,6 +46,8 @@
       "main.cjs",
       "preload.cjs",
       "vst.cjs",
+      "files.cjs",
+      "files-core.cjs",
       "package.json"
     ],
     "extraResources": [

@@ -82,7 +82,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               <p className="text-xs uppercase tracking-wider text-mcz-cyan/70 mb-1">Next step</p>
               <h2 className="font-display text-xl font-bold text-white">Build a daily habit</h2>
             </div>
-            <button onClick={skip} className="text-white/40 hover:text-white/70">
+            <button aria-label="Close" onClick={skip} className="text-white/55 hover:text-white/70">
               <X size={20} />
             </button>
           </div>
@@ -93,7 +93,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="text-[11px] uppercase tracking-widest text-white/40 mb-2">Your first habit</p>
+            <p className="text-[11px] uppercase tracking-widest text-white/55 mb-2">Your first habit</p>
             <input
               type="text"
               value={habitTitle}
@@ -104,7 +104,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           </div>
 
           <div className="space-y-2">
-            <p className="text-[11px] uppercase tracking-widest text-white/40">How often?</p>
+            <p className="text-[11px] uppercase tracking-widest text-white/55">How often?</p>
             <div className="flex gap-2">
               {["daily", "weekly"].map((freq) => (
                 <button
@@ -190,7 +190,7 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
               <p className="text-xs uppercase tracking-wider text-mcz-cyan/70 mb-1">Preferences</p>
               <h2 className="font-display text-xl font-bold text-white">Personalize your experience</h2>
             </div>
-            <button onClick={completeOnboarding} className="text-white/40 hover:text-white/70">
+            <button aria-label="Close" onClick={completeOnboarding} className="text-white/55 hover:text-white/70">
               <X size={20} />
             </button>
           </div>

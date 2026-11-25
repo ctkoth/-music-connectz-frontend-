@@ -79,7 +79,7 @@ export default function ScoreCard() {
             )}
             {d.why?.length > 0 && (
               <div className="space-y-1 text-left text-[12px]">
-                <p className="text-center text-[11px] uppercase tracking-widest text-white/40">Why the coach said that</p>
+                <p className="text-center text-[11px] uppercase tracking-widest text-white/55">Why the coach said that</p>
                 {d.why.map((w) => (
                   <p key={w.kind} className="text-white/70">
                     <b className={w.kind === "strengths" ? "text-emerald-300" : "text-mcz-ember"}>
@@ -100,7 +100,7 @@ export default function ScoreCard() {
               </div>
             )}
             <div className="text-left"><MixTips tips={d.mix_tips} /></div>
-            <p className="text-[11px] text-white/40">The score and words are the coach's own — not editable by anyone.</p>
+            <p className="text-[11px] text-white/55">The score and words are the coach's own — not editable by anyone.</p>
           </div>
           <div className="space-y-2 text-center">
             <Link to={to} className="neon-btn-primary mx-auto !w-auto px-8 py-4 text-base">
@@ -108,7 +108,7 @@ export default function ScoreCard() {
                 : Number(shown) >= 5 ? `🎤 Beat ${d.username ? `@${d.username}'s ` : "this "}${shown} — ${free}`
                 : `🎤 Get your take scored — ${free}`}
             </Link>
-            <p className="text-[12px] text-white/45">
+            <p className="text-[12px] text-white/60">
               Upload a clip or record one.{" "}
               {member ? `Same coach (${d.label}), so the two scores are comparable. How many takes you get a day is your tier's.`
                 : d.username && join?.joinee_spinaz

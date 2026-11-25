@@ -32,7 +32,7 @@ export default function ShareIt({ kind, refId, compact = true, known, who }) {
       {!s.shared ? (
         <div className="flex flex-wrap items-center gap-2">
           <button className="re-btn !w-auto px-3" disabled={busy} onClick={share}><Share2 size={12} /> Share it <span className="text-emerald-300">free</span></button>
-          <span className="text-white/45">{s.who}</span>
+          <span className="text-white/60">{s.who}</span>
         </div>
       ) : <>
         <div className="flex flex-wrap items-center gap-2">
