@@ -96,6 +96,8 @@ function Field({ label, className = "w-20", hint = "", ...props }) {
 import EquipmentPicker, { EQUIPMENT_LABEL, toggleEquipment } from "./EquipmentPicker.jsx";
 import { ExerciseSwap, SwapRow, useSwappedPicks } from "./ExerciseSwap.jsx";
 import ExercisePicker, { CustomExerciseForm, ExerciseCtx, MUSCLE_LABEL } from "./ExercisePicker.jsx";
+import MuscleFilter from "../components/MuscleFilter.jsx";
+import { EMPTY as NO_MUSCLES, apply as applyMuscles, isActive as musclesActive, params as muscleParams } from "../muscleFilter.js";
 import { suggest } from "../exerciseSearch.js";
 import { useRemembered, useRememberedNumber } from "../useRemembered.js";
 
@@ -2785,6 +2787,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
   const [since, setSince] = useState("");
   const [until, setUntil] = useState("");
   const [check, setCheck] = useState(false);
+  const [muscles, setMuscles] = useState(NO_MUSCLES);
   const [editingId, setEditingId] = useState(null);
   const [openId, setOpenId] = useState(null);
   const [writingId, setWritingId] = useState(null);
@@ -2796,7 +2799,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
 
   // Typing is debounced, once, for every filter alike (the VybeZ lesson): one request per pause, not one per key.
   useEffect(() => { const t = setTimeout(() => setDq(q), 300); return () => clearTimeout(t); }, [q]);
-  const filters = { q: dq, since, until, check };
+  const filters = { q: dq, since, until, check, ...muscleParams(muscles) };
   const fKey = filterKey(filters);
 
   // One effect for "the list changed": a filter moved (back to page one) or the parent reloaded after an
@@ -2858,7 +2861,7 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
   };
 
   const narrowed = filtersActive(filters);
-  const clear = () => { setQ(""); setDq(""); setSince(""); setUntil(""); setCheck(false); };
+  const clear = () => { setQ(""); setDq(""); setSince(""); setUntil(""); setCheck(false); setMuscles(NO_MUSCLES); };
   const nameOf = (id) => exercises.find((e) => e.id === id)?.name || `Exercise #${id}`;
 
   return (
@@ -2931,15 +2934,16 @@ function SessionZView({ exercises, pickable, refreshKey, prefillEditSession, onE
         <Field label="Search" className="w-full" placeholder="a lift or a routine" value={q}
                onChange={(e) => setQ(e.target.value)} />
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          <button className="text-mcz-cyan hover:underline" aria-expanded={showFilters || !!(since || until || check)}
+          <button className="text-mcz-cyan hover:underline" aria-expanded={showFilters || !!(since || until || check) || musclesActive(muscles)}
                   onClick={() => setShowFilters(!showFilters)}>
-            {showFilters || since || until || check ? "Hide filters" : "Filter by date"}
+            {showFilters || since || until || check || musclesActive(muscles) ? "Hide filters" : "Filter by date or muscle"}
           </button>
           {narrowed && <button className="text-mcz-cyan hover:underline" onClick={clear}>Clear filters</button>}
           <button className="ml-auto text-mcz-cyan hover:underline" onClick={onLogPast}>+ Log a past workout</button>
         </div>
-        {(showFilters || since || until || check) && (
+        {(showFilters || since || until || check || musclesActive(muscles)) && (
           <div className="space-y-2">
+            <MuscleFilter value={muscles} onChange={setMuscles} />
             <div className="grid grid-cols-2 gap-2">
               <Field label="From" className="min-w-0" type="date" value={since} max={until || undefined} onChange={(e) => setSince(e.target.value)} />
               <Field label="To" className="min-w-0" type="date" value={until} min={since || undefined} onChange={(e) => setUntil(e.target.value)} />
@@ -3310,15 +3314,25 @@ function SchedulerView({ buckets, bucketLabels, dayTagLabels, exercises, pickabl
 function BodyMapView({ bodymap, exercises, onBuildForMuscle }) {
   const unit = useUnit();
   const [open, setOpen] = useState(null);
+  const [pick, setPick] = useState(NO_MUSCLES);
   if (!bodymap) return null;
-  const muscles = asList(bodymap.muscles);
+  const allMuscles = asList(bodymap.muscles);
+  // Show only / hide certain muscles. A hidden muscle is still trained and still counted — this only
+  // changes what is drawn.
+  const muscles = applyMuscles(allMuscles, (m) => m.muscle_group, pick);
   return (
     <div className="space-y-3">
       <p className="text-xs text-white/45">
         Trailing {bodymap.window_days} days. "Overworked" counts separate training
         days, not sets — five sets in one session isn't five sessions. Tap a
         muscle for your score and every exercise the library has for it.
+        Each muscle is scored out of 10 from your logged sessions — how many
+        days you trained it, how many sets a week, and whether it's moving up —
+        so a 10 is earned by training it thoroughly, never set by hand.
       </p>
+      <MuscleFilter value={pick} onChange={setPick}
+                    muscles={allMuscles.map((m) => [m.muscle_group, MUSCLE_LABEL[m.muscle_group] || m.label || m.muscle_group])} />
+      {muscles.length === 0 && <p className="text-xs text-white/45">No muscle matches. Tap "Show all" to clear the filter.</p>}
       <div className="grid gap-2 sm:grid-cols-2">
         {muscles.map((m) => {
           const s = BODYMAP_STATUS[m.status] || BODYMAP_STATUS.untrained;

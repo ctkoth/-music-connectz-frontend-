@@ -6,7 +6,7 @@ export const PAGE = 25;
 export const PAGE_MAX = 100;                 // the server's own ceiling
 
 /** The query string for one page; blank filters are left out rather than sent empty. */
-export function logQuery({ q = "", since = "", until = "", check = false, limit = PAGE, offset = 0, id = null } = {}) {
+export function logQuery({ q = "", since = "", until = "", check = false, muscle = "", not_muscle = "", limit = PAGE, offset = 0, id = null } = {}) {
   const p = new URLSearchParams();
   p.set("limit", String(Math.max(1, Math.min(limit, PAGE_MAX))));
   if (offset > 0) p.set("offset", String(offset));
@@ -15,6 +15,8 @@ export function logQuery({ q = "", since = "", until = "", check = false, limit 
   if (since) p.set("since", since);
   if (until) p.set("until", until);
   if (check) p.set("check", "1");
+  if (muscle) p.set("muscle", muscle);
+  if (not_muscle) p.set("not_muscle", not_muscle);
   return `?${p.toString()}`;
 }
 
@@ -25,10 +27,10 @@ export function mergeRows(existing, incoming) {
 }
 
 /** Is anything narrowing the list? */
-export const filtersActive = ({ q, since, until, check }) => !!(String(q || "").trim() || since || until || check);
+export const filtersActive = ({ q, since, until, check, muscle, not_muscle }) => !!(String(q || "").trim() || since || until || check || muscle || not_muscle);
 
 /** The same filters as one comparable string — a change means "start from page one". */
-export const filterKey = (f) => JSON.stringify([String(f.q || "").trim(), f.since || "", f.until || "", !!f.check]);
+export const filterKey = (f) => JSON.stringify([String(f.q || "").trim(), f.since || "", f.until || "", !!f.check, f.muscle || "", f.not_muscle || ""]);
 
 /** How many rows a refresh should re-ask for so a member who has paged down is not sent back to the top. */
 export const refreshLimit = (loaded) => Math.max(PAGE, Math.min(loaded || 0, PAGE_MAX));
