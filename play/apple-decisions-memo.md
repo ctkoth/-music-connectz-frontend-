@@ -67,3 +67,11 @@ Also decide, because a reviewer may ask:
 
 ## Order of work
 1. Fix `appShell()` for iOS. 2. Add the iOS-only hiding flag. 3. Remove AdMob. 4. Update the four docs above. 5. Build and test on a device (see `apple-build-upload.md`).
+
+## Implemented (iOS-only flags in `src/platform.js`)
+- `appShell()` returns `"ios"` for the iOS app instead of falling into the Android branch.
+- **Ads:** `initAdMob()` does nothing on iOS; the AdZ tab shows a one-line note. (The only ad frame in the repo is the static `public/partners.html`, not part of the app shell.)
+- **Sign-in:** `OAuthButtons` renders nothing on iOS, so email/password is the only way in.
+- **Purchases:** MembershipZ shows a one-line note, `PromptzDoor` (the "buy with your balance" door) and `OfferPanel` and `TierUpgradePrompt` render nothing.
+- Tests: `src/platform.test.mjs`; full suite and build pass. Driven in a browser with the platform faked as iOS: plans and the cash buy door gone, AdZ note shown, web unchanged.
+- **Not covered:** `SpecZ` (`specz/buy`) and `MerchZ` purchases, and scattered "upgrade" wording inside tier-locked screens. Review those before submitting. Also still to do: remove `@capacitor-community/admob` and its `Info.plist` id, and update the four docs listed above.

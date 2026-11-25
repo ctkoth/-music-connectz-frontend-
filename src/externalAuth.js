@@ -41,6 +41,7 @@ const deskVersion = () => Number((UA().match(/MCZDesktop\/(\d+)/) || [])[1] || 0
 /** Which build of the app this page is running inside — every sign-in
  *  decision below starts here, because what works differs by device:
  *   - "android"      APK with the Browser/App plugins (can hand off to Chrome)
+ *   - "ios"          the iOS app — third-party sign-in is hidden there (platform.js)
  *   - "android-old"  APK built before them (nothing can come back)
  *   - "desktop"      Windows app that registered the return protocol
  *   - "desktop-old"  older Windows app (nothing can come back)
@@ -48,6 +49,9 @@ const deskVersion = () => Number((UA().match(/MCZDesktop\/(\d+)/) || [])[1] || 0
  *                    own in-app browser — Google refuses sign-in in these
  *   - "web"          a real browser */
 export function appShell() {
+  // iOS has no intent:// deep link and hides the providers that need one (platform.js), so it
+  // gets its own answer instead of falling into the Android branch below.
+  if (Capacitor.isNativePlatform() && Capacitor.getPlatform?.() === "ios") return "ios";
   if (Capacitor.isNativePlatform()) return inAppWithPlugins() ? "android" : "android-old";
   if (/Electron\//.test(UA())) return deskVersion() >= 2 ? "desktop" : "desktop-old";
   if (/FBAN|FBAV|Instagram|musical_ly|Bytedance|TikTok|Snapchat|LinkedInApp|Line\/|MicroMessenger/i.test(UA())) return "inapp";

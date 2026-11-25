@@ -3,6 +3,7 @@
 import Term from "./components/Term.jsx";
 import { useEffect, useState } from "react";
 import { api } from "./api.js";
+import { HIDE_PURCHASES } from "./platform.js";
 import { MONEY, PROMPTZ, SPINAZ } from "./resources.js";
 
 export default function PromptzDoor() {
@@ -16,6 +17,8 @@ export default function PromptzDoor() {
     api("/api/economy/promptz/buy/").then(setBuy).catch(() => setBuy(null));
   };
   useEffect(load, []);
+  // iOS 1.0 sells nothing (platform.js); converting earned 🍥 is still fine but the cash door is not.
+  if (HIDE_PURCHASES()) return null;
   if (!conv && !buy) return null;
 
   const per = conv?.spinaz_per_promptz || 0;

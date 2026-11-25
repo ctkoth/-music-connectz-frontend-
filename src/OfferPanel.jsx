@@ -3,6 +3,7 @@ import { X, ArrowRight } from "lucide-react";
 import { api } from "./api.js";
 import { ENERGY, SPINAZ, PROMPTZ, MONEY, XP } from "./resources.js";
 import { goToSpot } from "./goto.js";
+import { HIDE_PURCHASES } from "./platform.js";
 
 // FunnelZ offers — the promotions, on screen, and the reason this component is
 // small is that it decides nothing.
@@ -81,7 +82,7 @@ function Offer({ o, onDismiss }) {
   );
 }
 
-export default function OfferPanel({ className = "" }) {
+function OfferPanelInner({ className = "" }) {
   const [offers, setOffers] = useState(null);
 
   useEffect(() => {
@@ -116,4 +117,9 @@ export default function OfferPanel({ className = "" }) {
       {offers.map((o) => <Offer key={o.key} o={o} onDismiss={dismiss} />)}
     </div>
   );
+}
+
+export default function OfferPanel(props) {
+  // The offers point at Premium and StatZ, which iOS 1.0 does not sell (platform.js).
+  return HIDE_PURCHASES() ? null : <OfferPanelInner {...props} />;
 }

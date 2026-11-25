@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { HIDE_ADS } from "../platform.js";
 import { celebrate } from "../celebrate.js";
 import { Loader2, PlayCircle, Smartphone, ShieldAlert, Cake } from "lucide-react";
 import { api } from "../api.js";
@@ -11,7 +12,7 @@ import { goToSpot } from "../goto.js";
 // in the native (Capacitor) app; Google then calls the backend SSV endpoint to
 // grant SpinAZ. On the web this tab shows status + earnings and points to the
 // app. `window.Capacitor` is only present inside the native shell.
-export default function AdZ() {
+function AdZInner() {
   const [cfg, setCfg] = useState(null);
   const [stats, setStats] = useState(null);
   const [error, setError] = useState(null);
@@ -124,4 +125,11 @@ export default function AdZ() {
       </div>
     </div>
   );
+}
+
+export default function AdZ() {
+  if (HIDE_ADS()) {
+    return <div className="re-card text-sm text-white/70">Rewarded ads aren't part of this version of the app.</div>;
+  }
+  return <AdZInner />;
 }

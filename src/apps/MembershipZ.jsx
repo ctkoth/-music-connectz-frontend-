@@ -1,4 +1,5 @@
 import Term from "../components/Term.jsx";
+import { HIDE_PURCHASES } from "../platform.js";
 import { useEffect, useState } from "react";
 import { StatzSampleOffer } from "../components/StatzSample.jsx";
 import { Check, Crown, Loader2, Lock, Sparkles, Star, Zap } from "lucide-react";
@@ -42,7 +43,7 @@ function Cell({ v }) {
   return <span className="text-white/85">{v}</span>;
 }
 
-export default function MembershipZ() {
+function MembershipZInner() {
   const talk = useSay();
   const [me, setMe] = useState(null);
   const [founding, setFounding] = useState(null);
@@ -335,4 +336,11 @@ export default function MembershipZ() {
       </p>
     </div>
   );
+}
+
+export default function MembershipZ() {
+  if (HIDE_PURCHASES()) {
+    return <div className="re-card text-sm text-white/70">Membership isn't available in this version of the app. Everything on the free tier works as it always has.</div>;
+  }
+  return <MembershipZInner />;
 }

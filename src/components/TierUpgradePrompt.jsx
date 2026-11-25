@@ -1,4 +1,5 @@
 import { ArrowRight } from "lucide-react";
+import { HIDE_PURCHASES } from "../platform.js";
 import { monthPrice, useTierLadder } from "../limits.js";
 import { goToTab } from "../goto.js";
 
@@ -15,7 +16,7 @@ import { goToTab } from "../goto.js";
  * component was silently dead. One correct default here is the fix that
  * can't drift into a fifth broken copy.
  */
-export default function TierUpgradePrompt({ limit, current, userTier = "free",
+function TierUpgradePromptInner({ limit, current, userTier = "free",
                                              onUpgrade = () => goToTab("membershipz") }) {
   // The ladder AND the prices come from the server. This file used to carry
   // its own copy of both — three limit tables and "$6/mo" / "$15/mo" typed in
@@ -109,4 +110,9 @@ export default function TierUpgradePrompt({ limit, current, userTier = "free",
       )}
     </div>
   );
+}
+
+export default function TierUpgradePrompt(props) {
+  // iOS 1.0 sells nothing, so an upgrade prompt would be a door to a closed shop.
+  return HIDE_PURCHASES() ? null : <TierUpgradePromptInner {...props} />;
 }

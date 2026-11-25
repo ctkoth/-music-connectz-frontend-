@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext.jsx";
 import AccountChoice, { choiceRoutes } from "./AccountChoice.jsx";
 import { api } from "../api.js";
+import { HIDE_SOCIAL_LOGIN } from "../platform.js";
 import { asList } from "../shape.js";
 import { goesExternal, openProvider, statePrefixFor, appShell } from "../externalAuth.js";
 import { facebookStallNote } from "../facebookHandoff.js";
@@ -28,7 +29,7 @@ const PROVIDERS = [{ key: "google", label: "Google", Icon: GoogleG, color: "#fff
 const APPLE_ENABLED = false;
 
 export default function OAuthButtons(props) {
-  return import.meta.env.VITE_STANDALONE ? null : <OAuthButtonsInner {...props} />;
+  return import.meta.env.VITE_STANDALONE || HIDE_SOCIAL_LOGIN() ? null : <OAuthButtonsInner {...props} />;
 }
 
 function OAuthButtonsInner({ onSuccess, onError, first = false, divider }) {

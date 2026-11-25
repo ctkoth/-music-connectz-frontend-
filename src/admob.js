@@ -4,6 +4,7 @@
 // member id as SSV custom_data so Google's server-side callback credits the
 // right user, and request non-personalized ads for minors (npa).
 import { tokenStore } from "./api.js";
+import { HIDE_ADS } from "./platform.js";
 
 // The signed-in member id, read from the JWT (unverified decode — just the claim).
 function currentUserId() {
@@ -22,6 +23,7 @@ let initialized = false;
 
 export function initAdMob() {
   if (!isNative()) return; // web: nothing to do
+  if (HIDE_ADS()) return; // iOS 1.0 ships without ads (platform.js)
 
   window.addEventListener("mcz-show-rewarded-ad", async (e) => {
     const { unitId, personalized } = e.detail || {};
