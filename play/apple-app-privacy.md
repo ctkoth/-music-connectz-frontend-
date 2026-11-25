@@ -16,12 +16,13 @@ unless the Tracking section below says otherwise.
 | Apple category → type | Collect? | Purposes to tick | Notes |
 |---|---|---|---|
 | Contact Info → Name | Yes | App Functionality | username / display name |
+| Contact Info → Phone Number | Yes | App Functionality | optional field on the signup form |
 | Contact Info → Email Address | Yes | App Functionality | sign-in and account |
 | Identifiers → User ID | Yes | App Functionality | |
 | Sensitive Info | Yes | App Functionality | sexual orientation (optional, adults only, set in the profile). Declare it. |
 | Health & Fitness → Fitness | Yes | App Functionality | BodieZ workouts, sets, weights |
 | Health & Fitness → Health | Yes (judgment) | App Functionality | BodieZ soreness and "can't use arms/legs" answers, and the optional substance-use declaration. Declaring is safer than leaving out. |
-| Location → Coarse Location | **Yes** | App Functionality | opt-in (ProfileZ → Share my approximate location, adults only), stored rounded to about 1 km, used for distance filters in VenueZ, CollabZ, BattleZ and member search. Not Precise. `Info.plist` has the usage text. |
+| Location → **Precise** Location | **Yes** | App Functionality | opt-in (ProfileZ → Share my approximate location, adults only), stored rounded to about 1 km, used for distance filters in VenueZ, CollabZ, BattleZ and member search. About 1 km is finer than Apple's coarse bar (roughly 3 square km, from memory — verify), so declare Precise, not Coarse. `Info.plist` has the usage text. |
 | Financial Info → Other Financial Info | Yes | App Functionality | wallet and payout balances; card details stay with Stripe |
 | Purchases → Purchase History | **No** | — | iOS 1.0 sells nothing (`apple-decisions-memo.md`) |
 | User Content → Photos or Videos | Yes | App Functionality | avatars, posts, video takes |
