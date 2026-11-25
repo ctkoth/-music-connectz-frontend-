@@ -41,7 +41,11 @@ export function isChunkError(error) {
     // Firefox.
     text.includes("Importing a module script failed") ||
     // The MIME message itself, when it reaches us directly.
-    text.includes("Expected a JavaScript-or-Wasm module script")
+    text.includes("Expected a JavaScript-or-Wasm module script") ||
+    // Vite's own preloader, when the chunk's STYLESHEET is the file that is
+    // gone (`Unable to preload CSS for /assets/ToolZMenu-….css`). Same old tab,
+    // same answer — it just reached for the CSS before the JS.
+    text.includes("Unable to preload CSS")
   );
 }
 

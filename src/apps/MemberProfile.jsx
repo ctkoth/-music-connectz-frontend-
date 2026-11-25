@@ -268,7 +268,7 @@ export default function MemberProfile({ username, onClose, currentUsername, onEd
 
             {/* Spelled out, not just worn. "Ten deals, no dispute" is the
                 reason to work with somebody, and it should not need a hover. */}
-            <CoachBest rows={data.coach_best} />
+            <CoachBest rows={data.coach_best} username={username} />
             <BadgeWearList badges={data.badges} />
             <ViewCount target={`profile:${username}`} />
 

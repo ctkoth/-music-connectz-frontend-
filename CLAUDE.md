@@ -2834,3 +2834,13 @@ curve; score = RMS dB between the two RBJ responses, under 1.5 dB is "matched").
 device, no AI, nothing charged, and a wrong answer costs nothing. Progress is a practice count kept in localStorage, never a rating,
 and the screen says "no certificates" because we cannot issue one. Not built: a course library, compression/level drills,
 anything graded by opinion. Driven in headless Chromium (both drills, no console errors); not heard by ear or on a phone.
+
+## Tapping a CoachZ best score opens the work and the coach's feedback
+
+`CoachBest.jsx` (member profile modal and CreatorProfile) rows are buttons when given a `username`: a tap opens, under the
+row, the take that scored highest (`/api/economy/coachbest/<user>/<app>/`) — the post it scored with its player and a link
+to it, or the YouTube video, or "recorded in the coach and not posted" — and the coach's read drawn by `CoachReadCard`.
+The server picks the take and decides what work this viewer may open; the screen picks nothing. Driven at 412px.
+
+`chunkError.isChunkError` also recognises Vite's **"Unable to preload CSS for /assets/…"** — a phone showed it on the
+error card instead of reloading, because only the JS forms of the stale-deploy error were listed (`chunkError.test.mjs`).
