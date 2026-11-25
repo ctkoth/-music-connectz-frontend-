@@ -12,7 +12,7 @@ opened on a Mac. If a menu name differs in your Xcode version, follow the intent
 
 ## B. Xcode settings (once)
 1. [ ] Select the **App** project → **App** target → **Signing & Capabilities**: tick **Automatically manage signing**, pick your **Team**.
-2. [ ] **Bundle Identifier:** `net.musicconnectz.app` (must match the app record in App Store Connect).
+2. [ ] **Bundle Identifier:** `com.musicconnectz.app` (must match the app record in App Store Connect).
 3. [ ] **General → Identity:** Version `1.0.0`; Build `1`. Every upload needs a build number higher than the last one.
 4. [ ] **General → Deployment Info:** set the minimum iOS version; untick iPad under **Supported Destinations** if the app isn't offered on iPad (and don't upload iPad screenshots).
 5. [ ] **Capabilities:** add Push Notifications / Sign in with Apple only if you ship those.

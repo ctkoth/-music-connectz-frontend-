@@ -1,7 +1,7 @@
 # Music ConnectZ — iOS (Capacitor 6)
 
 Scaffolded on Linux. **Never opened in Xcode or built** — every step below that
-needs a Mac is untested. Bundle id: `net.musicconnectz.app`.
+needs a Mac is untested. Bundle id: `com.musicconnectz.app` (matches the App Store Connect record; Android keeps `net.musicconnectz.app`, the shared `capacitor.config.json` appId is left alone for it).
 
 Tick each box in order. Steps 1–4 get a build on your phone; 5–8 are what stands
 between that build and App Store review.
@@ -24,7 +24,7 @@ npx cap open ios      # opens ios/App/App.xcworkspace — always the .xcworkspac
 ## 3. Signing in Xcode
 - [ ] Select the **App** target → **Signing & Capabilities**
 - [ ] Tick **Automatically manage signing** and choose your **Team**
-- [ ] Confirm **Bundle Identifier** is `net.musicconnectz.app`
+- [ ] Confirm **Bundle Identifier** is `com.musicconnectz.app`
 - [ ] **General** tab: set **Version** (e.g. 1.0.0) and **Build** (1; raise it for every upload)
 
 ## 4. Run it
@@ -43,7 +43,7 @@ npx cap open ios      # opens ios/App/App.xcworkspace — always the .xcworkspac
 - [ ] **Reporting and blocking** of member content must be reachable from posts and messages — confirm on the device.
 
 ## 6. App Store Connect — create the listing
-- [ ] appstoreconnect.apple.com → **My Apps → + → New App**, platform iOS, bundle id `net.musicconnectz.app`
+- [ ] appstoreconnect.apple.com → **My Apps → + → New App**, platform iOS, bundle id `com.musicconnectz.app`
 - [ ] Name, subtitle, description, keywords, support URL, marketing URL
 - [ ] **Privacy policy URL** (`https://musicconnectz.net/privacy.html`) — re-read it first; it must match what the iOS app does
 - [ ] **App Privacy** questionnaire: audio and video from takes, account details, usage, and the sensitive fields (sexual orientation, substance use) that `play/data-safety.md` already inventories — answer the same way
