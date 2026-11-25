@@ -488,6 +488,7 @@ function Venue({ v, onChanged, onFlash }) {
           <p className="text-xs text-white/55">
             by @{v.host}<ThoroughMark mark={v.host_mark} compact /> · <KindIcon size={11} className="inline" /> {kind.label}
             {v.category === "fitness" && <span className="ml-1 text-emerald-300">· {CATEGORY.fitness}</span>}
+            {v.distance_km != null && <span className="ml-1 text-white/60">· about {v.distance_km} km away</span>}
             {v.status === "cancelled" && (
               <span className="ml-1 text-mcz-ember">· called off</span>
             )}
@@ -867,6 +868,9 @@ export default function VenueZ() {
   const [msg, setMsg] = useState("");
   const [tab, setTab] = useState("rooms");
   const [cat, setCat] = useState("");
+  // "Within N km" — measured by the server between two positions members chose to share.
+  const [km, setKm] = useState("");
+  const [near, setNear] = useState(null);
 
   // BodieZ's session summary hands over {category: "fitness"} so a lifter
   // lands on gym rooms rather than open mics.
@@ -877,13 +881,17 @@ export default function VenueZ() {
 
   const load = useCallback(async () => {
     try {
-      const d = await api(`/api/economy/venuez/${cat ? `?category=${cat}` : ""}`);
+      const q = new URLSearchParams();
+      if (cat) q.set("category", cat);
+      if (km) q.set("max_km", km);
+      const d = await api(`/api/economy/venuez/${q.toString() ? `?${q}` : ""}`);
       setVenues(asList(d?.venues ?? d));
+      setNear(d?.near || null);
     } catch (e) {
       setMsg(e.message || "Couldn't load VenueZ.");
       setVenues([]);
     }
-  }, [cat]);
+  }, [cat, km]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -928,6 +936,36 @@ export default function VenueZ() {
               {label}
             </button>
           ))}
+        </div>
+      )}
+
+      {tab !== "host" && (
+        <div className="space-y-1" data-tour="venuez-near">
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Distance">
+            <span className="text-xs text-white/50">Within</span>
+            {[["", "Any distance"], ["10", "10 km"], ["25", "25 km"], ["50", "50 km"], ["100", "100 km"]].map(([k, label]) => (
+              <button key={k || "any"} onClick={() => setKm(k)} aria-pressed={km === k}
+                      className={`pill !py-1 text-xs ${km === k ? "!border-emerald-400/60 !text-emerald-300" : ""}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {/* The server says why a filter can't run, and what it left out — never a silent
+              shorter list. Your own rooms always show. */}
+          {near?.note && (
+            <p className="text-[11px] text-white/55">
+              {near.note}{" "}
+              <button className="text-mcz-cyan underline" onClick={() => goToSpot("profilez", "location-share")}>
+                Turn it on
+              </button>
+            </p>
+          )}
+          {km && near?.viewer_shares && (near.hidden_far > 0 || near.hidden_no_location > 0) && (
+            <p className="text-[11px] text-white/45">
+              {near.hidden_far > 0 && `${near.hidden_far} farther than ${km} km left out. `}
+              {near.hidden_no_location > 0 && `${near.hidden_no_location} left out because the host hasn't shared a location, so the distance can't be measured.`}
+            </p>
+          )}
         </div>
       )}
 
