@@ -202,6 +202,7 @@ export default function DistributeZ() {
       {d && (
         <div className="space-y-1 rounded-xl border border-white/10 bg-black/30 p-3 text-xs text-white/65">
           <p>{d.how_it_works}</p>
+          {d.royalty_tax?.note ? <p className="text-mcz-ember">{d.royalty_tax.note}</p> : null}
           <p><QuotaLine q={d.quota} /></p>
           {d.required?.length > 0 && <p className="text-white/60">Every release needs {d.required.join(", ")}.</p>}
         </div>
