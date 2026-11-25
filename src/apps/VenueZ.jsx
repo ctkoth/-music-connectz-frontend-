@@ -42,6 +42,7 @@ import { P } from "../phrases.js";
 import { playSound } from "../sound.js";
 import { asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { HIDE_HEALTH } from "../platform.js";
 import { IconImg } from "../App.jsx";
 import { ENERGY, MONEY, SPINAZ } from "../resources.js";
 import { onHandoff } from "../handoff.js";
@@ -488,6 +489,7 @@ function Venue({ v, onChanged, onFlash }) {
           <p className="text-xs text-white/55">
             by @{v.host}<ThoroughMark mark={v.host_mark} compact /> · <KindIcon size={11} className="inline" /> {kind.label}
             {v.category === "fitness" && <span className="ml-1 text-emerald-300">· {CATEGORY.fitness}</span>}
+            {v.for_condition && !HIDE_HEALTH() && <span className="ml-1 text-emerald-300" title={v.for_condition_note}>· for people who share {v.for_condition}</span>}
             {v.distance_km != null && <span className="ml-1 text-white/60">· about {v.distance_km} km away</span>}
             {v.status === "cancelled" && (
               <span className="ml-1 text-mcz-ember">· called off</span>
@@ -717,7 +719,7 @@ function HostForm({ onCreated, onFlash }) {
   const [f, setF] = useState(() => seed("venuez", {
     title: "", area: "", address: "", kind: "performance", starts_at: "",
     hours: 2, basis: "hour", capacity: 1, min_age: 0, description: "",
-    category: "music", spinaz_price: "",
+    category: "music", spinaz_price: "", for_condition: "",
   }, ["kind", "basis", "category", "area", "hours"]));
   const [skills, setSkills] = useState([]);
   const [gates, setGates] = useState({});
@@ -742,11 +744,12 @@ function HostForm({ onCreated, onFlash }) {
           hours: Number(f.hours) || 1,
           capacity: Number(f.capacity) || 1,
           min_age: Number(f.min_age) || 0,
+          for_condition: HIDE_HEALTH() ? "" : f.for_condition.trim(),
           spinaz_price: f.kind === "spinaz" ? Number(f.spinaz_price) || 0 : 0,
           skills, gates,
         },
       });
-      setF({ ...f, title: "", address: "", description: "", starts_at: "" });
+      setF({ ...f, title: "", address: "", description: "", starts_at: "", for_condition: "" });
       setSkills([]);
       onFlash(talk(P.venue_hosted));
       playSound("collab");
@@ -820,6 +823,17 @@ function HostForm({ onCreated, onFlash }) {
         </p>
       </div>
 
+      {!HIDE_HEALTH() && (
+        <div className="space-y-1" data-tour="venuez-for-condition">
+          <input className="neon-input !py-2 text-xs" maxLength={80} placeholder="A room for people who share… (optional, e.g. Asthma)"
+                 value={f.for_condition} onChange={set("for_condition")} />
+          <p className="text-[10px] text-white/45">
+            A theme you name, not a check: any adult can come, you see nothing about who does beyond their booking, and
+            members under 18 never see the room. Naming one makes it 18+. It can't be used to keep anyone out.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1">
         <input className="neon-input !py-2 text-xs" type="number" min="0" max="99"
                placeholder="Minimum age (0 = anyone)"
@@ -871,6 +885,9 @@ export default function VenueZ() {
   // "Within N km" — measured by the server between two positions members chose to share.
   const [km, setKm] = useState("");
   const [near, setNear] = useState(null);
+  const [forTerm, setForTerm] = useState("");
+  const [forQ, setForQ] = useState("");
+  useEffect(() => { const t = setTimeout(() => setForQ(forTerm.trim()), 400); return () => clearTimeout(t); }, [forTerm]);
 
   // BodieZ's session summary hands over {category: "fitness"} so a lifter
   // lands on gym rooms rather than open mics.
@@ -884,6 +901,7 @@ export default function VenueZ() {
       const q = new URLSearchParams();
       if (cat) q.set("category", cat);
       if (km) q.set("max_km", km);
+      if (forQ && !HIDE_HEALTH()) q.set("for", forQ);
       const d = await api(`/api/economy/venuez/${q.toString() ? `?${q}` : ""}`);
       setVenues(asList(d?.venues ?? d));
       setNear(d?.near || null);
@@ -891,7 +909,7 @@ export default function VenueZ() {
       setMsg(e.message || "Couldn't load VenueZ.");
       setVenues([]);
     }
-  }, [cat, km]);
+  }, [cat, km, forQ]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -966,6 +984,14 @@ export default function VenueZ() {
               {near.hidden_no_location > 0 && `${near.hidden_no_location} left out because the host hasn't shared a location, so the distance can't be measured.`}
             </p>
           )}
+        </div>
+      )}
+
+      {tab !== "host" && !HIDE_HEALTH() && (
+        <div className="space-y-1" data-tour="venuez-for">
+          <input className="neon-input w-full !py-2 text-xs" placeholder="Rooms for people who share… e.g. asthma"
+                 value={forTerm} onChange={(e) => setForTerm(e.target.value)} />
+          <p className="text-[11px] text-white/45">Themes hosts chose to name. Any adult can come; nothing about you is checked.</p>
         </div>
       )}
 
