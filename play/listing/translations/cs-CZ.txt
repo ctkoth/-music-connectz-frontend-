@@ -2,10 +2,10 @@ TITLE:
 Music ConnectZ AI trenér
 
 SHORT:
-🎵 Hudba s lidmi, kteří se ukážou. Získej hodnocení, vydělávej, rost.
+🎵🇨🇿 Hudba s lidmi, kteří se ukážou. Získej hodnocení, vydělávej, rost.
 
 FULL:
-Music ConnectZ je místo, kde tvoříš hudbu s ostatními a můžeš dokázat, co jsi přinesl.
+🇨🇿 Music ConnectZ je místo, kde tvoříš hudbu s ostatními a můžeš dokázat, co jsi přinesl.
 
 🎙️ NAHRAJ TAKE, DOSTANEŠ HODNOCENÍ
 Nahraj jeden take — rap, zpěv, kytaru, baskytaru, klávesy, bicí nebo housle — a AI trenér ho ohodnotí z deseti v tom, co může jeden take skutečně ukázat. Flow, timing, dech, výška tónu, barva, přednes. Dostaneš, co fungovalo, co opravit a jedno cvičení před dalším takem. Nahrávej mikrofonem nebo kamerou, nebo nahraj soubor, který už máš.

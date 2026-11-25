@@ -1,8 +1,8 @@
 SHORT:
-🎙️ Snimi take. AI trener daje ocenu, ispravke i vežbu.
+🎙️🇷🇸 Snimi take. AI trener daje ocenu, ispravke i vežbu.
 
 FULL:
-Music ConnectZ je mesto gde praviš muziku sa drugima i možeš da dokažeš šta si doprineo.
+🇷🇸 Music ConnectZ je mesto gde praviš muziku sa drugima i možeš da dokažeš šta si doprineo.
 
 🎙️ SNIMI TAKE, DOBIJ OCENU
 Snimi jedan take — rep, vokal, gitaru, bas, klavijature, bubnjeve ili violinu — a AI trener ga ocenjuje od deset u onome što jedan take zaista može da pokaže. Flow, tajming, dah, visina tona, boja, izvođenje. Dobijaš šta je upalilo, šta da popraviš i jednu vežbu pre sledećeg take-a. Snimaj mikrofonom ili kamerom ili otpremi fajl koji već imaš.

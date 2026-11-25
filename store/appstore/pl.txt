@@ -5,13 +5,13 @@ SUBTITLE:
 Trener, collab, battle, zysk
 
 PROMOTIONAL TEXT:
-🎵 Twórz muzykę z ludźmi, którzy się liczą. Zdobywaj oceny, zarabiaj, rośnij.
+🎵🇵🇱 Twórz muzykę z ludźmi, którzy się liczą. Zdobywaj oceny, zarabiaj, rośnij.
 
 KEYWORDS:
 muzyka,rap,wokal,gitara,producent,bity,piosenkarz,cover,artysta,ocena,lekcje
 
 DESCRIPTION:
-Music ConnectZ to miejsce, w którym tworzysz muzykę z innymi i możesz udowodnić, co wniosłeś.
+🇵🇱 Music ConnectZ to miejsce, w którym tworzysz muzykę z innymi i możesz udowodnić, co wniosłeś.
 
 🎙️ NAGRAJ TAKE I DOSTAŃ OCENĘ
 Nagraj jeden take — rap, wokal, gitarę, bas, klawisze, perkusję lub skrzypce — a trener AI oceni go w skali do dziesięciu w tym, co jeden take naprawdę może pokazać. Flow, timing, oddech, wysokość dźwięku, barwa, wykonanie. Dowiesz się, co zadziałało, co poprawić, i dostaniesz jedno ćwiczenie przed kolejnym takiem. Nagrywaj mikrofonem lub kamerą albo wgraj plik, który już masz.

@@ -2,10 +2,10 @@ TITLE:
 Music ConnectZ AI-edző Collab
 
 SHORT:
-🎵 Csinálj zenét olyanokkal, akik megjelennek. Kapj pontot, keress, fejlődj.
+🎵🇭🇺 Csinálj zenét olyanokkal, akik megjelennek. Kapj pontot, keress, fejlődj.
 
 FULL:
-A Music ConnectZ az a hely, ahol másokkal együtt csinálsz zenét, és bizonyítani tudod, mivel járultál hozzá.
+🇭🇺 A Music ConnectZ az a hely, ahol másokkal együtt csinálsz zenét, és bizonyítani tudod, mivel járultál hozzá.
 
 🎙️ VEGYÉL FEL EGY TAKE-ET, KAPJ PONTSZÁMOT
 Vegyél fel egy take-et — rap, ének, gitár, basszus, billentyű, dob vagy hegedű — és egy AI-edző tízből pontozza azokon a dolgokon, amelyeket egy take valóban megmutathat. Flow, időzítés, légzés, hangmagasság, hangszín, előadásmód. Megkapod, mi működött, mit javíts, és egy gyakorlatot a következő take előtt. Vegyél fel mikrofonnal vagy kamerával, vagy tölts fel egy meglévő fájlt.

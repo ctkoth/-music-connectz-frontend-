@@ -5,13 +5,13 @@ SUBTITLE:
 Coach, collab, battle, tjen
 
 PROMOTIONAL TEXT:
-🎵 Lag musikk med folk som møter opp. Få poeng, tjen penger, bli bedre.
+🎵🇳🇴 Lag musikk med folk som møter opp. Få poeng, tjen penger, bli bedre.
 
 KEYWORDS:
 musikk,rap,vokal,gitar,produsent,beats,sanger,cover,artist,vurdering,leksjoner
 
 DESCRIPTION:
-Music ConnectZ er stedet der du lager musikk med andre og kan bevise hva du bidro med.
+🇳🇴 Music ConnectZ er stedet der du lager musikk med andre og kan bevise hva du bidro med.
 
 🎙️ TA OPP EN TAKE, FÅ EN SCORE
 Ta opp én take — rap, vokal, gitar, bass, keys, trommer eller fiolin — og en AI-coach gir den en score av ti på det en take faktisk kan vise. Flow, timing, pust, tonehøyde, klang, fremføring. Du får vite hva som funket, hva som bør rettes, og én øvelse før neste take. Ta opp med mikrofon eller kamera, eller last opp en fil du allerede har.

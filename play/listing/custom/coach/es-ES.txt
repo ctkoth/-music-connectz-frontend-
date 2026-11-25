@@ -1,8 +1,8 @@
 SHORT:
-🎙️ Graba una toma. Recibe puntuación, correcciones y un ejercicio.
+🎙️🇪🇸 Graba una toma. Recibe puntuación, correcciones y un ejercicio.
 
 FULL:
-Music ConnectZ es el lugar donde haces música con otras personas y puedes demostrar lo que aportaste.
+🇪🇸 Music ConnectZ es el lugar donde haces música con otras personas y puedes demostrar lo que aportaste.
 
 🎙️ GRABA UNA TOMA Y RECIBE SU PUNTUACIÓN
 Graba una toma —rap, voz, guitarra, bajo, teclados, batería o violín— y un coach de IA la puntúa sobre diez en lo que una toma realmente puede mostrar. Flow, tiempo, respiración, afinación, tono, interpretación. Recibes lo que funcionó, qué corregir y un ejercicio para hacer antes de la siguiente. Graba con micrófono o cámara, o sube un archivo que ya tengas.

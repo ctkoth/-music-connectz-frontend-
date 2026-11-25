@@ -1,8 +1,8 @@
 SHORT:
-🎙️ Bir take kaydet. AI koçtan puan, düzeltmeler ve alıştırma al.
+🎙️🇹🇷 Bir take kaydet. AI koçtan puan, düzeltmeler ve alıştırma al.
 
 FULL:
-Music ConnectZ, başkalarıyla müzik yaptığın ve neye katkı verdiğini kanıtlayabildiğin yerdir.
+🇹🇷 Music ConnectZ, başkalarıyla müzik yaptığın ve neye katkı verdiğini kanıtlayabildiğin yerdir.
 
 🎙️ BİR TAKE KAYDET, PUANINI AL
 Bir take kaydet — rap, vokal, gitar, bas, klavye, davul ya da keman — ve bir yapay zekâ koçu, bir take'in gerçekten gösterebildiği şeyler üzerinden onu on üzerinden puanlasın. Flow, zamanlama, nefes, perde, ses rengi, icra. Neyin işe yaradığını, neyin düzeltileceğini ve bir sonraki take'ten önce yapacağın tek bir alıştırmayı alırsın. Mikrofon ya da kamerayla kaydet ya da elindeki bir dosyayı yükle.
