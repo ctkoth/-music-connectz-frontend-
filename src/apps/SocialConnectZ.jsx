@@ -44,13 +44,17 @@ export default function SocialConnectZ() {
   // HealthZ: find adults who chose to be findable by a condition. Hidden on iOS 1.0 (platform.js).
   const [condition, setCondition] = useState("");
   const [condTerm, setCondTerm] = useState("");
+  const [notCondition, setNotCondition] = useState("");
+  const [notTerm, setNotTerm] = useState("");
   useEffect(() => { const t = setTimeout(() => setCondition(condTerm.trim()), 400); return () => clearTimeout(t); }, [condTerm]);
+  useEffect(() => { const t = setTimeout(() => setNotCondition(notTerm.trim()), 400); return () => clearTimeout(t); }, [notTerm]);
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
     const qs = gatesQuery(ranges);
     if (condition && !HIDE_HEALTH()) qs.push(`condition=${encodeURIComponent(condition)}`);
+    if (notCondition && !HIDE_HEALTH()) qs.push(`condition_not=${encodeURIComponent(notCondition)}`);
     return api(`/api/economy/members/${qs.length ? `?${qs.join("&")}` : ""}`)
       .then((d) => { setRows(d.members || []); setClassNote(d.class_note || ""); })
       // The real error. A directory that quietly shows nobody on a 500 reads
@@ -58,7 +62,7 @@ export default function SocialConnectZ() {
       // distinction the funnel's own `pct: null` rule exists to keep clear.
       .catch((e) => setError(e.message || "Couldn't load Social ConnectZ."))
       .finally(() => setLoading(false));
-  }, [ranges, condition]);
+  }, [ranges, condition, notCondition]);
 
   // One delay for every range, for the reason VybeZ gives: these are number boxes, and each
   // keystroke would otherwise be a full member search.
@@ -102,8 +106,11 @@ export default function SocialConnectZ() {
           <div className="space-y-1" data-tour="social-condition">
             <input className="neon-input w-full !py-2 text-sm" placeholder="Find adults who share a condition — e.g. asthma"
                    value={condTerm} onChange={(e) => setCondTerm(e.target.value)} />
+            <input className="neon-input w-full !py-2 text-sm" placeholder="Hide members who share… e.g. anxiety"
+                   value={notTerm} onChange={(e) => setNotTerm(e.target.value)} />
             <p className="text-[11px] text-white/45">
               Only members 18+ who chose, for that one condition, to be findable. Free. Nothing else about them is shown.
+              Hiding only removes names from your own list, and only for members who chose to share that condition.
             </p>
           </div>
         )}
