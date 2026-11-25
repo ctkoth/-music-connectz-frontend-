@@ -16,7 +16,7 @@ between that build and App Store review.
 ```bash
 npm ci
 npm run build
-npx cap sync ios      # copies dist/ into the project and runs pod install
+tools/ios-sync.sh     # build + sync WITHOUT the AdMob pod, then pod install (don't use plain `npx cap sync ios`)
 npx cap open ios      # opens ios/App/App.xcworkspace — always the .xcworkspace, never .xcodeproj
 ```
 - [ ] `pod install` finished without errors (if it fails, run `cd ios/App && pod install --repo-update`)
@@ -35,7 +35,7 @@ npx cap open ios      # opens ios/App/App.xcworkspace — always the .xcworkspac
 - [ ] Note anything that fails — Google/Spotify/SoundCloud sign-in redirects are the most likely to need work
 
 ## 5. Fix before submitting (these will get the app rejected or crash it)
-- [ ] **AdMob id.** `Info.plist` holds Google's *test* `GADApplicationIdentifier`. Replace it with your real iOS AdMob app id, or remove `@capacitor-community/admob` from the iOS build (then `npx cap sync ios`). Without any id the app crashes at launch.
+- [x] **AdMob.** Removed from the iOS build: no `GADApplicationIdentifier`, and `tools/ios-sync.sh` strips the pod. Ads, third-party sign-in and purchases are hidden on iOS by `src/platform.js` (see `play/apple-decisions-memo.md`).
 - [ ] **Thin wrapper (guideline 4.2).** `capacitor.config.json` has `server.url` pointing at https://musicconnectz.net, so the app is the website in a frame. Either remove `server.url` so the bundled `dist/` runs, or add native value (push notifications, native recorder). Then re-test step 4.
 - [ ] **Sign in with Apple.** Required when you offer Google or other third-party sign-in. `src/externalAuth.js` has Apple handled differently on each build and the backend provider list has Apple commented out — decide: enable it, or offer only email sign-in in the iOS build.
 - [ ] **Purchases.** Premium, StatZ and PromptZ are digital goods; Apple requires its in-app purchase for them. Either build IAP, or hide every purchase screen in the iOS build (as the standalone shells do).
@@ -69,7 +69,7 @@ npx cap open ios      # opens ios/App/App.xcworkspace — always the .xcworkspac
 | Path | What it is |
 |---|---|
 | `capacitor.config.json` | App id, name, `server.url`, allowed navigation, `ios` block |
-| `ios/App/App/Info.plist` | Mic, camera, photo-library text; AdMob id; encryption flag |
+| `ios/App/App/Info.plist` | Mic, camera, photo-library text; encryption flag |
 | `ios/App/App/Assets.xcassets/` | App icon (1024px) and launch images |
 | `resources/icon.png`, `resources/splash.png` | Source art for both |
 | `play/screenshots/apple-*` | Store screenshots (6.9", 6.5", iPad 13") |

@@ -75,4 +75,7 @@ Also decide, because a reviewer may ask:
 - **Purchases:** MembershipZ shows a one-line note, `PromptzDoor` (the "buy with your balance" door) and `OfferPanel` and `TierUpgradePrompt` render nothing.
 - Tests: `src/platform.test.mjs`; full suite and build pass. Driven in a browser with the platform faked as iOS: plans and the cash buy door gone, AdZ note shown, web unchanged.
 - **MerchZ** (members selling beats, packs and routines for cash, with a platform fee) is hidden on iOS the same way. **SpecZ** is left as it is: it spends earned 🍥, no cash, so it isn't a purchase of the kind Apple wants in-app purchase for.
-- **Not covered:** scattered "upgrade" wording inside tier-locked screens. Review those before submitting. Also still to do: remove `@capacitor-community/admob` and its `Info.plist` id, and update the four docs listed above.
+- **Not covered:** scattered "upgrade" wording inside tier-locked screens. Review those before submitting.
+
+- **AdMob removed from iOS:** the package stays in `package.json` (the Android bundle's rewarded ads need it, `RELEASE_ANDROID.md` §3b), so `tools/ios-sync.sh` strips the pod from `ios/App/Podfile` after each sync, and `GADApplicationIdentifier` is deleted from `Info.plist`. Not run on a Mac.
+- The four docs (privacy, age rating, review notes, listing description) are updated to match.
