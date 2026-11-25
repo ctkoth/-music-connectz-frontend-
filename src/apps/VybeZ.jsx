@@ -162,7 +162,7 @@ export default function VybeZ() {
     if (ageMax) parts.push(`age_max=${ageMax}`);
     if (maxKm) parts.push(`max_km=${maxKm}`);
     parts.push(...gatesQuery({ rating: ranges.rating, price: ranges.price, attract: ranges.attract,
-                               thuro: ranges.thuro, sexi: ranges.sexi }));
+                               thuro: ranges.thuro, sexi: ranges.sexi, thorough: ranges.thorough }));
     if (avoid.length) {
       parts.push(`substances=${avoid.join(",")}`);
       if (avoidUpTo) parts.push(`substance_max=${avoidUpTo}`);

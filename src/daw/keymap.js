@@ -3,7 +3,7 @@
 // change it. Kept per DAW, on this device.
 
 export const ACTIONS = [
-  ["play", "Play / stop", "Space"],
+  ["play", "Play / stop (records when a track is armed)", "Space"],
   ["record", "Record", "R"],
   ["home", "Go to the start", "Enter"],
   ["undo", "Undo", "Ctrl+Z"],

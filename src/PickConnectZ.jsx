@@ -5,8 +5,8 @@
 // two kinds of slot: apps the member pinned themselves, and "AI picks", which
 // are simply the apps they open most (tracked locally, never sent anywhere).
 //
-// Pin allowance follows the blueprint: Free pins 2 and lets the picks fill the
-// rest, Premium and StatZ pin as many as they like.
+// Pin allowance is the plan's count (3 / 6 / unlimited) and lets the picks fill the
+// rest.
 //
 // "Way less appz, more memberz": a brand-new member with no pins and no usage
 // used to see one line of hint text and an empty bar — technically minimal,
@@ -17,17 +17,18 @@
 // (not pins, so they never eat into the Free tier's 2-pin limit) until the
 // member's own usage replaces them with real AI picks.
 import { useCallback, useEffect, useState } from "react";
-import { AudioLines, Columns2, Compass, Home, LayoutGrid, User, Minus, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
+import { AudioLines, Columns2, Compass, Home, LayoutGrid, User, Minus, Pencil, Pin, Plus, Search, Sparkles, X, PictureInPicture2 } from "lucide-react";
 import { IconImg, pathFor } from "./App.jsx";
 import { useWaiting } from "./waiting.js";
 import { openable } from "./openable.js";
 import { matchesApp, purposeOf } from "./appPurpose.js";
 import { FOCUS_MODE, inFocus } from "./focus.js";
 
+import { loadLimits } from "./limits.js";
 import { LAST_KEY, PINS_KEY, USAGE_KEY, frecency, readSeeds } from "./yourApps.js";
 const HIDDEN_KEY = "mcz_hidden_apps";
 const AI_PICK_COUNT = 5;
-const FREE_PIN_LIMIT = 2;
+const FREE_PIN_LIMIT = 3;   // Corey's tier numbers: Free 3, Premium 6, StatZ unlimited (served `imagez_layers`)
 // The one loop a new member needs before anything else means anything: post
 // something, have it coached, be heard from, be findable. Four apps, not
 // forty-five — everything past this is one search away, never deleted, never
@@ -51,7 +52,7 @@ export const writeStore = (k, v) => {
   }
 };
 
-/** Premium and StatZ pin without limit; everyone else gets FREE_PIN_LIMIT. */
+/** Fallback label and limit only; the live count is the server's (see Dock). */
 export function tierInfo(tier) {
   const t = (tier || "").toLowerCase();
   if (t.includes("statz") || t.includes("stats")) return { label: "StatZ", limit: Infinity };
@@ -168,7 +169,12 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
   // than recall". Searching by WHAT YOU WANT TO DO is the fix: "record" finds
   // SingZ, "where did my money go" finds LogZ. See appPurpose.js.
   const [q, setQ] = useState("");
-  const { label: tierLabel, limit } = tierInfo(tier);
+  const { label: tierLabel, limit: fallbackLimit } = tierInfo(tier);
+  // How many apps may be pinned is the plan's count from the server (the same one tracks and layers use),
+  // never a number typed here. Until it answers, the lowest plan's number applies.
+  const [cap, setCap] = useState(undefined);
+  useEffect(() => { loadLimits().then((l) => setCap(l && "imagez_layers" in l ? l.imagez_layers : undefined)).catch(() => {}); }, []);
+  const limit = cap === undefined ? Math.min(fallbackLimit, FREE_PIN_LIMIT) : cap == null ? Infinity : cap;
   const byKey = Object.fromEntries(apps.map((a) => [a.key, a]));
 
   const pinnedApps = pins.map((k) => byKey[k]).filter(Boolean);
@@ -476,6 +482,14 @@ export default function Dock({ apps, usage, pins, hidden, tier, current, onOpen,
           )}
         </div>
 
+        <button
+          onClick={() => setDrawer(true)}
+          title={`Edit the dock: pin apps with the pin on each tile — ${limit === Infinity ? "unlimited" : `${pinnedApps.length} of ${limit}`}, free to change`}
+          aria-label="Edit the dock"
+          className="shrink-0 rounded-xl p-2 text-white/55 transition hover:bg-white/10 hover:text-white"
+        >
+          <Pencil size={16} />
+        </button>
         <button
           onClick={() => setDrawer((v) => !v)}
           title="All apps"

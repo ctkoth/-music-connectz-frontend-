@@ -11,12 +11,12 @@ export const PCT_MIN = zoomPct(ZOOM_MIN), PCT_MAX = zoomPct(ZOOM_MAX);
 /** "132%", "8.5%", "0.25%": enough digits to tell neighbouring zooms apart, never a long tail. */
 export const pctLabel = (z) => { const p = zoomPct(z); return `${p < 1 ? p.toFixed(2) : p < 10 ? p.toFixed(1) : Math.round(p)}%`; };
 
-// Track heights. Compact hides the take / FX / tone rows (name, record, solo, mute only); the rest show everything and
+// Track heights. Compact keeps the name, record / solo / mute, volume, pan and FX; the rest add the take and tone rows and
 // just give the waveform more room.
 export const TRACK_SIZES = [
-  { key: "compact", label: "Compact", h: 82, full: false },
-  { key: "normal", label: "Normal", h: 126, full: true },
-  { key: "large", label: "Large", h: 180, full: true },
-  { key: "huge", label: "Huge", h: 260, full: true },
+  { key: "compact", label: "Compact", h: 118, full: false },
+  { key: "normal", label: "Normal", h: 168, full: true },
+  { key: "large", label: "Large", h: 210, full: true },
+  { key: "huge", label: "Huge", h: 280, full: true },
 ];
 export const trackSize = (key) => TRACK_SIZES.find((s) => s.key === key) || TRACK_SIZES[1];

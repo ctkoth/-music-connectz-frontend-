@@ -137,6 +137,7 @@ const PublicBattle = lazy(lazyRoute(() => import("./apps/PublicBattle.jsx")));
 const PublicLesson = lazy(lazyRoute(() => import("./apps/PublicLesson.jsx")));
 const ScoreCard = lazy(lazyRoute(() => import("./apps/ScoreCard.jsx")));
 const PublicProfile = lazy(lazyRoute(() => import("./apps/PublicProfile.jsx")));
+const LookSample = lazy(lazyRoute(() => import("./apps/LookSample.jsx")));
 const RateInvite = lazy(lazyRoute(() => import("./apps/RateInvite.jsx")));
 const TrialTake = lazy(lazyRoute(() => import("./apps/TrialTake.jsx")));
 const BodieZTrial = lazy(lazyRoute(() => import("./apps/BodieZTrial.jsx")));
@@ -479,11 +480,11 @@ export const CUSTOM_ICONS = {
   "badge_brass_blastz.png": "/icons/badge_brass_blastz-neon.svg",
   "badge_royal_ratingz.png": "/icons/badge_royal_ratingz-neon.svg",
   "badge_cut_royaltiez.png": "/icons/badge_cut_royaltiez-neon.svg",
-  "badge_thorough.png": "/icons/badge_thorough-neon.svg",
-  "badge_decent.png": "/icons/badge_decent-neon.svg",
-  "badge_legendary.png": "/icons/badge_legendary-neon.svg",
-  "badge_supreme.png": "/icons/badge_supreme-neon.svg",
-  "badge_perfect.png": "/icons/badge_perfect-neon.svg",
+  "badge_thorough.png": "/icons/badge_thorough.jpg",
+  "badge_decent.png": "/icons/badge_decent.jpg",
+  "badge_legendary.png": "/icons/badge_legendary.jpg",
+  "badge_supreme.png": "/icons/badge_supreme.jpg",
+  "badge_perfect.png": "/icons/badge_perfect.jpg",
   // Reserved ahead of the artwork. These eight OCC tabs are on their emoji
   // until the art exists; the keys are registered now so dropping the file
   // into public/icons/ is the whole job — nothing here has to change. Missing
@@ -774,6 +775,9 @@ function TrialOrApp({ tabKey, children }) {
     return () => { on = false; };
   }, [loading, user, wantsDoors]);
   if (user) return children;
+  // LookZMaxZ opens for anybody, no account and no ID check: what a logged-out visitor gets is the EXAMPLE reading (it
+  // scores nobody). The real reading still needs a verified adult, and says so once they are in.
+  if (tabKey === "lookmaxz" && !loading) return <LookSample />;
   if (loading || (wantsDoors && doors === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-white/50">
@@ -793,6 +797,12 @@ function TrialOrApp({ tabKey, children }) {
 // link like /battle while logged out is someone who already knows what this
 // is, and /login is the right place to send them).
 // Use the landing slot once: a slot left set would keep turning the home screen into a redirect.
+// An old address for a tab: same place, query string kept (?for=, ?look=).
+function TabAlias({ tabKey }) {
+  const loc = useLocation();
+  return <Navigate to={`${pathFor(tabKey)}${loc.search}`} replace />;
+}
+
 function LandOnce({ to }) {
   useEffect(() => { clearLanding(); }, []);
   return <Navigate to={to} replace />;
@@ -1466,7 +1476,7 @@ function Home() {
                   {/* zoom, not transform: zoom shrinks the LAYOUT too, so a
                       quarter-size tool takes quarter-size room and its
                       controls still hit where they are drawn. */}
-                  <div className="max-h-[38vh] overflow-y-auto p-2 lg:max-h-[30vh]" style={{ zoom: 0.72 }}>
+                  <div className="max-h-[60vh] overflow-y-auto p-2 lg:max-h-[52vh]" style={{ zoom: 0.72 }}>
                     <ErrorBoundary key={k} label={t?.label}>
                       <Suspense fallback={<RouteFallback />}>{t?.el}</Suspense>
                     </ErrorBoundary>
@@ -1747,6 +1757,9 @@ export default function App() {
       <Route path="/l/:id" element={<PublicLesson />} />
       <Route path="/s/:token" element={<ScoreCard />} />
       <Route path="/rate/:handle" element={<RateInvite />} />
+      <Route path="/lookmaxz/sample" element={<LookSample />} />
+      {/* Invite and share links already sent say /lookmaxz, which was never a route (the tab lives at /lookmax). */}
+      <Route path="/lookmaxz" element={<TabAlias tabKey="lookmaxz" />} />
       <Route path="/u/:username" element={<PublicProfile />} />
       <Route path="/try" element={<TrialTake />} />
       {/* Matched BEFORE /try/:appKey — route order matters here, or the

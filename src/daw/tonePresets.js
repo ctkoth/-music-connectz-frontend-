@@ -319,7 +319,7 @@ export function chainToInserts(chain) {
 
 /** What gets saved: the effects, their on/off and their settings — not the ids, which belong to a track. */
 export function insertsToChain(inserts) {
-  return cleanInserts(inserts).map(({ type, on, params, bands }) => ({ type, on, params, ...(bands ? { bands } : {}) }));
+  return cleanInserts(inserts).map(({ type, on, params, bands, amount }) => ({ type, on, params, ...(bands ? { bands } : {}), ...(amount != null ? { amount } : {}) }));
 }
 
 /** How one kind's ceiling reads beside its save button. Each kind (tone, fx, master) counts on its own. */

@@ -21,6 +21,7 @@ import { Link } from "react-router-dom";
 import { FileAudio, FileVideo, Image as ImageIcon, File as FileIcon, Loader2, Search, Send, Trash2, UserCircle2 } from "lucide-react";
 import { api } from "../api.js";
 import { handOff } from "../handoff.js";
+import { listCloud } from "../daw/cloud.js";
 import { goToSpot } from "../goto.js";
 import { storageNote } from "../uploadWork.js";
 import { ENERGY } from "../resources.js";
@@ -64,6 +65,10 @@ export default function FileZ() {
   // Files whose player errored on this device. A hint only — "it would not play" is
   // not "it is not there" — so it offers the check and never marks anything itself.
   const [failed, setFailed] = useState(() => new Set());
+  // DAW sessions kept on the account (Arsenal's Save does this by default): listed here so they are visible in
+  // FileZ and open on any device. A failed fetch just shows none.
+  const [dawSessions, setDawSessions] = useState([]);
+  useEffect(() => { listCloud().then(setDawSessions).catch(() => setDawSessions([])); }, []);
   const [checking, setChecking] = useState(false);
   const [checked, setChecked] = useState("");
 
@@ -153,6 +158,23 @@ export default function FileZ() {
           </div>
         )}
       </div>
+
+      {dawSessions.length > 0 && (
+        <div className="re-card space-y-2" data-tour="filez-sessions">
+          <h3 className="font-semibold">DAW sessions <span className="text-xs font-normal text-white/55">— kept on your account, open on any device</span></h3>
+          <ul className="space-y-1">
+            {dawSessions.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="min-w-0 flex-1 truncate">🎼 {r.name}{r.bpm ? ` · ${r.bpm} BPM` : ""}{r.key ? ` · ${r.key}` : ""}</span>
+                <span className="text-xs text-white/55">{r.updated ? new Date(r.updated).toLocaleDateString() : ""}</span>
+                <button type="button" className="re-btn !w-auto px-3 !py-0.5 text-xs"
+                        onClick={() => handOff(r.app, `${r.app}:main`, { sessionId: r.id })}>Open in {r.app === "arsenal" ? "Arsenal" : "the DAW"}</button>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[11px] text-white/55">Their sounds are in the file list below and count against your storage. Remove a session's copy from the DAW with "On my other devices ✓".</p>
+        </div>
+      )}
 
       {data && files.length > 0 && (
         <div className="re-card space-y-2" data-tour="filez-check">

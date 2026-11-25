@@ -373,3 +373,4 @@ html[data-casino] .re-label { color: #fde68a; }
    text colour from its select is invisible. Every option gets a dark panel and light text, wherever the select is used. */
 select option, select optgroup { background-color: #12121c; color: #f4f4f8; }
 select option:disabled { color: #8a8a99; }
+

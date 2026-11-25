@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { SEED_MAX, frecency, hasOwnApps, rankApps, withSeeds } from "./yourApps.js";
+import { SEED_MAX, frecency, hasOwnApps, rankApps, toggleChosen, withSeeds } from "./yourApps.js";
 
 const now = Date.UTC(2026, 9, 29);
 const DAY = 86400000;
@@ -40,4 +40,16 @@ test("a new member's seeds are their first apps, and real use pushes them down",
 test("seeding moves a repeat to the front and stays short", () => {
   assert.deepEqual(withSeeds(["singz", "postz"], ["postz"]), ["postz", "singz"]);
   assert.equal(withSeeds([], ["a", "b", "c", "d", "e", "f", "g"]).length, SEED_MAX);
+});
+
+test("what you picked leads use, after pins", () => {
+  const usage = { singz: 9, postz: 4 };
+  assert.deepEqual(rankApps({ usage, pins: ["lilith"], chosen: ["arsenal", "rapz"], now }), ["lilith", "arsenal", "rapz", "singz", "postz"]);
+});
+
+test("picking stops at the plan's count, removing never does, and nobody over it loses one", () => {
+  assert.deepEqual(toggleChosen(["a", "b"], "c", 3), { list: ["a", "b", "c"], refused: false });
+  assert.deepEqual(toggleChosen(["a", "b", "c"], "d", 3), { list: ["a", "b", "c"], refused: true });
+  assert.deepEqual(toggleChosen(["a", "b", "c"], "d", null), { list: ["a", "b", "c", "d"], refused: false });
+  assert.deepEqual(toggleChosen(["a", "b", "c", "d"], "b", 3).list, ["a", "c", "d"]);
 });

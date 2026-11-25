@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import SelectAllBar from "../components/SelectAllBar.jsx";
 import AiEnergy from "../components/AiEnergy.jsx";
 import { useEffect, useState } from "react";
@@ -137,8 +138,14 @@ function Sector({ k, meta, data, shop, affiliate }) {
         </div>
       )}
       {k === "body" && (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <p className="text-[11px] text-white/60">{data?.sessions_28d ?? 0} session{data?.sessions_28d === 1 ? "" : "s"} logged in the last 28 days — shown, never scored: turning up is not the same as getting stronger.</p>
+          {(data?.doors || []).map((dr) => (
+            <button key={dr.factor} type="button" className="re-btn !w-auto mr-1.5 px-3 text-[12px]"
+              onClick={() => { try { sessionStorage.setItem("bodiez.prefillMuscle", dr.open_in.muscle); } catch { /* blocked */ } goToTab("bodiez"); }}>
+              {dr.open_in.label} · {dr.score}/10
+            </button>
+          ))}
           <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("bodiez")}>
             {data?.open_in?.label || "Open BodieZ"}
           </button>
@@ -464,7 +471,10 @@ export default function LookmaxZ() {
         <section className="neon-frame space-y-2 border-mcz-ember/30 p-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-mcz-ember"><Lock size={14} /> 18+ only</p>
           <p className="text-[12px] text-white/70">{d.locked}</p>
-          <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="re-btn !w-auto px-3 text-[12px]" onClick={() => goToSpot("profilez", "verify-18")}>Verify I'm 18+ in ProfileZ</button>
+            <Link className="re-btn !w-auto px-3 text-[12px]" to="/lookmaxz/sample">See an example reading first</Link>
+          </div>
         </section>
       ) : (
         <>

@@ -454,3 +454,46 @@ test2("cycle passes: each lands in its own take lane, the last is active, and th
   assert2.equal(t.active, 2);
   assert2.equal(t.recMode, "overdub");
 });
+
+test("repeating a clip lays copies end to end", async () => {
+  const { newSession, addTrack, addSource, addRegion, repeatRegion, regionsOf, endOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "src1", name: "beat", duration: 2, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "src1", at: 1, name: "beat" });
+  const first = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = repeatRegion(x, first.id, 3);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.equal(rs.length, 4);
+  assert.deepEqual(rs.map((r) => r.at), [1, 3, 5, 7]);
+  assert.equal(endOf(rs[3]), 9);
+  assert.equal(repeatRegion(x, first.id, 0), x);
+});
+
+test("a track group moves volume by the same dB, and mute and solo together; ungrouped tracks change alone", async () => {
+  const { newSession, addTrack, setTrack, setTrackGrouped } = await import("./session.js");
+  let x = addTrack(addTrack(addTrack(newSession(), "B"), "C"), "D");
+  const [a, b, c, d] = x.tracks.map((t) => t.id);
+  x = setTrack(x, a, { group: "A", gain: -6 }); x = setTrack(x, b, { group: "A", gain: -3 }); x = setTrack(x, c, { group: "B" });
+  const up = setTrackGrouped(x, a, { gain: -4 });                         // +2 dB on the one touched
+  assert.equal(up.tracks[0].gain, -4); assert.equal(up.tracks[1].gain, -1);   // its mate moved by the same 2 dB
+  assert.equal(up.tracks[2].gain, 0); assert.equal(up.tracks[3].gain, 0);     // another group and a loner stay
+  const muted = setTrackGrouped(x, b, { mute: true });
+  assert.deepEqual(muted.tracks.map((t) => t.mute), [true, true, false, false]);
+  const alone = setTrackGrouped(x, d, { gain: -2 });
+  assert.equal(alone.tracks[3].gain, -2); assert.equal(alone.tracks[0].gain, -6);
+  assert.equal(setTrack(x, a, { group: "Z" }).tracks[0].group, "");
+});
+
+test("stripping a clip leaves the pieces where they were on the timeline", async () => {
+  const { newSession, addTrack, addSource, addRegion, stripRegion, regionsOf } = await import("./session.js");
+  let x = addTrack(newSession(), "T");
+  x = addSource(x, { id: "s1", name: "take", duration: 10, channels: 1, rate: 48000 });
+  const tid = x.tracks[x.tracks.length - 1].id;
+  x = addRegion(x, tid, { src: "s1", at: 2, name: "take" });
+  const r = regionsOf(x.tracks.find((t) => t.id === tid))[0];
+  const out = stripRegion(x, r.id, [{ from: 1, to: 3 }, { from: 6, to: 8 }]);
+  const rs = regionsOf(out.tracks.find((t) => t.id === tid)).sort((a, b) => a.at - b.at);
+  assert.deepEqual(rs.map((q) => [q.at, q.in, q.out]), [[3, 1, 3], [8, 6, 8]]);   // timeline = 2 + (source - 0)
+  assert.equal(stripRegion(x, r.id, []), x);
+});

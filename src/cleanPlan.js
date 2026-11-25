@@ -83,6 +83,3 @@ export function openModes(n) {
   if (n == null || n === "" || !Number.isFinite(Number(n))) return [...MODE_ORDER];
   return MODE_ORDER.slice(0, Math.max(1, Math.min(MODE_ORDER.length, Math.floor(Number(n)))));
 }
-
-/** The duplicate finder (Windows app) opens with the second way. */
-export const dupesOpen = (n) => openModes(n).length >= 2;
