@@ -34,6 +34,7 @@ import ReachGates from "../ReachGates.jsx";
 import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
 import LocationShare from "../components/LocationShare.jsx";
+import HealthNote from "../components/HealthNote.jsx";
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
 import { MyClassZ } from "../components/ClassZ.jsx";
@@ -795,6 +796,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
       <VoiceCard />
 
       <Verify18Card />
+      <HealthNote where="profile" />
 
       {/* HandleZ — customize your profile handle/username (Premium only) */}
       {premium && (

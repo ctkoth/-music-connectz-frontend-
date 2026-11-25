@@ -79,13 +79,13 @@ function Sleep({ data, onData, onError }) {
 }
 
 function Conditions({ data, onData, onError }) {
-  const [f, setF] = useState({ name: "", since_year: "", note: "", shared: false, kind: "physical" });
+  const [f, setF] = useState({ name: "", since_year: "", note: "", shared: false, coach_aware: false, kind: "physical" });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const kinds = data.kinds || [{ key: "physical", label: "Physical" }, { key: "mental", label: "Mental health" }, { key: "other", label: "Other" }];
 
-  async function share(id, shared) {
-    try { onData(await api(`/api/economy/healthz/conditions/${id}/`, { method: "PATCH", body: { shared } })); }
+  async function share(id, patch) {
+    try { onData(await api(`/api/economy/healthz/conditions/${id}/`, { method: "PATCH", body: patch })); }
     catch (err) { onError(err.message || "That didn't change — nothing was shared."); }
   }
 
@@ -93,7 +93,7 @@ function Conditions({ data, onData, onError }) {
     e.preventDefault(); setBusy(true); onError("");
     try {
       onData(await api("/api/economy/healthz/conditions/", { method: "POST", body: { ...f, since_year: f.since_year || null } }));
-      setF({ name: "", since_year: "", note: "", shared: false, kind: f.kind });
+      setF({ name: "", since_year: "", note: "", shared: false, coach_aware: false, kind: f.kind });
     } catch (err) { onError(err.message || "That didn't save — nothing changed."); }
     finally { setBusy(false); }
   }
@@ -120,6 +120,10 @@ function Conditions({ data, onData, onError }) {
           <input type="checkbox" checked={f.shared} onChange={(e) => setF({ ...f, shared: e.target.checked })} />
           Let adults find me in Social ConnectZ by this
         </label>
+        <label className="flex w-full items-center gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={f.coach_aware} onChange={(e) => setF({ ...f, coach_aware: e.target.checked })} />
+          Tell my coaches and BodieZ's AI read
+        </label>
         <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-40" disabled={busy || !f.name.trim()}>
           {busy ? <Loader2 className="animate-spin" size={14} /> : "Add"}
         </button>
@@ -127,7 +131,9 @@ function Conditions({ data, onData, onError }) {
       {data.crisis_note && f.kind === "mental" && <p className="text-[11px] text-mcz-gold">{data.crisis_note}</p>}
       <p className="text-[11px] text-white/40">
         Free. Off by default, one condition at a time. Turned on, an adult who searches for that condition can find you;
-        nobody gets a list of your conditions, and members under 18 are never shown or shown to anyone.
+        nobody gets a list of your conditions, and members under 18 are never shown or shown to anyone. "Coaches" adds
+        only the condition's name, as a note, to what the AI that writes your coach advice is sent (Google and Anthropic);
+        it makes practice gentler and never changes a score or gives medical advice.
       </p>
       {data.conditions.length === 0 ? (
         <p className="text-sm text-white/45">Nothing added.</p>
@@ -139,7 +145,10 @@ function Conditions({ data, onData, onError }) {
                 <b>{c.name}</b> <span className="text-[10px] text-white/45">{(kinds.find((k) => k.key === c.kind) || {}).label}</span>{c.since_year ? ` · since ${c.since_year}` : ""}{c.note ? ` · ${c.note}` : ""}
               </span>
               <label className="flex shrink-0 items-center gap-1 text-[11px] text-white/55">
-                <input type="checkbox" checked={!!c.shared} onChange={(e) => share(c.id, e.target.checked)} /> findable
+                <input type="checkbox" checked={!!c.coach_aware} onChange={(e) => share(c.id, { coach_aware: e.target.checked })} /> coaches
+              </label>
+              <label className="flex shrink-0 items-center gap-1 text-[11px] text-white/55">
+                <input type="checkbox" checked={!!c.shared} onChange={(e) => share(c.id, { shared: e.target.checked })} /> findable
               </label>
               <button aria-label={`Remove ${c.name}`} className="text-white/40 hover:text-mcz-ember" onClick={() => remove(c.id)}><Trash2 size={14} /></button>
             </li>
@@ -178,6 +187,7 @@ function HealthZInner() {
       <div className="flex flex-wrap gap-2">
         <button className="pill text-xs" onClick={() => goToTab("bodiez")}>💪 Open BodieZ — workouts and recovery</button>
         <button className="pill text-xs" onClick={() => goToTab("breathz")}>🫁 Open BreathZ — free breathing practice</button>
+        <button className="pill text-xs" onClick={() => goToTab("lilith")}>💃 Lilith — health routines: sleep, medication, treatment</button>
       </div>
     </div>
   );

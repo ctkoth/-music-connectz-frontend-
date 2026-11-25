@@ -7,6 +7,7 @@
 // never ticked here — the board asks the server to sweep and the server answers from its records —
 // so there is no button that could turn a checked claim into a typed one.
 import { useState } from "react";
+import { HIDE_HEALTH } from "../platform.js";
 import { ArrowRight, Check, ChevronDown, Flame, Sparkles } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { ENERGY, SPINAZ } from "../resources.js";
@@ -176,7 +177,11 @@ export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "wee
 }
 
 /** The whole library: every routine by cadence, and the one-off tasks. */
-export function Starters({ starters, add, busyKey }) {
+export function Starters({ starters: all, add, busyKey }) {
+  // Health routines live with HealthZ, which iOS 1.0 doesn't include (platform.js).
+  const starters = all && HIDE_HEALTH()
+    ? { ...all, routines: (all.routines || []).filter((r) => !String(r.key || "").startsWith("health_")) }
+    : all;
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState({});
   if (!starters) return null;
@@ -196,6 +201,7 @@ export function Starters({ starters, add, busyKey }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">{r.title} {r.verified && <span title="Lilith keeps it from your real activity">✨</span>}</p>
                     <p className="text-[11px] text-white/45">{r.note}</p>
+                    {r.pays_xp > 0 && <p className="text-[11px] text-emerald-300">+{r.pays_xp} ⭐ each time you keep it · no 🍥 or ⚡</p>}
                   </div>
                   {r.on_board ? <span className="text-[11px] text-emerald-300"><Check size={12} className="inline" /> on your board</span>
                     : <span className="flex items-center gap-1.5">

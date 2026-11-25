@@ -37,6 +37,7 @@
 // reward. The backend module explains why XP is left out rather than
 // guessed at — this screen follows that and shows plain counts instead.
 import Term from "../components/Term.jsx";
+import HealthNote from "../components/HealthNote.jsx";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoSrc } from "../media.js";
 import {
@@ -687,6 +688,7 @@ export default function BodieZ() {
         ))}
       </div>
 
+      <HealthNote where="bodiez" />
       <AccessPanel access={access} onChange={saveAccess} shown={usable.length} total={exercises.length} />
 
       {err && <p role="alert" className="re-card text-sm text-mcz-ember">{err}</p>}
