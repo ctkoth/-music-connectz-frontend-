@@ -79,9 +79,10 @@ function Sleep({ data, onData, onError }) {
 }
 
 function Conditions({ data, onData, onError }) {
-  const [f, setF] = useState({ name: "", since_year: "", note: "", shared: false });
+  const [f, setF] = useState({ name: "", since_year: "", note: "", shared: false, kind: "physical" });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const kinds = data.kinds || [{ key: "physical", label: "Physical" }, { key: "mental", label: "Mental health" }, { key: "other", label: "Other" }];
 
   async function share(id, shared) {
     try { onData(await api(`/api/economy/healthz/conditions/${id}/`, { method: "PATCH", body: { shared } })); }
@@ -92,7 +93,7 @@ function Conditions({ data, onData, onError }) {
     e.preventDefault(); setBusy(true); onError("");
     try {
       onData(await api("/api/economy/healthz/conditions/", { method: "POST", body: { ...f, since_year: f.since_year || null } }));
-      setF({ name: "", since_year: "", note: "", shared: false });
+      setF({ name: "", since_year: "", note: "", shared: false, kind: f.kind });
     } catch (err) { onError(err.message || "That didn't save — nothing changed."); }
     finally { setBusy(false); }
   }
@@ -103,13 +104,16 @@ function Conditions({ data, onData, onError }) {
 
   return (
     <div className="re-card space-y-3" data-tour="healthz-conditions">
-      <span className="re-label flex items-center gap-2"><Stethoscope size={14} className="text-mcz-cyan" /> Conditions you've been told you have</span>
+      <span className="re-label flex items-center gap-2"><Stethoscope size={14} className="text-mcz-cyan" /> Conditions you've been told you have — physical or mental</span>
       <p className="text-xs text-white/60">
         In your own words, for your own reference. Nobody else can see this, nothing reads it to rate, price or
         recommend anything, and it's deleted with your account. HealthZ never suggests one.
       </p>
       <form onSubmit={add} className="flex flex-wrap items-end gap-2">
-        <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="e.g. Asthma" maxLength={120} value={f.name} onChange={set("name")} />
+        <select data-nomemo="true" aria-label="Kind" className="neon-input !py-2 text-sm" value={f.kind} onChange={set("kind")}>
+          {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+        </select>
+        <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="e.g. Asthma, anxiety, ADHD" maxLength={120} value={f.name} onChange={set("name")} />
         <input className="neon-input !py-2 w-24 text-sm" type="number" inputMode="numeric" placeholder="Since (year)" value={f.since_year} onChange={set("since_year")} />
         <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Note (optional)" maxLength={500} value={f.note} onChange={set("note")} />
         <label className="flex w-full items-center gap-2 text-[11px] text-white/60">
@@ -120,6 +124,7 @@ function Conditions({ data, onData, onError }) {
           {busy ? <Loader2 className="animate-spin" size={14} /> : "Add"}
         </button>
       </form>
+      {data.crisis_note && f.kind === "mental" && <p className="text-[11px] text-mcz-gold">{data.crisis_note}</p>}
       <p className="text-[11px] text-white/40">
         Free. Off by default, one condition at a time. Turned on, an adult who searches for that condition can find you;
         nobody gets a list of your conditions, and members under 18 are never shown or shown to anyone.
@@ -131,7 +136,7 @@ function Conditions({ data, onData, onError }) {
           {data.conditions.map((c) => (
             <li key={c.id} className="flex items-center justify-between gap-2 border-t border-white/10 pt-1">
               <span className="min-w-0">
-                <b>{c.name}</b>{c.since_year ? ` · since ${c.since_year}` : ""}{c.note ? ` · ${c.note}` : ""}
+                <b>{c.name}</b> <span className="text-[10px] text-white/45">{(kinds.find((k) => k.key === c.kind) || {}).label}</span>{c.since_year ? ` · since ${c.since_year}` : ""}{c.note ? ` · ${c.note}` : ""}
               </span>
               <label className="flex shrink-0 items-center gap-1 text-[11px] text-white/55">
                 <input type="checkbox" checked={!!c.shared} onChange={(e) => share(c.id, e.target.checked)} /> findable
