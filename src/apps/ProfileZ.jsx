@@ -35,6 +35,7 @@ import SoundCloudImport from "../SoundCloudImport.jsx";
 import PortfolioLinks from "../PortfolioLinks.jsx";
 import LocationShare from "../components/LocationShare.jsx";
 import HealthNote from "../components/HealthNote.jsx";
+import SupportInbox from "../components/SupportInbox.jsx";
 import InventoryZ from "../components/InventoryZ.jsx";
 import SuperfanZ from "../components/SuperfanZ.jsx";
 import { MyClassZ } from "../components/ClassZ.jsx";
@@ -797,6 +798,7 @@ export default function ProfileZ({ onViewProfile, onMessage }) {
 
       <Verify18Card />
       <HealthNote where="profile" />
+      <SupportInbox />
 
       {/* HandleZ — customize your profile handle/username (Premium only) */}
       {premium && (

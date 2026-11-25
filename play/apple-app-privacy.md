@@ -30,6 +30,7 @@ unless the Tracking section below says otherwise.
 | User Content → Emails or Text Messages | Yes | App Functionality | MessageZ, group messages |
 | User Content → Gameplay Content | No | — | |
 | User Content → Other User Content | Yes | App Functionality | posts, ratings, comments, bug reports |
+| Other Data → **Customer Support** | **Yes** | App Functionality | in-app Contact support (ProfileZ): private tickets, owner-only queue. Linked Yes, tracking No. Not used for marketing. |
 | Usage Data → Product Interaction | Yes | App Functionality, Analytics | app opens, the join-funnel events |
 | Usage Data → Advertising Data | **No** | — | no ads in the iOS build |
 | Diagnostics → Crash / Performance | No, unless you add a crash SDK | | |
