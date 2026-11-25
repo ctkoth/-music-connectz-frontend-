@@ -26,6 +26,7 @@ import MemberName from "../MemberName.jsx";
 import RangeGates from "../RangeGates.jsx";
 import { ClassMarks } from "../components/ClassZ.jsx";
 import { gatesQuery } from "../gatesQuery.js";
+import { HIDE_HEALTH } from "../platform.js";
 import { NATIONALITIES, FLAG_FOR, personaLabel } from "./socialData.js";
 import { openMember } from "../goto.js";
 
@@ -40,11 +41,16 @@ export default function SocialConnectZ() {
   const [ranges, setRanges] = useState({});
   // The server's line about who a class filter left out, shown unreworded.
   const [classNote, setClassNote] = useState("");
+  // HealthZ: find adults who chose to be findable by a condition. Hidden on iOS 1.0 (platform.js).
+  const [condition, setCondition] = useState("");
+  const [condTerm, setCondTerm] = useState("");
+  useEffect(() => { const t = setTimeout(() => setCondition(condTerm.trim()), 400); return () => clearTimeout(t); }, [condTerm]);
 
   const load = useCallback(() => {
     setLoading(true);
     setError("");
     const qs = gatesQuery(ranges);
+    if (condition && !HIDE_HEALTH()) qs.push(`condition=${encodeURIComponent(condition)}`);
     return api(`/api/economy/members/${qs.length ? `?${qs.join("&")}` : ""}`)
       .then((d) => { setRows(d.members || []); setClassNote(d.class_note || ""); })
       // The real error. A directory that quietly shows nobody on a 500 reads
@@ -52,7 +58,7 @@ export default function SocialConnectZ() {
       // distinction the funnel's own `pct: null` rule exists to keep clear.
       .catch((e) => setError(e.message || "Couldn't load Social ConnectZ."))
       .finally(() => setLoading(false));
-  }, [ranges]);
+  }, [ranges, condition]);
 
   // One delay for every range, for the reason VybeZ gives: these are number boxes, and each
   // keystroke would otherwise be a full member search.
@@ -92,6 +98,15 @@ export default function SocialConnectZ() {
       <RangeGates keys={["rating", "price", "attract", "age"]} value={ranges} onChange={setRanges}
                   title="Your standards — who shows up here" />
       {classNote && <p role="status" className="text-[11px] text-white/55">{classNote}</p>}
+        {!HIDE_HEALTH() && (
+          <div className="space-y-1" data-tour="social-condition">
+            <input className="neon-input w-full !py-2 text-sm" placeholder="Find adults who share a condition — e.g. asthma"
+                   value={condTerm} onChange={(e) => setCondTerm(e.target.value)} />
+            <p className="text-[11px] text-white/45">
+              Only members 18+ who chose, for that one condition, to be findable. Free. Nothing else about them is shown.
+            </p>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <IconImg icon="nationalitiez.png" alt="" className="h-6 w-6 rounded" />
           <select aria-label="NationalitieZ" className="w-full rounded-lg border border-white/[0.08] bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-mcz-ember/60" value={nat} onChange={(e) => setNat(e.target.value)}>
@@ -131,6 +146,9 @@ export default function SocialConnectZ() {
                   </div>}
               <div className="flex-1">
                 <div className="text-sm font-bold text-white">{m.display_name || m.username}</div>
+                {m.matched_conditions?.length > 0 && (
+                  <div className="text-[11px] text-emerald-300">Shares: {m.matched_conditions.join(", ")}</div>
+                )}
                 {m.personas?.[0]?.name && (
                   <div className="text-[11px] text-white/50">{personaLabel(m.personas[0])}</div>
                 )}

@@ -79,15 +79,20 @@ function Sleep({ data, onData, onError }) {
 }
 
 function Conditions({ data, onData, onError }) {
-  const [f, setF] = useState({ name: "", since_year: "", note: "" });
+  const [f, setF] = useState({ name: "", since_year: "", note: "", shared: false });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  async function share(id, shared) {
+    try { onData(await api(`/api/economy/healthz/conditions/${id}/`, { method: "PATCH", body: { shared } })); }
+    catch (err) { onError(err.message || "That didn't change — nothing was shared."); }
+  }
 
   async function add(e) {
     e.preventDefault(); setBusy(true); onError("");
     try {
       onData(await api("/api/economy/healthz/conditions/", { method: "POST", body: { ...f, since_year: f.since_year || null } }));
-      setF({ name: "", since_year: "", note: "" });
+      setF({ name: "", since_year: "", note: "", shared: false });
     } catch (err) { onError(err.message || "That didn't save — nothing changed."); }
     finally { setBusy(false); }
   }
@@ -107,11 +112,18 @@ function Conditions({ data, onData, onError }) {
         <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="e.g. Asthma" maxLength={120} value={f.name} onChange={set("name")} />
         <input className="neon-input !py-2 w-24 text-sm" type="number" inputMode="numeric" placeholder="Since (year)" value={f.since_year} onChange={set("since_year")} />
         <input className="neon-input !py-2 min-w-0 flex-1 text-sm" placeholder="Note (optional)" maxLength={500} value={f.note} onChange={set("note")} />
+        <label className="flex w-full items-center gap-2 text-[11px] text-white/60">
+          <input type="checkbox" checked={f.shared} onChange={(e) => setF({ ...f, shared: e.target.checked })} />
+          Let adults find me in Social ConnectZ by this
+        </label>
         <button className="neon-btn-primary !w-auto px-4 py-2 text-sm disabled:opacity-40" disabled={busy || !f.name.trim()}>
           {busy ? <Loader2 className="animate-spin" size={14} /> : "Add"}
         </button>
       </form>
-      <p className="text-[11px] text-white/40">Free.</p>
+      <p className="text-[11px] text-white/40">
+        Free. Off by default, one condition at a time. Turned on, an adult who searches for that condition can find you;
+        nobody gets a list of your conditions, and members under 18 are never shown or shown to anyone.
+      </p>
       {data.conditions.length === 0 ? (
         <p className="text-sm text-white/45">Nothing added.</p>
       ) : (
@@ -121,6 +133,9 @@ function Conditions({ data, onData, onError }) {
               <span className="min-w-0">
                 <b>{c.name}</b>{c.since_year ? ` · since ${c.since_year}` : ""}{c.note ? ` · ${c.note}` : ""}
               </span>
+              <label className="flex shrink-0 items-center gap-1 text-[11px] text-white/55">
+                <input type="checkbox" checked={!!c.shared} onChange={(e) => share(c.id, e.target.checked)} /> findable
+              </label>
               <button aria-label={`Remove ${c.name}`} className="text-white/40 hover:text-mcz-ember" onClick={() => remove(c.id)}><Trash2 size={14} /></button>
             </li>
           ))}
