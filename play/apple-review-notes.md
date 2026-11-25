@@ -50,3 +50,27 @@ that is payment between people for services, not a purchase of digital content f
 
 CONTACT
 REPLACE_WITH_A_REAL_EMAIL_AND_PHONE_THE_REVIEWER_CAN_REACH
+
+---
+
+# Checklist: make the review account (not part of the notes — don't paste this)
+
+**Create it**
+- [ ] In a private window, sign up at https://musicconnectz.net with a **new email that isn't yours** (a separate address or a plus-alias). Reusing your own email can group it with your main account under the one-account-per-person rule.
+- [ ] Username like `appreview` (letters, numbers, underscore; 3–20 characters). Password you can paste here; common ones like `password` are refused.
+
+**Ready it for a reviewer**
+- [ ] ProfileZ: set an adult birthday.
+- [ ] Finish or dismiss OnboardZ so the first screen isn't the "I'm here for…" picker.
+- [ ] Post one thing in PostZ so the feed isn't empty.
+- [ ] Leave the day's free AI prompts unspent (the counter at the top reads 4/4).
+
+**Check it**
+- [ ] The server's Gemini key is set (otherwise every coach says "isn't switched on yet").
+- [ ] On a real iPhone, from the TestFlight build: log in, SingZ → Record a take → Stop → Send it to the coach.
+- [ ] ProfileZ → Danger zone → Delete account is reachable (the notes above say it is). Test deletion on a throwaway account, never this one.
+
+**Submit it**
+- [ ] Replace the two credential lines and the contact line above, then paste the notes into App Review → Notes.
+- [ ] Also enter the username and password in App Review → Sign-in information (tick "Sign-in required"), plus a contact email and phone.
+- [ ] Don't delete the account or change its password while the app is in review.
