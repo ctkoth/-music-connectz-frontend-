@@ -68,7 +68,7 @@ import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor,
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
-import { trimOnMove } from "../autoTrim.js";
+import { keepGranted, trimOnMove } from "../autoTrim.js";
 import PromoPost from "../components/PromoPost.jsx";
 import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
@@ -1336,40 +1336,50 @@ function RestAlertsControl({ prefs }) {
   );
 }
 
-// Auto-trim: a lift left part-done when the member moves on reads done (3/5 -> 3/3). It acts FOR the member, so it
-// is StatZ's or the sample's (`bodiez_autotrim`); on by default there, switchable, and the choice is the member's
-// and survives a lapse. The rules are in autoTrim.js.
+// Auto-trim: a lift left part-done when the member moves on reads done (3/5 -> 3/3). Every plan has it; the tier says
+// how many lifts a day (Free 3, Premium 6, StatZ unlimited — the server's `bodiez/autotrim/`, never typed here). On by
+// default and switchable; the switch is the member's. The rules for WHEN are in autoTrim.js.
 const TRIM_KEY = "bodiez.autoTrim";
 function useAutoTrimPref() {
-  const { s } = useStatzTrial();
-  const allowed = !!(s?.is_statz || s?.active);
+  const [state, setState] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/bodiez/autotrim/").then((d) => on && setState(d)).catch(() => {});
+    return () => { on = false; };
+  }, []);
   const [want, setWant] = useState(() => { try { return localStorage.getItem(TRIM_KEY) !== "0"; } catch { return true; } });
   const set = (v) => { setWant(v); writePref(TRIM_KEY, v); };
-  return { allowed, want, on: allowed && want, set };
+  // A failed fetch switches it off rather than trimming against a number nobody stated.
+  return { state, setState, want, on: !!state && want, set };
+}
+
+function trimCount(st) {
+  if (!st) return "";
+  if (st.unlimited) return "Unlimited on your plan.";
+  const nxt = st.next_limit === false ? "" : ` The next plan trims ${st.next_limit == null ? "any number" : st.next_limit} a day.`;
+  return `${st.left} of ${st.limit} left today (a rolling ${st.window_hours} hours).${nxt}`;
 }
 
 function AutoTrimControl({ pref, note }) {
+  const st = pref.state;
+  if (!st) return null;                         // no stated number, no control (and nothing is trimmed)
   return (
     <div className="re-card space-y-1.5" data-tour="bodiez-autotrim">
       <p className="re-label">✂️ Auto-trim</p>
-      {pref.allowed ? (
-        <>
-          <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
-            <input type="checkbox" checked={pref.want} onChange={(e) => pref.set(e.target.checked)} />
-            When I move on to another lift, trim the one I left to the sets I did (3/5 becomes 3/3)
-          </label>
-          <p className="text-[11px] text-white/50">
-            Today only — your routine isn't changed, and the end-of-session report still counts the routine's plan.
-            Never between the two lifts of a superset, never over a target you set yourself. Free.
-          </p>
-          {note && <p className="text-[11px] text-mcz-cyan" role="status">{note}</p>}
-        </>
-      ) : (
-        <>
-          <p className="text-[11px] text-white/60">You can always change a lift's sets by tapping them. Trimming them for you as you move on is StatZ's.</p>
-          <StatzSample what="Auto-trim" />
-        </>
-      )}
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+        <input type="checkbox" checked={pref.want} onChange={(e) => pref.set(e.target.checked)} />
+        When I move on to another lift, trim the one I left to the sets I did (3/5 becomes 3/3)
+      </label>
+      <p className="text-[11px] text-white/70">
+        <span className="font-semibold text-white">{trimCount(st)}</span> Each lift trimmed uses one; a lift counts once a session.
+        <span className="text-emerald-300"> No ⚡ 🍥 🏷️.</span>
+      </p>
+      <p className="text-[11px] text-white/50">
+        Tapping a lift's sets to change them yourself is free and never counted. Today only — your routine isn't changed, and
+        the end-of-session report still counts the routine's plan. Never between the two lifts of a superset, never over a
+        target you set yourself.
+      </p>
+      {note && <p className="text-[11px] text-mcz-cyan" role="status">{note}</p>}
     </div>
   );
 }
@@ -1853,10 +1863,26 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     const made = await onLogSet(exId, ...rest);
     if (made && autoTrim.on) {
       const doneBy = Object.fromEntries(Object.entries(setsByExercise).map(([k, v]) => [k, v.length]));
-      const r = trimOnMove({ planned: routinePlanned, doneBy, loggedId: exId, pairs, over: setsOver, auto: trimmedIds });
-      if (JSON.stringify(r.over) !== JSON.stringify(setsOver)) { saveOver(r.over); saveTrimmed(r.auto); }
+      const before = { over: setsOver, auto: trimmedIds };
+      const r = trimOnMove({ planned: routinePlanned, doneBy, loggedId: exId, pairs, ...before });
+      // The tier's number is the server's: only the lifts it grants are trimmed, and a refusal says why.
+      let granted = [];
+      let refusal = "";
       if (r.trimmed.length) {
-        setTrimNote(`Auto-trimmed ${r.trimmed.map((t) => `${t.name} to ${t.sets}/${t.sets}`).join(", ")} — you moved on. Tap its sets to change it back.`);
+        try {
+          const g = await api(`/api/economy/bodiez/sessions/${session.id}/autotrim/`, {
+            method: "POST", body: { exercise_ids: r.trimmed.map((t) => t.exercise_id) } });
+          granted = asList(g?.granted);
+          refusal = g?.detail || "";
+          if (g?.autotrim) autoTrim.setState(g.autotrim);
+        } catch { refusal = "Couldn't reach the server, so nothing was trimmed. Tap a lift's sets to trim it yourself."; }
+      }
+      const kept = keepGranted(before, r, granted);
+      if (JSON.stringify(kept.over) !== JSON.stringify(setsOver)) { saveOver(kept.over); saveTrimmed(kept.auto); }
+      if (kept.trimmed.length || refusal) {
+        setTrimNote([kept.trimmed.length
+          ? `Auto-trimmed ${kept.trimmed.map((t) => `${t.name} to ${t.sets}/${t.sets}`).join(", ")} — you moved on. Tap its sets to change it back.`
+          : "", refusal].filter(Boolean).join(" "));
       }
     }
     return made;
