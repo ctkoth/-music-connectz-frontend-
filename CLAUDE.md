@@ -2870,3 +2870,13 @@ A logged-out visitor's rung (2) exists only where a visitor can do the thing: th
 then Premium 6, StatZ unlimited, and the numbers come from the server (`/api/economy/tiers/`, `/limits/`, `/ladders/`), never typed
 into a screen. Keep the rungs strictly increasing: the trial's "what an account adds" panel reads them from the server, and a non-member
 number at or above Free's would make the signup a wall in front of nothing. The backend CLAUDE.md has the list of limits on 3 / 6 / None.
+
+## The trial's way out of an app's built-in browser is a button on Android
+
+FunnelZ, 30 days: 157 opened the trial, 5 touched it, and 128 of the opens were phones that arrived by a link
+straight to the trial door. A link posted in Instagram or TikTok opens in that app's own browser, where recording
+and the file picker often fail and the page cannot tell. The trial already said so (below the controls, per the
+rule that nothing goes above them) but the only way out was "copy the link". On Android the notice now has
+**Open in Chrome** (`openInBrowser.js`: an `intent://` address with the original https address as its fallback, so a
+phone without Chrome lands where it was). iOS has no equivalent a page can rely on, so it keeps the sentence and the copy
+button — a button that sometimes does nothing is worse than none. Not checked inside a real Instagram or TikTok browser.

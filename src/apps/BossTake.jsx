@@ -47,6 +47,7 @@ import { useRecordingHold } from "../useRecordingHold.js";
 import { compressForCoach, previewCopy, copyLine } from "../uploadCompress.js";
 import { coachLinkVerdict } from "../coachLinks.js";
 import { appShell } from "../externalAuth.js";
+import { browserExit } from "../openInBrowser.js";
 import { readOptsOpen, scoringSummary, writeOptsOpen } from "../coachOptions.js";
 import { addCustomPart, partsField, partsLine, splitParts, togglePart } from "../coachParts.js";
 
@@ -1570,11 +1571,23 @@ export default function BossTake({ appKey = "singz", trial = false, onResult, on
       {trial && !blocked && !result && INAPP && (
         <div className="rounded-lg border border-mcz-cyan/30 bg-mcz-cyan/10 px-3 py-2 text-[12px] leading-relaxed text-white/80">
           <p>You're in an app's built-in browser. If recording or uploading doesn't work here, that's the reason — open this page in Chrome or Safari and it will.</p>
-          <button type="button" className="mt-1 text-mcz-cyan underline"
-                  onClick={() => navigator.clipboard?.writeText(window.location.href)
-                    .then(() => setLinkCopied(true)).catch(() => {})}>
-            {linkCopied ? "Link copied — paste it into Chrome or Safari" : "Copy this page's link"}
-          </button>
+          {(() => {
+            const exit = browserExit(window.location.href, navigator.userAgent || "");
+            return (
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {exit.kind === "intent" && (
+                  <a href={exit.href} className="rounded-md bg-mcz-cyan/20 px-2.5 py-1 font-semibold text-mcz-cyan">
+                    {exit.label}
+                  </a>
+                )}
+                <button type="button" className="text-mcz-cyan underline"
+                        onClick={() => navigator.clipboard?.writeText(window.location.href)
+                          .then(() => setLinkCopied(true)).catch(() => {})}>
+                  {linkCopied ? "Link copied — paste it into Chrome or Safari" : "Copy this page's link"}
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
       {/* AFTER the controls on purpose. This sat above them, and on a phone it put
