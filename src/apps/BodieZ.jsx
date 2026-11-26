@@ -68,6 +68,7 @@ import { applySessionPairs, badge, blocks, pairOf, pairWith, partnerOf, holdFor,
 import ImportWorkouts from "../components/ImportWorkouts.jsx";
 import PairWithCoach from "../components/PairWithCoach.jsx";
 import { StatzSample, useStatzTrial } from "../components/StatzSample.jsx";
+import { keepGranted, trimOnMove } from "../autoTrim.js";
 import PromoPost from "../components/PromoPost.jsx";
 import CoachVoice from "../components/CoachVoice.jsx";
 import HashtagCount, { hashtagBody } from "../components/HashtagCount.jsx";
@@ -1335,6 +1336,54 @@ function RestAlertsControl({ prefs }) {
   );
 }
 
+// Auto-trim: a lift left part-done when the member moves on reads done (3/5 -> 3/3). Every plan has it; the tier says
+// how many lifts a day (Free 3, Premium 6, StatZ unlimited — the server's `bodiez/autotrim/`, never typed here). On by
+// default and switchable; the switch is the member's. The rules for WHEN are in autoTrim.js.
+const TRIM_KEY = "bodiez.autoTrim";
+function useAutoTrimPref() {
+  const [state, setState] = useState(null);
+  useEffect(() => {
+    let on = true;
+    api("/api/economy/bodiez/autotrim/").then((d) => on && setState(d)).catch(() => {});
+    return () => { on = false; };
+  }, []);
+  const [want, setWant] = useState(() => { try { return localStorage.getItem(TRIM_KEY) !== "0"; } catch { return true; } });
+  const set = (v) => { setWant(v); writePref(TRIM_KEY, v); };
+  // A failed fetch switches it off rather than trimming against a number nobody stated.
+  return { state, setState, want, on: !!state && want, set };
+}
+
+function trimCount(st) {
+  if (!st) return "";
+  if (st.unlimited) return "Unlimited on your plan.";
+  const nxt = st.next_limit === false ? "" : ` The next plan trims ${st.next_limit == null ? "any number" : st.next_limit} a day.`;
+  return `${st.left} of ${st.limit} left today (a rolling ${st.window_hours} hours).${nxt}`;
+}
+
+function AutoTrimControl({ pref, note }) {
+  const st = pref.state;
+  if (!st) return null;                         // no stated number, no control (and nothing is trimmed)
+  return (
+    <div className="re-card space-y-1.5" data-tour="bodiez-autotrim">
+      <p className="re-label">✂️ Auto-trim</p>
+      <label className="flex cursor-pointer items-center gap-2 text-xs text-white/70">
+        <input type="checkbox" checked={pref.want} onChange={(e) => pref.set(e.target.checked)} />
+        When I move on to another lift, trim the one I left to the sets I did (3/5 becomes 3/3)
+      </label>
+      <p className="text-[11px] text-white/70">
+        <span className="font-semibold text-white">{trimCount(st)}</span> Each lift trimmed uses one; a lift counts once a session.
+        <span className="text-emerald-300"> No ⚡ 🍥 🏷️.</span>
+      </p>
+      <p className="text-[11px] text-white/50">
+        Tapping a lift's sets to change them yourself is free and never counted. Today only — your routine isn't changed, and
+        the end-of-session report still counts the routine's plan. Never between the two lifts of a superset, never over a
+        target you set yourself.
+      </p>
+      {note && <p className="text-[11px] text-mcz-cyan" role="status">{note}</p>}
+    </div>
+  );
+}
+
 const REST_PRESETS = [30, 60, 90, 120, 180];
 const REST_KEY = "bodiez.restTarget";
 const REST_GOAL_KEY = "bodiez.restGoal";
@@ -1705,11 +1754,27 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
     if (!setsKey) return;
     try { setSetsOverState(JSON.parse(localStorage.getItem(setsKey) || "{}")); } catch { setSetsOverState({}); }
   }, [setsKey]);
-  const setTargetSets = (origId, n) => {
-    const next = { ...setsOver, [origId]: Math.max(1, Math.min(20, n)) };
+  const saveOver = (next) => {
     setSetsOverState(next);
     try { localStorage.setItem(setsKey, JSON.stringify(next)); } catch { /* blocked */ }
   };
+  // Which of today's targets auto-trim set (the rest are the member's own, and auto-trim never overrides those).
+  const trimKey = session ? `mcz_bodiez_trim_${session.id}` : "";
+  const [trimmedIds, setTrimmedState] = useState([]);
+  useEffect(() => {
+    if (!trimKey) return;
+    try { setTrimmedState(JSON.parse(localStorage.getItem(trimKey) || "[]")); } catch { setTrimmedState([]); }
+  }, [trimKey]);
+  const saveTrimmed = (ids) => {
+    setTrimmedState(ids);
+    try { localStorage.setItem(trimKey, JSON.stringify(ids)); } catch { /* blocked */ }
+  };
+  const setTargetSets = (origId, n) => {
+    saveOver({ ...setsOver, [origId]: Math.max(1, Math.min(20, n)) });
+    if (trimmedIds.includes(origId)) saveTrimmed(trimmedIds.filter((x) => x !== origId));   // now the member's
+  };
+  const autoTrim = useAutoTrimPref();
+  const [trimNote, setTrimNote] = useState("");
   const planBlocksRef = useRef([]);
   const dndPlan = useDragReorder("today-ex", (from, to) => {
     const moved = moveItem(planBlocksRef.current, from, to);
@@ -1792,6 +1857,36 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
   });
   const planned = applySessionPairs([...routinePlanned, ...extraRows], pairs).filter((r) => !r.extra || inPair.has(r.exercise_id));
   const trailingExtras = extraRows.filter((r) => !inPair.has(r.exercise_id));
+  // Logging a set on one lift is moving on from the others: on StatZ (or the sample) a lift left part-done is
+  // trimmed to the sets done. Done in the handler, from the counts before this set, never in an effect.
+  const logAndTrim = async (exId, ...rest) => {
+    const made = await onLogSet(exId, ...rest);
+    if (made && autoTrim.on) {
+      const doneBy = Object.fromEntries(Object.entries(setsByExercise).map(([k, v]) => [k, v.length]));
+      const before = { over: setsOver, auto: trimmedIds };
+      const r = trimOnMove({ planned: routinePlanned, doneBy, loggedId: exId, pairs, ...before });
+      // The tier's number is the server's: only the lifts it grants are trimmed, and a refusal says why.
+      let granted = [];
+      let refusal = "";
+      if (r.trimmed.length) {
+        try {
+          const g = await api(`/api/economy/bodiez/sessions/${session.id}/autotrim/`, {
+            method: "POST", body: { exercise_ids: r.trimmed.map((t) => t.exercise_id) } });
+          granted = asList(g?.granted);
+          refusal = g?.detail || "";
+          if (g?.autotrim) autoTrim.setState(g.autotrim);
+        } catch { refusal = "Couldn't reach the server, so nothing was trimmed. Tap a lift's sets to trim it yourself."; }
+      }
+      const kept = keepGranted(before, r, granted);
+      if (JSON.stringify(kept.over) !== JSON.stringify(setsOver)) { saveOver(kept.over); saveTrimmed(kept.auto); }
+      if (kept.trimmed.length || refusal) {
+        setTrimNote([kept.trimmed.length
+          ? `Auto-trimmed ${kept.trimmed.map((t) => `${t.name} to ${t.sets}/${t.sets}`).join(", ")} — you moved on. Tap its sets to change it back.`
+          : "", refusal].filter(Boolean).join(" "));
+      }
+    }
+    return made;
+  };
   const liftsOnScreen = [...planned, ...trailingExtras].map((r) => r.exercise_id);
   const pairFor = (id) => (onPairs ? {
     pairs, lifts: liftsOnScreen, nameOf: (x) => exercises.find((e) => e.id === x)?.name || `Exercise #${x}`,
@@ -1863,6 +1958,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
                  hold={holdFor(planned, setsByExercise, lastLogged?.exercise_id)?.name || ""}
                  nextName={upNext} alerts={restPrefs} />
       <RestAlertsControl prefs={restPrefs} />
+      <AutoTrimControl pref={autoTrim} note={trimNote} />
 
       {planned.length > 0 && (
         <div className="space-y-2">
@@ -1876,7 +1972,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
                   <LoggerRow planned={p} doneSets={setsByExercise[p.exercise_id] || []} grip={grip}
                              isNext={upNextId === p.exercise_id}
                              onReorder={(f, t) => reorderWithin(p.exercise_id, f, t)}
-                             onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
+                             onLogSet={logAndTrim} onUndoSet={onUndoSet} {...swapProps(p)} pair={pairFor(p.exercise_id)} />
                 </div>
               );
             }
@@ -1895,10 +1991,10 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
                   <span className="font-bold">Superset {b.group}</span> — {x.name}, then {y.name}, back to back.
                   Rest after both.{nxt === null ? " Both done." : ""}
                 </p>
-                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(x)}
+                <LoggerRow planned={x} doneSets={setsByExercise[x.exercise_id] || []} onLogSet={logAndTrim} onUndoSet={onUndoSet} {...swapProps(x)}
                            onReorder={(f, t) => reorderWithin(x.exercise_id, f, t)}
                            tag={`${b.group}1`} isNext={started && nxt === 0} pair={pairFor(x.exercise_id)} />
-                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={onLogSet} onUndoSet={onUndoSet} {...swapProps(y)}
+                <LoggerRow planned={y} doneSets={setsByExercise[y.exercise_id] || []} onLogSet={logAndTrim} onUndoSet={onUndoSet} {...swapProps(y)}
                            onReorder={(f, t) => reorderWithin(y.exercise_id, f, t)}
                            tag={`${b.group}2`} isNext={started && nxt === 1} pair={pairFor(y.exercise_id)} />
               </div>
@@ -1909,7 +2005,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
 
       {trailingExtras.map((r) => (
         <LoggerRow key={r.exercise_id} planned={r}
-                   doneSets={setsByExercise[r.exercise_id]} onLogSet={onLogSet} onUndoSet={onUndoSet}
+                   doneSets={setsByExercise[r.exercise_id]} onLogSet={logAndTrim} onUndoSet={onUndoSet}
                    onReorder={(f, t) => reorderWithin(r.exercise_id, f, t)} pair={pairFor(r.exercise_id)} />
       ))}
 
@@ -1926,7 +2022,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
           <button type="button" className="neon-btn-ghost !w-auto px-3 py-1.5 text-xs"
                   onClick={async () => {
                     for (const st of unplannedLast.sets) {
-                      await onLogSet(Number(exerciseId), st.reps, st.weight_kg != null ? fromKg(st.weight_kg, unit) : "", st.one_sided || "");
+                      await logAndTrim(Number(exerciseId), st.reps, st.weight_kg != null ? fromKg(st.weight_kg, unit) : "", st.one_sided || "");
                     }
                   }}>
             Copy last time ({unplannedLast.sets.length} set{unplannedLast.sets.length === 1 ? "" : "s"})
@@ -1940,7 +2036,7 @@ function TodayView({ keepOnScreen = null, session, routines, exercises, pickable
           <button className="neon-btn-primary !w-auto px-3 py-2 text-xs inline-flex items-center gap-1"
                   disabled={!exerciseId || !reps}
                   onClick={() => {
-                    onLogSet(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight), unplannedSide);
+                    logAndTrim(Number(exerciseId), Number(reps), weight === "" ? "" : Number(weight), unplannedSide);
                     setReps("");  // the weight stays: logging the set makes it the last one entered
                   }}>
             <Plus size={13} /> Log

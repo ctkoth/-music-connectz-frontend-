@@ -2851,3 +2851,15 @@ Tap the "3/5 sets ✎" pill on a live lift: −/+ set today's target (1-20), "Ma
 kept per session on the device (`mcz_bodiez_sets_<id>`, like the drag order). "Also save N sets to the routine · free"
 PATCHes the routine. The screen says the end-of-session report counts against the ROUTINE (server `completion_pct`), so a
 today-only change still reads as part of the plan undone — saving it is how the report agrees. Driven at 412px.
+
+## Auto-trim: a lift you moved on from reads done — Free 3, Premium 6, StatZ unlimited a day
+
+`src/autoTrim.js` (pure, tested) decides WHEN: logging a set on one lift trims any lift left part-done to the sets done
+(3/5 → 3/3) — never between superset partners (routine `group` or session pair), never over a target the member set by hand,
+never a lift not started; a trimmed lift the member returns to grows with them. The server decides HOW MANY
+(`/api/economy/bodiez/autotrim/`, the tier numbers): `logAndTrim` (in the log HANDLER, never an effect) posts the candidates and
+applies only `granted` (`keepGranted`); a refusal shows the server's sentence and the lift reads as planned. `AutoTrimControl`
+beside Rest alerts states "N of M left today" and the next plan's number before any set is logged, and renders nothing (and trims
+nothing) if that number could not be read. On by default, switchable. Tapping a lift's sets by hand is free and uncounted. Today
+only; the routine is untouched and the end-of-session report still counts its plan. Driven at 412px as Free: 4 part-done lifts →
+3 trimmed, the 4th refused with the sentence.
