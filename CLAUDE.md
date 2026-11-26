@@ -2863,3 +2863,10 @@ beside Rest alerts states "N of M left today" and the next plan's number before 
 nothing) if that number could not be read. On by default, switchable. Tapping a lift's sets by hand is free and uncounted. Today
 only; the routine is untouched and the end-of-session report still counts its plan. Driven at 412px as Free: 4 part-done lifts →
 3 trimmed, the 4th refused with the sentence.
+
+## The tier numbers are four rungs: non-member 2, Free 3, Premium 6, StatZ unlimited (Corey, Nov 2026)
+
+A logged-out visitor's rung (2) exists only where a visitor can do the thing: the free trial takes. Every other limit starts at Free 3,
+then Premium 6, StatZ unlimited, and the numbers come from the server (`/api/economy/tiers/`, `/limits/`, `/ladders/`), never typed
+into a screen. Keep the rungs strictly increasing: the trial's "what an account adds" panel reads them from the server, and a non-member
+number at or above Free's would make the signup a wall in front of nothing. The backend CLAUDE.md has the list of limits on 3 / 6 / None.
