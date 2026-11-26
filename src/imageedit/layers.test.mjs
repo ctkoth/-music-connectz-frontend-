@@ -3,8 +3,37 @@ import assert from "node:assert/strict";
 import {
   addMaskStroke, scaleDoc, rotateDoc, boxOf, effective, groupLayers, ungroup, updateGroup, snap, hasStyle, moveLayerTo, gradeOpacity, replaceLayer, fromProject, shapeFromDrag, toProject,
   ADJ0, MAX_SIDE, canAdd, cleanFont, fontsFor, addLayer, addStroke, below, crop, cropRect, duplicateLayer, filterOf, fitImage,
-  moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer,
+  moveLayer, newDoc, pick, removeLayer, resizeCanvas, updateLayer, clipBase,
 } from "./layers.js";
+
+test("a clipped layer sits on the first unclipped layer below it, and a run of clips shares that base", () => {
+  // Listed top first: two clipped layers above a base, then the bottom layer.
+  const L = [{ clip: true }, { clip: true }, { clip: false }, { clip: false }];
+  assert.equal(clipBase(L, 0), 2);
+  assert.equal(clipBase(L, 1), 2);
+  assert.equal(clipBase(L, 2), -1, "a layer that isn't clipped has no base");
+  assert.equal(clipBase(L, 3), -1);
+});
+
+test("a clipped layer with nothing below it to clip to has no base", () => {
+  assert.equal(clipBase([{ clip: false }, { clip: true }], 1), -1);
+  assert.equal(clipBase([{ clip: true }, { clip: true }], 0), -1);
+});
+
+test("a new layer is not clipped, and only a real true turns the clip on", () => {
+  const d = addLayer(newDoc(50, 50), { kind: "paint", name: "A" });
+  assert.equal(d.layers[0].clip, false);
+  assert.equal(addLayer(newDoc(50, 50), { kind: "paint", clip: "yes" }).layers[0].clip, false);
+  assert.equal(addLayer(newDoc(50, 50), { kind: "paint", clip: true }).layers[0].clip, true);
+});
+
+test("clipping survives a project file, and a hand-edited value that isn't true is read as off", async () => {
+  const doc = addLayer(newDoc(40, 40), { kind: "paint", name: "Shade", clip: true });
+  const back = fromProject(await toProject(doc, async (s) => s));
+  assert.equal(back.layers[0].clip, true);
+  const junk = JSON.stringify({ imagez: 1, w: 40, h: 40, layers: [{ kind: "paint", name: "x", clip: "yes" }], groups: {} });
+  assert.equal(fromProject(junk).layers[0].clip, false);
+});
 
 test("a new document has a background fill at the bottom", () => {
   const d = newDoc(800, 600);

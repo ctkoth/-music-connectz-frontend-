@@ -1,6 +1,6 @@
 // Draws an ImageZ document onto a 2D canvas. The preview and the export call
 // the same function, so what was approved on screen is what the file holds.
-import { effective, filterOf, hasStyle } from "./layers.js";
+import { clipBase, effective, filterOf, hasStyle } from "./layers.js";
 
 /** Load an image from a URL into an <img>, resolved once it can be drawn. */
 export function loadImage(src) {
@@ -218,9 +218,10 @@ function body(ctx, doc, l, images) {
   }
 }
 
-/** One layer, with its own opacity, blend, transform, adjustments, mask and styles. */
-export function drawLayer(ctx, doc, l, images, eff = null) {
-  const visible = eff ? eff.visible : l.visible, opacity = eff ? eff.opacity : l.opacity;
+/** One layer, with its own opacity, blend, transform, adjustments, mask and styles. `over` replaces the
+ *  opacity and blend: a clipping group draws its parts at full strength and applies their own after. */
+export function drawLayer(ctx, doc, l, images, eff = null, over = null) {
+  const visible = eff ? eff.visible : l.visible, opacity = over?.opacity ?? (eff ? eff.opacity : l.opacity), blend = over?.blend ?? l.blend;
   if (!visible || !opacity) return;
   const f = filterOf(l.adj);
   const masked = l.mask && l.mask.on && (l.mask.strokes.length || l.mask.fade || l.mask.src);
@@ -228,7 +229,7 @@ export function drawLayer(ctx, doc, l, images, eff = null) {
   if (!masked && !styled) {
     ctx.save();
     ctx.globalAlpha = opacity / 100;
-    ctx.globalCompositeOperation = l.blend;
+    ctx.globalCompositeOperation = blend;
     if (f) ctx.filter = f;
     body(ctx, doc, l, images);
     ctx.restore();
@@ -294,8 +295,39 @@ export function drawLayer(ctx, doc, l, images, eff = null) {
   }
   ctx.save();
   ctx.globalAlpha = opacity / 100;
-  ctx.globalCompositeOperation = l.blend;
+  ctx.globalCompositeOperation = blend;
   ctx.drawImage(out, 0, 0);
+  ctx.restore();
+}
+
+/** A clipping group: the base as it is, then each clipped layer (nearest first) drawn only where the base
+ *  has pixels, with its own opacity and blend. The group takes the base's opacity and blend, as Photoshop
+ *  does, so a base with nothing clipped to it draws exactly as drawLayer alone would. */
+function drawClipGroup(ctx, doc, base, clips, images) {
+  const be = effective(doc, base);
+  if (!be.visible || !be.opacity) return;   // a hidden base hides everything clipped to it
+  const [gc, gx] = scratch("clipGroup", doc.w, doc.h);
+  drawLayer(gx, doc, base, images, be, { opacity: 100, blend: "source-over" });
+  // The base alone, before any clipped layer lands on it: the shape each clipped layer is cut to.
+  const [ac, ax] = scratch("clipAlpha", doc.w, doc.h);
+  ax.drawImage(gc, 0, 0);
+  for (const c of clips) {
+    const ce = effective(doc, c);
+    if (!ce.visible || !ce.opacity) continue;
+    const [tc, tx] = scratch("clipLayer", doc.w, doc.h);
+    drawLayer(tx, doc, c, images, ce, { opacity: 100, blend: "source-over" });
+    tx.globalCompositeOperation = "destination-in";
+    tx.drawImage(ac, 0, 0);
+    gx.save();
+    gx.globalAlpha = ce.opacity / 100;
+    gx.globalCompositeOperation = c.blend;
+    gx.drawImage(tc, 0, 0);
+    gx.restore();
+  }
+  ctx.save();
+  ctx.globalAlpha = be.opacity / 100;
+  ctx.globalCompositeOperation = base.blend;
+  ctx.drawImage(gc, 0, 0);
   ctx.restore();
 }
 
@@ -310,10 +342,17 @@ export function renderDoc(ctx, doc, images, { checker = false, only = null } = {
       ctx.fillRect(x, y, s, s);
     }
   }
-  for (let i = doc.layers.length - 1; i >= 0; i--) {
-    const l = doc.layers[i];
+  const L = doc.layers;
+  for (let i = L.length - 1; i >= 0; i--) {
+    const l = L[i];
+    // A clipped layer is drawn with the layer it sits on, not on its own.
+    if (l.clip && clipBase(L, i) >= 0) continue;
     if (only && !only.has(l.id)) continue;
-    drawLayer(ctx, doc, l, images, effective(doc, l));
+    // The clipped layers directly above a base (nearest first) belong to its group.
+    const clips = [];
+    if (!l.clip) for (let k = i - 1; k >= 0 && L[k].clip; k--) if (!only || only.has(L[k].id)) clips.push(L[k]);
+    if (clips.length) drawClipGroup(ctx, doc, l, clips, images);
+    else drawLayer(ctx, doc, l, images, effective(doc, l));
   }
 }
 

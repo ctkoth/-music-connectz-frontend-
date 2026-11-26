@@ -68,7 +68,7 @@ function describe(a, b) {
     const x = a.layers[i], y = b.layers[i];
     if (x === y) continue;
     const key = Object.keys(y).find((k) => JSON.stringify(x[k]) !== JSON.stringify(y[k]));
-    const words = { strokes: "paint", src: "pixels", x: "move", y: "move", adj: "adjust", style: "style", mask: "mask", opacity: "opacity", kind: "pixels" };
+    const words = { strokes: "paint", src: "pixels", x: "move", y: "move", adj: "adjust", style: "style", mask: "mask", opacity: "opacity", kind: "pixels", clip: "clipping" };
     return `${y.name}: ${words[key] || key || "edit"}`;
   }
   return "Edit";
@@ -359,8 +359,9 @@ export default function ImageZ() {
   };
   // Pen pressure is Premium's (Corey asked; Premium is the pick — see CLAUDE.md). A pen still draws
   // and still erases with its eraser end at every tier; Free draws at full size, like a mouse.
-  // Premium's part of ImageZ: pen pressure, layer styles and the creative filters — decoration and
-  // finesse. Fixing a picture (sharpen, blur, levels, dodge and burn, the bucket) is every tier's.
+  // Premium's part of ImageZ: pen pressure, layer styles, the paint bucket, the healing brush and the
+  // creative filters — decoration and finesse. Fixing a picture (sharpen, blur, levels, dodge and burn)
+  // is every tier's. Clipping masks are every tier's: they add no layer and no pixel.
   const premiumOn = ["premium", "statz", "debug"].includes(lim?.tier) || !!statz?.active;
   const pressureOn = premiumOn;
   // How many entries of each list (filters, blend modes, presets) — the same served number as layers.
@@ -394,7 +395,7 @@ export default function ImageZ() {
     images.current.set(src, await loadImage(src));
     commit((d) => replaceLayer(d, id, {
       kind: "image", src, w: d.w, h: d.h, x: 0, y: 0, name: l.name, visible: l.visible, locked: l.locked,
-      opacity: l.opacity, blend: l.blend, mask: l.mask, style: l.style, group: l.group,
+      opacity: l.opacity, blend: l.blend, mask: l.mask, style: l.style, group: l.group, clip: l.clip,
     }));
   };
 
@@ -1128,6 +1129,7 @@ export default function ImageZ() {
                       {l.visible ? <Eye size={14} /> : <EyeOff size={14} className="text-white/55" />}
                     </button>
                     <I size={14} className="text-white/50" />
+                    {l.clip && <span className="text-mcz-cyan" title="Clipped to the layer below">↳</span>}
                     <span className={`flex-1 truncate ${l.visible ? "" : "text-white/55"}`}>{l.name}</span>
                     <input type="number" min="0" max="100" value={l.opacity} title="Opacity %" aria-label={`${l.name} opacity`}
                       onClick={(e) => e.stopPropagation()}
@@ -1178,6 +1180,12 @@ export default function ImageZ() {
                 <select className="neon-input" data-nomemo="true" value={layer.blend} onChange={(e) => patch({ blend: e.target.value })}>
                   {BLENDS.map(([k, label]) => <option key={k} value={k} disabled={!okBlends.has(k) && k !== layer.blend}>{label}{okBlends.has(k) ? "" : " — upgrade"}</option>)}
                 </select>
+              </label>
+              <label className="flex items-start gap-2">
+                <input type="checkbox" className="mt-0.5" checked={!!layer.clip} disabled={!layer.clip && !below(doc, sel)}
+                  onChange={(e) => patch({ clip: e.target.checked })} />
+                <span>Clip to the layer below{!layer.clip && !below(doc, sel) ? " — there is no layer under this one" : ""}
+                  <span className="block text-white/50">It shows only where that layer has pixels, and its opacity and blend apply inside it. Free at every tier.</span></span>
               </label>
               <div className="flex flex-wrap items-center gap-2">
                 <Contrast size={14} />

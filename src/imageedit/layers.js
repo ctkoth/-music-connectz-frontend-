@@ -122,6 +122,8 @@ export function makeLayer(spec = {}) {
     adj: cleanAdj(spec.adj),
     flipX: !!spec.flipX, flipY: !!spec.flipY,
     group: typeof spec.group === "string" && spec.group ? spec.group : null,
+    // A clipping mask: the layer shows only where the layer below it has pixels (see clipBase).
+    clip: spec.clip === true,
     style: cleanStyle(spec.style),
     // A layer mask: null for none. Its strokes are in CANVAS coordinates, so moving the
     // layer slides it under the mask, the way Photoshop's unlinked mask behaves.
@@ -312,6 +314,16 @@ export function snap(doc, movingId, box, threshold) {
 
 /** Merge is done by the renderer (it has the pixels); this only says whether there is anything below. */
 export const below = (doc, id) => doc.layers[doc.layers.findIndex((l) => l.id === id) + 1] || null;
+
+/** The index of the layer a clipped layer sits on: the first one below it that is not clipped itself.
+ *  -1 when the layer isn't clipped, or nothing below it can take the clip. Layers are listed top first,
+ *  so "below" is a higher index. A run of clipped layers all sits on the same base. */
+export function clipBase(layers, i) {
+  if (!layers[i]?.clip) return -1;
+  let j = i + 1;
+  while (j < layers.length && layers[j].clip) j++;
+  return j < layers.length ? j : -1;
+}
 
 export function addStroke(doc, id, stroke) {
   const l = layerOf(doc, id);
