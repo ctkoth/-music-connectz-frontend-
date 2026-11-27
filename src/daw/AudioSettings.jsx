@@ -59,7 +59,8 @@ export default function AudioSettings({ daw, onUseInput }) {
     stop();
     const mine = attempt.current;
     try {
-      const s = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: dev ? { exact: dev } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      // The same request the armed tracks make (daw.openMic): two opens of one mic with different settings is what a Bluetooth headset refuses.
+      const s = await daw.openMic(dev);
       if (mine !== attempt.current) { s.getTracks().forEach((t) => t.stop()); return; }   // a newer pick, or Stop, came first
       stream.current = s;
       meter.current = daw.inputMeter(stream.current);
@@ -74,9 +75,12 @@ export default function AudioSettings({ daw, onUseInput }) {
       prevClip.current = false; raf.current = requestAnimationFrame(tick);
     } catch (e) {
       if (mine !== attempt.current) return;   // superseded: its outcome stands, not this one's error
-      setErr(e?.name === "NotAllowedError" ? "The browser blocked the microphone. Allow it for this site, then try again."
-        : e?.name === "NotFoundError" ? "No microphone was found on this device."
-        : e?.name === "NotReadableError" ? "Another app is holding that input (Zoom, Teams, OBS, another tab). Close it and try again." : (e?.message || "Couldn't open that input."));
+      // The browser's own name and words are shown too, so a report says what the browser said, not only our guess at it.
+      const said = e?.name && e.name !== "NoMediaDevices" ? ` Browser error: ${e.name}${e.message ? ` — ${e.message}` : ""}.` : "";
+      setErr((e?.name === "NotAllowedError" ? "The browser blocked the microphone. Allow it for this site, then try again."
+        : e?.name === "NotFoundError" ? "No microphone was found on this device. Pick another input, or reconnect the headset."
+        : e?.name === "NotReadableError" ? "Windows or another app is holding this mic. A Bluetooth headset often does this: switch the headset off and on, or pick another input."
+        : (e?.message || "Couldn't open that input.")) + said);
       stop();
     }
   };
