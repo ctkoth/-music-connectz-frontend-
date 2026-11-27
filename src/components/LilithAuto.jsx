@@ -18,7 +18,7 @@ export default function LilithAuto({ auto, onChanged }) {
     <div className="space-y-1 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[12px]" data-tour="lilith-auto">
       {!auto.allowed ? (
         <>
-          <StatzSample what="Automatic tasks" />
+          <StatzSample what="Automatic RoutineZ" />
           <p className="text-white/60">{auto.locked}</p>
         </>
       ) : (
@@ -26,13 +26,13 @@ export default function LilithAuto({ auto, onChanged }) {
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" aria-pressed={auto.on} disabled={busy} onClick={flip}
                     className={`rounded px-2 py-0.5 font-semibold ${auto.on ? "bg-emerald-500 text-black" : "bg-white/10 text-white/70"}`}>
-              🤖 Lilith adds tasks for me: {auto.on ? "on" : "off"}
+              🤖 Lilith adds RoutineZ for me: {auto.on ? "on" : "off"}
             </button>
             <span className="text-white/50">{auto.what}</span>
           </div>
           {auto.added?.length > 0 && <p className="text-white/50">Added in the last 24 hours:</p>}
           {auto.added?.length > 0 && auto.added.map((a) => (
-            <p key={a.id} className="text-white/75">🤖 Added <b>{a.title}</b> — {a.why}</p>
+            <p key={`${a.kind}-${a.id}`} className="text-white/75">🤖 Added <b>{a.title}</b> — {a.why}</p>
           ))}
         </>
       )}

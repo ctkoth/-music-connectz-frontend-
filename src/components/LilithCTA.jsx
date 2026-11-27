@@ -16,6 +16,7 @@ export const CADENCE = {
   daily: { emoji: "🌅", label: "Daily", unit: "d", per: "day" },
   weekly: { emoji: "📅", label: "Weekly", unit: "w", per: "week" },
   monthly: { emoji: "🗓️", label: "Monthly", unit: "mo", per: "month" },
+  yearly: { emoji: "🎂", label: "Yearly", unit: "y", per: "year" },
 };
 
 const Rung = ({ m }) => (
@@ -48,6 +49,7 @@ export function RoutineList({ routines, keep, buckets = [], move }) {
           <div key={r.id} className="space-y-1 rounded-lg bg-white/5 px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <span className="min-w-0 flex-1 truncate text-sm">{r.title}</span>
+              {r.source === "auto" && <span className="text-[11px] text-emerald-300/70" title={r.note}>🤖 Lilith added this</span>}
               <span className="text-[12px] text-mcz-ember">🔥 {r.streak}{CADENCE[c].unit}</span>
               {r.verified && <span className="text-[11px] text-mcz-cyan" title="Lilith keeps this one from your real activity">✨ verified</span>}
               {r.next_milestone && (
@@ -148,7 +150,7 @@ export function Suggested({ items, add, busyKey }) {
 
 /** Move any entry anywhere: another bucket, a routine (and which cadence), or the 🗑️ Trash. */
 const BUCKET_EMOJI = { inbox: "📥", today: "‼️", upcoming: "❗", anytime: "👐🏼", someday: "❓", trash: "🗑️" };
-export function MoveMenu({ entry, kind, buckets, move, cadences = ["daily", "weekly", "monthly"] }) {
+export function MoveMenu({ entry, kind, buckets, move, cadences = Object.keys(CADENCE) }) {
   const [open, setOpen] = useState(false);
   const go = (to, extra) => { setOpen(false); move({ kind, id: entry.id, to, ...extra }); };
   return (
@@ -193,7 +195,7 @@ export function Starters({ starters: all, add, busyKey }) {
       </button>
       {open && (
         <div className="space-y-3">
-          {Object.keys(CADENCE).map((c) => (
+          {Object.keys(CADENCE).filter((c) => starters.routines.some((r) => r.cadence === c)).map((c) => (
             <div key={c} className="space-y-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">{CADENCE[c].emoji} {CADENCE[c].label} routines</p>
               {starters.routines.filter((r) => r.cadence === c).map((r) => (
@@ -256,7 +258,7 @@ export function BuildCTA({ actions, onMake }) {
                className="w-20 rounded-lg border border-white/10 bg-black/30 px-2 py-2 text-sm" aria-label="How many per period" />
         <button type="submit" disabled={!sel} className="re-btn !w-auto px-4 disabled:opacity-40">Add</button>
       </div>
-      {sel && <p className="text-[11px] text-white/55">{f.goal} {sel.unit}{f.goal === 1 ? "" : "s"} {f.cadence === "daily" ? "a day" : f.cadence === "weekly" ? "a week" : "a month"} — opens {sel.app_key}.</p>}
+      {sel && <p className="text-[11px] text-white/55">{f.goal} {sel.unit}{f.goal === 1 ? "" : "s"} a {CADENCE[f.cadence]?.per} — opens {sel.app_key}.</p>}
     </form>
   );
 }
