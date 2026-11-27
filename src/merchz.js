@@ -6,7 +6,6 @@ export const PRODUCTS = [
   { key: "towel", label: "Towel", emoji: "🧺", area: { x: 0.14, y: 0.22, w: 0.72, h: 0.56 } },
   { key: "bandana", label: "Bandana", emoji: "🧣", area: { x: 0.25, y: 0.25, w: 0.5, h: 0.5 } },
   { key: "wavecap", label: "Wave cap", emoji: "🧢", area: { x: 0.3, y: 0.32, w: 0.4, h: 0.3 } },
-  { key: "durag", label: "Durag", emoji: "🎽", area: { x: 0.3, y: 0.28, w: 0.4, h: 0.32 } },
   { key: "mug", label: "Mug", emoji: "☕", area: { x: 0.24, y: 0.3, w: 0.38, h: 0.4 } },
   { key: "phonecase", label: "Phone case", emoji: "📱", area: { x: 0.36, y: 0.26, w: 0.28, h: 0.6 }, note: "Which phone it fits is chosen when ordering opens." },
   { key: "sticker", label: "Sticker", emoji: "🏷️", area: { x: 0.22, y: 0.22, w: 0.56, h: 0.56 }, note: "Cut to a rounded square. Art fills it edge to edge." },
