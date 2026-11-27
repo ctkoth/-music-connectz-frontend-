@@ -28,7 +28,7 @@ def member(name, skills, energy=3000):
     u.save()
 
     p = profile_for(u)
-    p.personas = [{"key": "main", "name": "Main", "skills": [
+    p.personas = [{"key": "indieartist", "name": "Independent Artist", "skills": [
         {"name": k, "rate_cents": c} for k, c in skills.items()
     ]}]
     p.save()
