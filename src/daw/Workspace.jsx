@@ -133,6 +133,14 @@ export default function Workspace({ workflow }) {
   const [cloudOn, setCloudOn] = useState(false);      // this session is also kept on the account
   const [cloudMsg, setCloudMsg] = useState("");
   const [cloudBusy, setCloudBusy] = useState(false);
+  const [optedOut, setOptedOut] = useState(false);   // the member took this session off the account: automatic keeping leaves it alone
+  // Automatic keeping on the account, StatZ only. On by default on each device: the account copy is what survives losing the device.
+  const [autoAccount, setAutoAccountRaw] = useState(() => { try { return localStorage.getItem("mcz_daw_auto_account") !== "0"; } catch { return true; } });
+  const setAutoAccount = (on) => { setAutoAccountRaw(on); try { localStorage.setItem("mcz_daw_auto_account", on ? "1" : "0"); } catch { /* blocked: this session only */ } };
+  // A copy that did not reach the account is tried again, rather than forgotten until the next edit.
+  const pendingSync = useRef(false);
+  const failures = useRef(0);
+  const [syncAgain, setSyncAgain] = useState(0);
   const [cloudBytes, setCloudBytes] = useState(0);    // what turning it on would add to storage
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState(() => workflow.windows?.[0] || "edit");
@@ -333,7 +341,7 @@ export default function Workspace({ workflow }) {
       }
       setMissing(lost);
       past.current = []; future.current = [];
-      setCloudOn(!asCopy && !!row.cloud?.on); setCloudMsg("");
+      setCloudOn(!asCopy && !!row.cloud?.on); setOptedOut(!asCopy && !!row.cloud?.optedOut); setCloudMsg("");
       put(s); setSessionId(asCopy ? uid("ses") : id); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null);
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   }, [daw]);
@@ -358,15 +366,47 @@ export default function Workspace({ workflow }) {
     return () => clearTimeout(t);
   }, [session, sessionId, workflow.app, refreshList]);
 
-  // Kept on the account: a few seconds after the last edit (after the device's own save has landed), send it up.
+  // Kept on the account: shortly after the last edit (after the device's own save has landed), send it up. A send that fails is
+  // tried again — after 30 seconds, when the connection returns, or when the tab is hidden — so a dropped connection delays the
+  // copy rather than ending it. Three failures in a row stop the timed retries and say so; the next change tries again.
   useEffect(() => {
-    if (!cloudOn) return undefined;
+    if (!cloudOn) { pendingSync.current = false; return undefined; }
+    pendingSync.current = true;
     const t = setTimeout(() => {
-      syncSession(sessionId).then(() => setCloudMsg(`On your account · ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`))
-        .catch((e) => setCloudMsg(`Not on your account yet: ${e.message}`));
-    }, 4000);
+      syncSession(sessionId).then(() => {
+        pendingSync.current = false; failures.current = 0;
+        setCloudMsg(`On your account · ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+      }).catch((e) => {
+        failures.current += 1;
+        const again = failures.current < 3;
+        setCloudMsg(`Not on your account yet: ${e.message}${again ? " It will try again." : " It will try again after your next change."}`);
+        if (again) setTimeout(() => setSyncAgain((n) => n + 1), 30000);
+      });
+    }, 2000);
     return () => clearTimeout(t);
-  }, [session, sessionId, cloudOn]);
+  }, [session, sessionId, cloudOn, syncAgain]);
+  // A dropped connection coming back is a reason to send now, not at the next edit.
+  useEffect(() => {
+    const back = () => setSyncAgain((n) => n + 1);
+    window.addEventListener("online", back);
+    return () => window.removeEventListener("online", back);
+  }, []);
+  // A hidden tab (another app in front, a locked phone) sends what is pending now: the device copy first, then the account.
+  useEffect(() => {
+    const hidden = () => {
+      if (document.visibilityState !== "hidden" || !cloudOn || !pendingSync.current) return;
+      saveSession(sessionId, workflow.app, sRef.current).then(() => syncSession(sessionId))
+        .then(() => { pendingSync.current = false; failures.current = 0; }).catch(() => {});
+    };
+    document.addEventListener("visibilitychange", hidden);
+    return () => document.removeEventListener("visibilitychange", hidden);
+  }, [cloudOn, sessionId, workflow.app]);
+  // Closing or reloading while a change has not reached the account yet asks first.
+  useEffect(() => {
+    const ask = (e) => { if (cloudOn && pendingSync.current) { e.preventDefault(); e.returnValue = ""; } };
+    window.addEventListener("beforeunload", ask);
+    return () => window.removeEventListener("beforeunload", ask);
+  }, [cloudOn]);
   // What turning it on would add to storage, said before the switch.
   useEffect(() => {
     if (cloudOn) return undefined;
@@ -391,6 +431,15 @@ export default function Workspace({ workflow }) {
   // allowed keeps playing and bouncing after; only drawing and writing lock.
   const { s: statz } = useStatzTrial();
   const autoAllowed = !!(statz?.is_statz || statz?.active);
+  // StatZ: a session with sound in it goes on the account by itself, unless the member took that session off the account
+  // (optedOut) or switched automatic keeping off. A new session stays off until it has something in it.
+  const isStatz = !!statz?.is_statz;
+  const hasContent = lengthOf(session) > 0 || Object.keys(session.sources || {}).length > 0 || session.tracks.length > 1;
+  useEffect(() => {
+    if (!isStatz || !autoAccount || cloudOn || optedOut || !hasContent) return;
+    setCloudOn(true);
+    setCloudMsg("Kept on your account automatically: each change is saved there within a few seconds.");
+  }, [isStatz, autoAccount, cloudOn, optedOut, hasContent]);
   const [writeAuto, setWriteAuto] = useState(false);
   const writeBuf = useRef({});                    // "trackId|param" -> [{ t, v }]
   // Latch keeps writing from your first move until Stop; Touch writes only while you hold the control and goes back to the
@@ -1136,7 +1185,7 @@ export default function Workspace({ workflow }) {
     commit((x) => ({ ...x, name }));
     try { await saveSession(sessionId, workflow.app, next); setStoreErr(""); setSavedAt(Date.now()); refreshList(); }
     catch (e) { setStoreErr(`Couldn't keep this session on the device: ${e.message}`); return; }
-    if (keepOnAccount && !cloudOn) {
+    if (keepOnAccount && !cloudOn && !(isStatz && optedOut)) {
       setCloudBusy(true); setCloudMsg("Saving to your account…");
       try {
         await syncSession(sessionId);
@@ -1282,6 +1331,8 @@ export default function Workspace({ workflow }) {
     past.current = []; future.current = [];
     put(setSession(newSession(), { editMode: workflow.editMode || "slip" }));
     setSessionId(uid("ses")); setSelected(null); setPlayhead(0); setBounced(null); setUpload(null); setMissing(0); setMsg("");
+    // A new session starts off the account. It must not inherit the copy the session before it was on.
+    setCloudOn(false); setOptedOut(false); setCloudMsg("");
   };
   const toggleCloud = async () => {
     setCloudBusy(true); setCloudMsg("");
@@ -1289,12 +1340,12 @@ export default function Workspace({ workflow }) {
       if (cloudOn) {
         if (!window.confirm("Stop keeping this session on your account? Its sounds are removed from your account and your storage is freed. The copy on this device stays.")) return;
         await removeCloud(sessionId);
-        await saveSession(sessionId, workflow.app, sRef.current, null);
-        setCloudOn(false); setCloudMsg("Removed from your account.");
+        await saveSession(sessionId, workflow.app, sRef.current, { on: false, optedOut: true });
+        setCloudOn(false); setOptedOut(true); setCloudMsg("Removed from your account. Automatic keeping won't turn it back on.");
       } else {
         await saveSession(sessionId, workflow.app, sRef.current);     // make sure this device has the latest first
         await syncSession(sessionId);
-        setCloudOn(true); setCloudMsg("On your account — open it from any device you sign in on.");
+        setCloudOn(true); setOptedOut(false); setCloudMsg("On your account — open it from any device you sign in on.");
         api("/api/economy/uploads/").then(setStorage).catch(() => {});
       }
       refreshList();
@@ -1363,9 +1414,15 @@ export default function Workspace({ workflow }) {
           {keepOnAccount && !cloudOn && <span className="ml-2 text-mcz-ember">−{mb(cloudBytes)} MB storage</span>}
           {keepOnAccount && !cloudOn && <span className="ml-1 text-emerald-300">+ on any device</span>}
         </button>
-        <label className="flex items-center gap-1 text-white/70" title="When on, Save also keeps this session on your account (FileZ) so it opens on your other devices. Its sounds count against your storage, shown on the button. Turn it off to keep saves on this device only.">
-          <input type="checkbox" checked={keepOnAccount} onChange={(e) => setKeepOnAccount(e.target.checked)} /> Also keep on my account
-        </label>
+        {isStatz ? (
+          <label className="flex items-center gap-1 text-emerald-200" title="StatZ: every change to a session that has sound in it is saved to your account a few seconds after you make it, so nothing is lost if this device is lost or its storage is cleared. Its sounds count against your storage. Take a session off the account with 'On my other devices ✓' and automatic keeping leaves it alone.">
+            <input type="checkbox" checked={autoAccount} onChange={(e) => setAutoAccount(e.target.checked)} /> Keep everything on my account automatically · StatZ
+          </label>
+        ) : (
+          <label className="flex items-center gap-1 text-white/70" title="When on, Save also keeps this session on your account (FileZ) so it opens on your other devices. Its sounds count against your storage, shown on the button. Turn it off to keep saves on this device only.">
+            <input type="checkbox" checked={keepOnAccount} onChange={(e) => setKeepOnAccount(e.target.checked)} /> Also keep on my account
+          </label>
+        )}
         <button type="button" className="re-btn !w-auto px-3" disabled={cloudBusy} onClick={toggleCloud} data-tour="daw-cloud"
                 title={cloudOn ? "Stops keeping this session on your account and frees the storage its sounds used." : "Keeps this session on your account so it opens on your other devices."}>
           ☁️ {cloudBusy ? "Working…" : cloudOn ? "On my other devices ✓" : "Open on my other devices"}
