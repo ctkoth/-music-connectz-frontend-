@@ -18,7 +18,7 @@ test("every TABS entry in App.jsx is one this test can read", () => {
   assert.equal(
     fromApp.length,
     entryCount,
-    "a TABS entry is not in the { key: \"…\", label: \"…\" } form this test reads; extend the pattern and the generator together",
+    "a TABS entry is not in the { key: \"…\", label: \"…\" } form this test reads; extend the pattern above, then regenerate with: node tools/gen-tablist.cjs src/App.jsx src/tabList.js",
   );
 });
 
