@@ -79,11 +79,10 @@ export default function MerchDesigner({ onListed }) {
   const canvas = useRef(null);
   const [meta, setMeta] = useState(null);
   const [shopTitle, setShopTitle] = useState("");
-  const [markup, setMarkup] = useState("10");
   const [ownArt, setOwnArt] = useState(false);
   const [listMsg, setListMsg] = useState("");
   useEffect(() => { api("/api/economy/merch/shop/?mine=1").then(setMeta).catch(() => {}); }, []);
-  const markupCents = Math.round((Number(markup) || 0) * 100);
+  const markupCents = meta?.markup_cents ?? 0; // the same $10 on every design, whatever the plan
   const preview = meta ? previewSplit(meta, product, markupCents, meta.dev_tax?.free ?? 0) : null;
   const keeps = meta ? keepsRange(meta, product, markupCents) : null;
   const list = async () => {
@@ -92,7 +91,7 @@ export default function MerchDesigner({ onListed }) {
       const b = await new Promise((res) => canvas.current.toBlob(res, "image/png"));
       const form = new FormData();
       form.append("image", b, `design-${product}.png`); form.append("product", product); form.append("color", color);
-      form.append("title", shopTitle.trim()); form.append("markup_cents", String(markupCents)); form.append("own_art", ownArt ? "1" : "");
+      form.append("title", shopTitle.trim()); form.append("own_art", ownArt ? "1" : "");
       await api("/api/economy/merch/shop/", { method: "POST", body: form });
       setListMsg("In your shop. Buyers can see it now; checkout opens when a printer is connected.");
       onListed?.();
@@ -174,9 +173,7 @@ export default function MerchDesigner({ onListed }) {
             <div className="space-y-2 rounded-xl border border-white/10 p-3" data-tour="merchz-list">
               <h3 className="font-semibold">🛍️ Put it in your shop</h3>
               <input className="neon-input" maxLength={120} placeholder="Name it (what buyers see)" value={shopTitle} onChange={(e) => setShopTitle(e.target.value)} />
-              <label className="flex items-center gap-2 text-sm text-white/70">Your markup $
-                <input type="number" min={0} max={(meta.max_markup_cents || 0) / 100} step="0.5" className="neon-input !w-24" value={markup} onChange={(e) => setMarkup(e.target.value)} />
-              </label>
+              <p className="text-sm text-white/70">Your markup is <span className="font-semibold">{usd(markupCents)}</span> on every design, whatever your plan.</p>
               <p className="text-sm">
                 Buyer pays <span className="font-semibold">{usd(preview.price)}</span> = printer {usd(preview.printer)} + your markup {usd(markupCents)}.
                 Dev tax comes out of your markup at the buyer's plan rate. <span className="text-emerald-300">You keep +{usd(keeps.min)}–{usd(keeps.max)} 💵</span> a sale.
