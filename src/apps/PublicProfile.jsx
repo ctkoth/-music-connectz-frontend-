@@ -10,6 +10,8 @@
 // business from outside it. The server enforces that; this page just renders
 // what it sends.
 import { genreLabel } from "../genres.js";
+import { RatingNumber } from "../components/Rating.jsx";
+import { ratingDetail } from "../skillsUsed.js";
 import { useViewTracker } from "../viewz.js";
 import ViewCount from "../components/ViewCount.jsx";
 import { useEffect, useState } from "react";
@@ -109,6 +111,19 @@ export default function PublicProfile() {
                     {s.name}
                     {(s.genres || []).length > 0 && (
                       <span className="ml-1 text-white/55">in {s.genres.map(genreLabel).join(", ")}</span>
+                    )}
+                    {/* null = nobody has rated this skill yet; undefined = an older server that
+                        sends no rating, so nothing is drawn rather than a guess. Drawn the way the
+                        member's own skills are (SkillsUsed): the house number, then its wording. The
+                        wording is the viewer's, so the coached note is said here, not the owner's line. */}
+                    {s.rating !== undefined && (
+                      <span className="ml-1 inline-flex items-center gap-1.5 align-middle">
+                        <RatingNumber value={s.rating} size="sm" />
+                        <span className="text-[10px] leading-tight text-white/50">
+                          {ratingDetail({ rating: s.rating, count: s.count })}
+                          {s.rating != null && s.coached ? ", includes the AI coach" : ""}
+                        </span>
+                      </span>
                     )}
                     {s.rate_cents ? (
                       <span className="ml-1 text-mcz-gold">{money(s.rate_cents)}/{s.rate_unit === "work" ? "work" : "hr"}</span>

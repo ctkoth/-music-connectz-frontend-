@@ -27,6 +27,7 @@ import {
 import { api } from "../api.js";
 import { asDict, asList } from "../shape.js";
 import { goToSpot } from "../goto.js";
+import { TAB_LIST, tabLabel } from "../tabList.js";
 import { ENERGY, SPINAZ, XP } from "../resources.js";
 import { IconImg } from "../App.jsx";
 import TabInfoModal from "../components/TabInfoModal.jsx";
@@ -72,7 +73,7 @@ export default function Lilith() {
   // Task/routine tagging
   const [expandedTask, setExpandedTask] = useState(null);
   const [tags, setTags] = useState([]);
-  const [tagDraft, setTagDraft] = useState({ to_app_key: "", to_target: "", visibility: "private" });
+  const [tagDraft, setTagDraft] = useState({ to_app_key: "", to_target: "" });
 
   const load = () => {
     setBusy(true);
@@ -194,16 +195,20 @@ export default function Lilith() {
     if (loaded) setTags(loaded);
   }
 
+  // The control name becomes a CSS attribute selector when the tag is followed,
+  // and the server checks the same charset, so the form refuses it up front.
+  const tagTargetOk = /^[A-Za-z0-9_:.\-]{1,64}$/.test(tagDraft.to_target);
+  const canAddTag = !!tagDraft.to_app_key && tagTargetOk;
+
   async function addTag(e) {
     e.preventDefault();
-    if (!tagDraft.to_app_key || !tagDraft.to_target) return;
-    if (!expandedTask) return;
+    if (!canAddTag || !expandedTask) return;
     const created = await call("/api/economy/lilith/tag/", {
       method: "POST",
-      body: { task_id: expandedTask.id, ...tagDraft },
+      body: { task_id: expandedTask.id, to_app_key: tagDraft.to_app_key, to_target: tagDraft.to_target },
     });
     if (created) {
-      setTagDraft({ to_app_key: "", to_target: "", visibility: "private" });
+      setTagDraft({ to_app_key: "", to_target: "" });
       loadTags(expandedTask);
     }
   }
@@ -476,11 +481,18 @@ export default function Lilith() {
                   <ul className="space-y-1.5">
                     {tags.map((tag) => (
                       <li key={tag.id} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[11px]">
-                        <button onClick={() => goToSpot(tag.to_app_key, tag.to_target)}
-                                className="flex-1 text-left text-mcz-cyan hover:underline truncate">
-                          {tag.to_app_key}: {tag.to_target}
-                        </button>
-                        <span className="ml-2 text-white/55 text-[10px]">{tag.visibility}</span>
+                        {tabLabel(tag.to_app_key) ? (
+                          <button onClick={() => goToSpot(tag.to_app_key, tag.to_target)}
+                                  className="flex-1 text-left text-mcz-cyan hover:underline truncate">
+                            {tabLabel(tag.to_app_key)}: {tag.to_target}
+                          </button>
+                        ) : (
+                          // The tab this tag pointed at has been removed. Plain text, not a
+                          // button, so nothing promises a jump that cannot happen.
+                          <span className="flex-1 truncate text-white/55">
+                            {tag.to_app_key}: {tag.to_target} (no longer in the app)
+                          </span>
+                        )}
                         <button onClick={() => removeTag(tag.id)} className="ml-2 text-white/30 hover:text-mcz-ember">
                           <Trash2 size={12} />
                         </button>
@@ -493,23 +505,32 @@ export default function Lilith() {
               {/* Add tag form */}
               <form onSubmit={addTag} className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
                 <h4 className="text-[13px] font-semibold text-white">Add a tag</h4>
+                <p className="text-[11px] text-white/55">Only you can see your tags. Tags pay nothing.</p>
+                <select aria-label="The app this tag opens" value={tagDraft.to_app_key}
+                        onChange={(e) => setTagDraft({ ...tagDraft, to_app_key: e.target.value })}
+                        className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px]">
+                  <option value="">Pick the app…</option>
+                  {TAB_LIST.map((t) => (
+                    <option key={t.key} value={t.key}>{t.label}</option>
+                  ))}
+                </select>
                 <input
-                  type="text" placeholder="App key (e.g., 'postz', 'battlez')" value={tagDraft.to_app_key}
-                  onChange={(e) => setTagDraft({ ...tagDraft, to_app_key: e.target.value })}
-                  className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
-                <input
-                  type="text" placeholder="Target (e.g., 'post:123' or 'user:abc')" value={tagDraft.to_target}
+                  type="text" maxLength={64} pattern="[A-Za-z0-9_:.\-]{1,64}"
+                  placeholder="The control there, e.g. singz:coach or post:123" value={tagDraft.to_target}
                   onChange={(e) => setTagDraft({ ...tagDraft, to_target: e.target.value })}
                   className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px] text-white placeholder:text-white/30" />
-                <select aria-label="Who can see this tag" value={tagDraft.visibility}
-                        onChange={(e) => setTagDraft({ ...tagDraft, visibility: e.target.value })}
-                        className="w-full rounded-md border border-white/10 bg-black/30 px-2 py-1.5 text-[12px]">
-                  <option value="private">Private (just me)</option>
-                  <option value="shared">Shared (collaborators)</option>
-                  <option value="public">Public (everyone)</option>
-                </select>
-                <button type="submit" className="w-full rounded-md bg-mcz-cyan/20 py-1.5 text-[12px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/30">
-                  Add tag
+                {!tagDraft.to_app_key && (
+                  <p className="text-[11px] text-white/55">Pick the app this tag opens.</p>
+                )}
+                {tagDraft.to_app_key && !tagDraft.to_target && (
+                  <p className="text-[11px] text-white/55">Name the control on that app.</p>
+                )}
+                {tagDraft.to_target && !tagTargetOk && (
+                  <p className="text-[11px] text-mcz-ember">Letters, numbers, and _ : . - only, up to 64 characters.</p>
+                )}
+                <button type="submit" disabled={!canAddTag}
+                        className="w-full rounded-md bg-mcz-cyan/20 py-1.5 text-[12px] font-semibold text-mcz-cyan hover:bg-mcz-cyan/30 disabled:cursor-not-allowed disabled:opacity-40">
+                  Add tag · free
                 </button>
               </form>
             </div>
