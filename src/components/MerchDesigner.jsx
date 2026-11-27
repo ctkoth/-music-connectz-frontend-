@@ -82,7 +82,7 @@ export default function MerchDesigner({ onListed }) {
   const [ownArt, setOwnArt] = useState(false);
   const [listMsg, setListMsg] = useState("");
   useEffect(() => { api("/api/economy/merch/shop/?mine=1").then(setMeta).catch(() => {}); }, []);
-  const markupCents = meta?.markup_cents ?? 0; // the same $10 on every design, whatever the plan
+  const markupCents = meta?.markup_by_product?.[product] ?? 0; // set per product, from its printer cost
   const preview = meta ? previewSplit(meta, product, markupCents, meta.dev_tax?.free ?? 0) : null;
   const keeps = meta ? keepsRange(meta, product, markupCents) : null;
   const list = async () => {
@@ -173,7 +173,7 @@ export default function MerchDesigner({ onListed }) {
             <div className="space-y-2 rounded-xl border border-white/10 p-3" data-tour="merchz-list">
               <h3 className="font-semibold">🛍️ Put it in your shop</h3>
               <input className="neon-input" maxLength={120} placeholder="Name it (what buyers see)" value={shopTitle} onChange={(e) => setShopTitle(e.target.value)} />
-              <p className="text-sm text-white/70">Your markup is <span className="font-semibold">{usd(markupCents)}</span> on every design, whatever your plan.</p>
+              <p className="text-sm text-white/70">Your markup on this product is <span className="font-semibold">{usd(markupCents)}</span>, whatever your plan.</p>
               <p className="text-sm">
                 Buyer pays <span className="font-semibold">{usd(preview.price)}</span> = printer {usd(preview.printer)} + your markup {usd(markupCents)}.
                 Dev tax comes out of your markup at the buyer's plan rate. <span className="text-emerald-300">You keep +{usd(keeps.min)}–{usd(keeps.max)} 💵</span> a sale.
