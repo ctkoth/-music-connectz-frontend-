@@ -6,7 +6,7 @@
 // is what keeps it from clicking. If the chosen device is unplugged the picker falls back to the system default and says so.
 import { useCallback, useEffect, useState } from "react";
 import { Headphones } from "lucide-react";
-import { outputGoneNote } from "./audioIO.js";
+import { defaultOutputName, outputGoneNote } from "./audioIO.js";
 
 const KEY = "mcz_daw_output";
 const saved = () => { try { return localStorage.getItem(KEY) || ""; } catch { return ""; } };
@@ -55,13 +55,14 @@ export function useOutputs(daw) {
 
 export default function OutputPick({ daw }) {
   const o = useOutputs(daw);
+  const def = defaultOutputName(o.outputs);
   return (
     <span className="flex flex-wrap items-center gap-1 text-[11px]" data-tour="daw-output">
       <Headphones size={12} className="text-white/60" aria-hidden />
       {o.canOut ? (
         <select className="neon-input !w-auto !py-1 text-xs [color-scheme:dark]" data-nomemo="true" aria-label="Output device: speakers or headphones" value={o.output}
                 title="Where the sound comes out. Changing it pauses for a moment so it doesn't click." onChange={(e) => o.apply(e.target.value)}>
-          <option value="">Output: system default</option>
+          <option value="">{def ? `Output: system default (${def})` : "Output: system default"}</option>
           {o.outputs.map((d, i) => <option key={d.deviceId || i} value={d.deviceId}>{d.label || `Output ${i + 1}`}</option>)}
         </select>
       ) : <span className="text-white/50" title="Chrome and Edge can pick the output here; this browser uses your system's output.">Output: system</span>}

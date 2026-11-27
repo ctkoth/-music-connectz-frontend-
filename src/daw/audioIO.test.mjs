@@ -40,7 +40,7 @@ test("latency is the browser's own figure, or null when it does not give one", (
   assert.equal(latencyMs(null), null);
 });
 
-import { LATENCY_MODES, cleanLatencyMode, outputGoneNote } from "./audioIO.js";
+import { LATENCY_MODES, cleanLatencyMode, outputGoneNote, defaultOutputName, outputNameFor } from "./audioIO.js";
 
 test("audio quality has three named modes, each says what it costs, and junk falls back to low delay", () => {
   assert.deepEqual(Object.keys(LATENCY_MODES), ["interactive", "balanced", "playback"]);
@@ -53,4 +53,16 @@ test("audio quality has three named modes, each says what it costs, and junk fal
 test("an unplugged output is said, and says where the sound goes instead", () => {
   assert.match(outputGoneNote(""), /system default/);
   assert.match(outputGoneNote("USB headset"), /USB headset/);
+});
+
+test("the system default is named by the browser's own default entry, and an unnamed one says nothing", () => {
+  const outs = [{ deviceId: "default", label: "Default - Speakers (Realtek(R) Audio)" }, { deviceId: "bt1", label: "Headset (Bathys MG)" }];
+  assert.equal(defaultOutputName(outs), "Speakers (Realtek(R) Audio)");
+  assert.equal(defaultOutputName([{ deviceId: "bt1", label: "Headset (Bathys MG)" }]), "");
+  assert.equal(defaultOutputName([{ deviceId: "default", label: "" }]), "");
+  assert.equal(defaultOutputName([{ deviceId: "default", label: "Default" }]), "");
+  assert.equal(defaultOutputName(undefined), "");
+  assert.equal(outputNameFor(outs, "bt1"), "Headset (Bathys MG)");
+  assert.equal(outputNameFor(outs, ""), "Speakers (Realtek(R) Audio)");
+  assert.equal(outputNameFor(outs, "gone"), "");
 });

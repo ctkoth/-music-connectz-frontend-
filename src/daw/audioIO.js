@@ -39,6 +39,21 @@ export const LATENCY_MODES = {
 export const cleanLatencyMode = (m) => (m in LATENCY_MODES ? m : "interactive");
 
 /** What to say when the chosen output is gone (unplugged), and where audio goes instead. */
+/** The name of the device behind "system default": the browser's own "Default - …" entry with that prefix dropped, or "" when the browser
+ *  does not name it (no microphone permission yet, or no such entry). */
+export function defaultOutputName(outputs) {
+  const d = (Array.isArray(outputs) ? outputs : []).find((x) => x.deviceId === "default");
+  const name = d?.label ? d.label.replace(/^Default\s*[-–]\s*/i, "").trim() : "";
+  return name && name.toLowerCase() !== "default" ? name : "";
+}
+
+/** The name of the output a sink id means: the named device, or the system default's name for "" (the default). "" when unnamed. */
+export function outputNameFor(outputs, sinkId) {
+  const list = Array.isArray(outputs) ? outputs : [];
+  if (sinkId) return list.find((x) => x.deviceId === sinkId)?.label || "";
+  return defaultOutputName(list);
+}
+
 export function outputGoneNote(label) { return `${label || "Your chosen output"} isn't connected any more, so sound is going to the system default.`; }
 
 /** A round-trip estimate the screen can show beside the monitor switch (output + base latency), in ms, or null if the browser does not say. */
