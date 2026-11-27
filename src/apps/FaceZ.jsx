@@ -8,6 +8,7 @@ import { goToTab } from "../goto.js";
 import MemberName from "../MemberName.jsx";
 import { useMentionHandlers } from "../MentionParser.jsx";
 import { FACE_FEED_NOTE, tagOutcome, unknownTagLine } from "../facez.js";
+import { upgradeWords } from "../tierCount.js";
 
 // FaceZ — the faces you've saved for Video ConnectZ (and Image ConnectZ when it
 // ships), and, for adults, a feed of other members' faces to rate. The API
@@ -86,8 +87,8 @@ export default function FaceZ() {
         <section className="neon-frame space-y-3 p-4">
           <h3 className="font-semibold">Your faces <span className="text-white/55">({d.mine.length}{d.faces_limit != null ? ` of ${d.faces_limit}` : " · unlimited"})</span></h3>
           {d.faces_full && (
-            <p className="text-xs text-mcz-gold">Full — your tier keeps {d.faces_limit} faces. Delete one, or{" "}
-              <button className="re-link" onClick={() => goToTab("membershipz")}>upgrade (Premium keeps more; StatZ is unlimited)</button>.</p>
+            <p className="text-xs text-mcz-gold">Full — your tier keeps {d.faces_limit} faces. Delete one{d.faces_ladder && upgradeWords(d.faces_limit, d.faces_ladder, "keeps") ? <>, or{" "}
+              <button className="re-link" onClick={() => goToTab("membershipz")}>upgrade ({upgradeWords(d.faces_limit, d.faces_ladder, "keeps")})</button></> : null}.</p>
           )}
           <div className="flex flex-wrap gap-2 text-sm">
             <input className="neon-input !w-auto flex-1" maxLength={80} placeholder="Name (optional)" value={name} onChange={(e) => setName(e.target.value)} />

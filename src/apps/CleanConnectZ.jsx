@@ -265,7 +265,7 @@ export default function CleanConnectZ() {
                     <button onClick={() => goToSpot(dupes.upgrade.tab, dupes.upgrade.target)}
                       className="flex w-full items-center justify-center gap-2 rounded-[14px] border border-emerald-300/30 bg-emerald-400/10 px-3 py-2.5 text-[13px] font-semibold text-white">
                       <span>{dupes.left === 0 ? "Out of scans today" : "1 scan left today"} — upgrade</span>
-                      <span className="text-emerald-300">+{dupes.next_limit == null ? "unlimited" : `${dupes.next_limit} a day`}</span>
+                      {dupes.next_limit !== false && <span className="text-emerald-300">+{dupes.next_limit == null ? "unlimited" : `${dupes.next_limit} a day`}</span>}
                     </button>
                   )}
                   </div>

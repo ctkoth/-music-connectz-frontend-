@@ -7,6 +7,7 @@ import { Save, Trash2 } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { useTonePresets } from "../daw/TonePresets.jsx";
 import { presetRoom } from "../daw/tonePresets.js";
+import { upgradeWords } from "../tierCount.js";
 
 export default function MasterPresets({ settings, onApply }) {
   const tones = useTonePresets();
@@ -53,7 +54,7 @@ export default function MasterPresets({ settings, onApply }) {
           <button type="button" className="neon-btn-primary !w-auto px-3" disabled={!name.trim() || (!same && !room.ok)} onClick={doSave}>{same ? "Update it" : "Save"}</button>
           <button type="button" className="re-link" onClick={() => setSaving(false)}>Cancel</button>
           {!same && !room.ok && state && (
-            <span className="text-mcz-gold">Your plan keeps {state.limit} mastering presets — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
+            <span className="text-mcz-gold">Your plan keeps {state.limit} mastering presets — update or delete one{upgradeWords(state.limit, state.ladder, "keeps") ? `, or ${upgradeWords(state.limit, state.ladder, "keeps")}` : ""}.{" "}
               <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button></span>
           )}
         </div>

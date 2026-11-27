@@ -9,7 +9,7 @@
 // `useSessionHold.js` is the thin hook that feeds it.
 //
 // What a tier buys is HOW OFTEN a day this is on (the server's `bodiez_float`: Free 3, Premium 6, StatZ
-// unlimited), never whether the session runs. The price is worded here from the server's state and decides nothing.
+// 12), never whether the session runs. The price is worded here from the server's state and decides nothing.
 
 import { restClock } from "./restBeep.js";
 

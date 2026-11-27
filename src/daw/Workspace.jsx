@@ -32,7 +32,7 @@ import { PLUGINS } from "./plugins.js";
 import CoachMix from "../components/CoachMix.jsx";
 import { registerTemp } from "./synth/userPatches.js";
 import MixWindow from "./MixWindow.jsx";
-import { bandCap, nextBandCap } from "../eqbands.js";
+import { bandCap, bandsAbove } from "../eqbands.js";
 import MidiImport from "./MidiImport.jsx";
 import LoopLibrary from "./LoopLibrary.jsx";
 import KeyActions from "./KeyActions.jsx";
@@ -1250,7 +1250,7 @@ export default function Workspace({ workflow }) {
           session={session} daw={daw} playing={playing}
           onTrack={(id, patch) => { if (playing) recordWrite(id, patch); commit((s) => setTrackGrouped(s, id, patch)); }}
           autoMode={autoMode} onAutoMode={setAutoMode} writeAuto={writeAuto} onWriteAuto={(on) => { if (!on) flushWrites(); setWriteAuto(on); }}
-          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), next: nextBandCap(lim) }}
+          autoAllowed={autoAllowed} bands={{ cap: bandCap(lim), above: bandsAbove(lim) }}
           onInserts={setInserts}
           onMaster={(g) => commit((s) => setSession(s, { master: g }))}
         />

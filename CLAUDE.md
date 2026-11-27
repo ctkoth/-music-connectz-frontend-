@@ -2300,7 +2300,7 @@ the track's effect chain under a name ("My vocal"), saved to `/api/economy/tonez
 device. Applying one replaces the track's effects (Undo brings them back); saving under a name you already have
 updates it.
 
-- **How many is the tier's** (`tone_presets`: Free 3, Premium 6, StatZ unlimited), shown as "2 of 3 saved" beside
+- **How many is the tier's** (`tone_presets`: Free 3, Premium 6, StatZ 12), shown as "2 of 3 saved" beside
   the button before it is pressed, refused by the server with its own sentence past the ceiling. Nobody loses one
   when it moves: over the ceiling every preset stays usable, updatable and deletable; only a NEW one is refused.
 - **Five voice starters are built in** (`STARTERS` in `tonePresets.js`: clean, rap upfront, warm R&B, radio/phone,
@@ -2321,11 +2321,11 @@ is the engine's own bound, which is what StatZ's "unlimited" runs to.
 ## The DAWs are free; their features ladder (Corey's rule)
 
 Every DAW opens at every tier; a tier buys how MUCH of a feature, never the DAW. Tracks per session, VST effects
-per track, stems sent to Mix ConnectZ and tone presets are Free 3 / Premium 6 / StatZ unlimited; automation is
-StatZ's. Releases a month in DistributeZ are the same numbers (server `releasez.PER_MONTH`; `QuotaLine` reads
-`next_unlimited` so Premium is told StatZ has no cap). LabelGrid is the planned distributor API.
+per track and stems sent to Mix ConnectZ are Free 3 / Premium 6 / StatZ unlimited (one shared count, `imagez_layers`,
+so a StatZ session never runs out of tracks); tone presets are Free 3 / Premium 6 / StatZ 12; automation is
+StatZ's. Releases a month in DistributeZ are 3 / 6 / 12 (server `releasez.PER_MONTH`; `QuotaLine` names the next plan's count and says "as many as you like" only where `next_unlimited` is set). LabelGrid is the planned distributor API.
 
-## Presets: each kind has its own 3 / 6 / unlimited (Corey's rule)
+## Presets: each kind has its own 3 / 6 / 12 (Corey's rule)
 
 `/api/economy/tonez/` keeps presets by KIND — `tone` and `fx` (a DAW track's effect chain, saved from the strip's
 "Save as a preset" with a Track tone / Track FX choice) and `master` (Mix ConnectZ's settings, `MasterPresets.jsx`).
@@ -2377,11 +2377,11 @@ Corey's art: `public/icons/designz.animez.jpg` (AnimeZ, under DesignZ beside Man
 MembershipZ draws `/api/economy/ladders/` (backend `ladders.py`): every gate, read off the constant that gates it,
 grouped, searchable, the member's column marked, and each row opening the app it gates. It replaced the typed rows of
 `TIER_MATRIX` that the server covers — that table still said DistributeZ was "1 / month" a day after it became
-3 / 6 / unlimited. Two sold claims went with it: SingZ / RapZ's StatZ line promised "auto weekly plans, smart song
+3 / 6 / 12. Two sold claims went with it: SingZ / RapZ's StatZ line promised "auto weekly plans, smart song
 breakdown, fine-grain accuracy analytics" (never built), and SpecZ's StatZ line still sold the analytics catalogue the
 backend removed because nothing produced it. **A benefit line is a claim about the code; check it like one.**
 
-## Sonday boards and Lilith routines are 3 / 6 / unlimited
+## Sonday boards and Lilith routines are 3 / 6 / 12
 
 Sonday's `QuotaLine` reads the server's `per_tier`, `next_tier` and `next_per_tier` (never typed here) and tells a
 member over the count that every board stays. Lilith already renders `limits.routines` and treats null as unlimited.
@@ -2410,7 +2410,7 @@ whole thing, pure and tested (`strip.test.mjs`); `mixTracks` runs it before each
 `src/eqbands.js` is the one band model (low shelf / bell / high shelf, frequency, gain, width) and
 `components/EqBands.jsx` the one editor, used by TrackZ's channel strip and the DAW EQ effect (`compact` in a Mix
 window strip, which widens while its EQ is open). How many is `eq_bands` from /limits/ — Free 3, Premium 6, StatZ
-unlimited (to `MAX_BANDS`, 32) — applied where a band is ADDED: the button says "(N left)", and at the count it locks
+12 (the engine's bound is `MAX_BANDS`, 32) — applied where a band is ADDED: the button says "(N left)", and at the count it locks
 with the next plan's number. An EQ over the count keeps playing every band and can still change or remove them.
 Every EQ starts as three bands (lows, one bell, highs), so Free has a whole EQ. TrackZ's low cut is a filter and
 never counts. A strip or DAW EQ saved before bands opens as the three bands it was (`legacyBands`, `legacyEqBands`),
@@ -2428,7 +2428,7 @@ master's own reference matching rather than a second EQ. Every song gets the sam
 "sits 3 dB under the rest"). The result says, from the mastered audio, each song's LUFS and peak, how far its tone sits from
 the album's before → after, and how far apart the loudness ended with the trims taken back out.
 
-- **How many songs is the plan's** (`album_songs` from /limits/: Free 3, Premium 6, StatZ unlimited, to `MAX_ALBUM` 40),
+- **How many songs is the plan's** (`album_songs` from /limits/: Free 8, Premium 11, StatZ unlimited, to `MAX_ALBUM` 40),
   applied where a song is added. Mastering one song at a time stays every plan's. Free, on the device.
 - **One song in memory at a time.** Each is decoded to measure and dropped, decoded again to master, and only the finished
   file (a Blob) is kept. A twelve-song album must not hold twelve songs of float audio.
@@ -2439,7 +2439,7 @@ the album's before → after, and how far apart the loudness ended with the trim
   downloaded. Not checked on a phone or with a real album's worth of songs.
 
 **Saved channel strips** (`StripPresets` in `TrackMixer.jsx`): every TrackZ EQ panel has "Use a saved strip…" and "Save this
-strip" — kind `strip` on `/api/economy/tonez/`, its own 3 / 6 / unlimited room beside tones, FX and masters. Applying one
+strip" — kind `strip` on `/api/economy/tonez/`, its own 3 / 6 / 12 room beside tones, FX and masters. Applying one
 replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). Driven in a browser: saved, reset, applied.
 
 ## Mix ConnectZ AI mastering, songs per album +5, Premium voices, and lip-sync doors (Corey, Nov 2026)
@@ -2451,7 +2451,7 @@ replaces the track's low cut, EQ bands and compressor (`cleanStrip` clamps it). 
   it are free and come from the same GET. An intensity the plan lacks is said ("the master uses Medium"), never silently
   swapped. Nothing is mastered until Master it. Driven in a browser: Drill preset → multiband on with its reason.
 - **Songs per album** are the server's `album_songs`, now Free 8, Premium 11, StatZ unlimited (Corey: the tier numbers + 5).
-- **VoiceZ**: Premium can write in its own voices (6), StatZ unlimited; the copy reads the server's `premium_voices` /
+- **VoiceZ**: Premium can write in its own voices (6), StatZ 12; the copy reads the server's `premium_voices` /
   `statz_voices`, and `voices: null` prints "unlimited".
 - **Lip-sync from Image ConnectZ and Video ConnectZ**: "👄 Lip-sync it to your track" on any picture of you (likeness
   kinds) and "👄 Lip-sync this face to your track" on a picked FaceZ photo hand the picture to VideoZ with `lip: true`;
@@ -2473,7 +2473,7 @@ when another app is in front (so the rest clock and the beep keep running), and 
 and how long the session has run, with **Back to BodieZ** and ✕ to stop keeping it.
 
 - **The price is on the control before it is pressed**: "−1 of today's 3 · 2 left after this one · Costs no ⚡ 🍥 🏷️". The number
-  (Free 3, Premium 6, StatZ unlimited a day), the refusal sentence and the next plan's number are the server's
+  (Free 3, Premium 6, StatZ 12 a day), the refusal sentence and the next plan's number are the server's
   (`/economy/bodiez/float/`); `floatPrice` only words them. A tier buys how OFTEN — a refused press leaves the session running
   and says nothing was charged. Turning it off and on again for the same session is free and not counted twice.
 - **The timer publishes its own clock** (`setRest` from `RestTimer`), kept apart from the hold because the timer is a CHILD and
@@ -2614,7 +2614,7 @@ ran out on the test account.
 ## PaneZ, the tuner's verdict, ScaleZ, and the whole kit on one page
 
 - **The split is called PaneZ everywhere a member reads it** (it was SplitZ on the pane header and the dock). Opens a day are the
-  server's `split_opens` (Free 3, Premium 6, StatZ unlimited); mini panes are not counted. No time-of-day windows were added:
+  server's `split_opens` (Free 3, Premium 6, StatZ 12); mini panes are not counted. No time-of-day windows were added:
   a per-day count is the one number `/panez/` serves and a second rule would be a second place the limit lives.
 - **TunerZ had the flat/sharp words backwards.** Cents are positive when the note is ABOVE the pitch, i.e. sharp, and the screen
   printed "cents flat" for them, so somebody following the arrow tuned the wrong way. `tuning.js` `tuneVerdict` is the one
@@ -2852,7 +2852,7 @@ kept per session on the device (`mcz_bodiez_sets_<id>`, like the drag order). "A
 PATCHes the routine. The screen says the end-of-session report counts against the ROUTINE (server `completion_pct`), so a
 today-only change still reads as part of the plan undone — saving it is how the report agrees. Driven at 412px.
 
-## Auto-trim: a lift you moved on from reads done — Free 3, Premium 6, StatZ unlimited a day
+## Auto-trim: a lift you moved on from reads done — Free 3, Premium 6, StatZ 12 a day
 
 `src/autoTrim.js` (pure, tested) decides WHEN: logging a set on one lift trims any lift left part-done to the sets done
 (3/5 → 3/3) — never between superset partners (routine `group` or session pair), never over a target the member set by hand,
@@ -2864,10 +2864,10 @@ nothing) if that number could not be read. On by default, switchable. Tapping a 
 only; the routine is untouched and the end-of-session report still counts its plan. Driven at 412px as Free: 4 part-done lifts →
 3 trimmed, the 4th refused with the sentence.
 
-## The tier numbers are four rungs: non-member 2, Free 3, Premium 6, StatZ unlimited (Corey, Nov 2026)
+## The tier numbers are four rungs: non-member 2, Free 3, Premium 6, StatZ 12 or unlimited (Corey, Nov 2026)
 
 A logged-out visitor's rung (2) exists only where a visitor can do the thing: the free trial takes. Every other limit starts at Free 3,
-then Premium 6, StatZ unlimited, and the numbers come from the server (`/api/economy/tiers/`, `/limits/`, `/ladders/`), never typed
+then Premium 6, and StatZ 12 or unlimited, as the served count says, and the numbers come from the server (`/api/economy/tiers/`, `/limits/`, `/ladders/`), never typed
 into a screen. Keep the rungs strictly increasing: the trial's "what an account adds" panel reads them from the server, and a non-member
 number at or above Free's would make the signup a wall in front of nothing. The backend CLAUDE.md has the list of limits on 3 / 6 / None.
 

@@ -49,7 +49,7 @@ function InsertEditor({ insert, onChange, onClose, bands }) {
       </div>
       <p className="text-white/50">{spec.what}</p>
       {insert.type === "eq" && (
-        <EqBands compact bands={insert.bands || []} gainMax={EQ_GAIN} cap={bands?.cap} nextCap={bands?.next} name="EQ"
+        <EqBands compact bands={insert.bands || []} gainMax={EQ_GAIN} cap={bands?.cap} above={bands?.above} name="EQ"
           onChange={(list) => onChange({ ...insert, bands: list })} />
       )}
       {Object.entries(spec.params).map(([k, p]) => (

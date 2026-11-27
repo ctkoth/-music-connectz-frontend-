@@ -34,7 +34,8 @@ function TierUpgradePromptInner({ limit, current, userTier = "free",
   const valueFor = (t) => {
     const row = ladder.tiers[t] || {};
     if (limit === "char") return row.char_limit_unlimited ? Infinity : row.char_limit;
-    return row[limit];
+    const v = row[limit];
+    return v === null ? Infinity : v;   // the server sends null for "no cap on this plan"
   };
 
   const tiers = [
@@ -92,7 +93,7 @@ function TierUpgradePromptInner({ limit, current, userTier = "free",
           >
             <p className={`text-xs font-medium mb-1 ${tier.color}`}>{tier.name}</p>
             <p className="text-sm font-bold text-white">
-              {tier.limit === Infinity ? "Unlimited" : tier.limit.toLocaleString()}
+              {tier.limit === Infinity ? "Unlimited" : tier.limit == null ? "—" : tier.limit.toLocaleString()}
             </p>
             {tier.price && <p className="text-[10px] text-white/50 mt-1">{tier.price}</p>}
             {tier.current && <p className="text-[10px] text-white/55 mt-1">Your plan</p>}

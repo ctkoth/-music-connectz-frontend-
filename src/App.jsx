@@ -558,7 +558,7 @@ export function IconImg({ icon, alt = "", className = "", fallback = null }) {
 export const MINI_TOOLS = ["metz", "tunerz", "chordz", "sentenceconnectz"];
 export const canMini = () => true;
 // PaneZ — the split page. Every plan can split; how many times a day is the plan's (`split_opens`: Free 3,
-// Premium 6, StatZ unlimited, Corey's numbers), counted by the server (`/api/economy/panez/`). Swapping the app in a
+// Premium 6, StatZ 12, Corey's numbers), counted by the server (`/api/economy/panez/`). Swapping the app in a
 // split already open is not a new open. Mini panes are not counted.
 // Four, so a DAW can keep MetZ, TunerZ, ChordZ and Sentence ConnectZ open beside it at once.
 const MAX_MINIS = 4;

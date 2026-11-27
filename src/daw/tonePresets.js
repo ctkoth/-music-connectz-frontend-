@@ -1,7 +1,7 @@
 // Tone presets: a track's effect chain saved under a name ("My vocal") and put back on any track.
 //
 // The member's own presets live on the server (/api/economy/tonez/ — theirs on every device, and the
-// tier's ceiling: Free 3, Premium 6, StatZ unlimited). The STARTERS here are built-in voice chains to
+// tier's ceiling: Free 3, Premium 6, StatZ 12). The STARTERS here are built-in voice chains to
 // begin from: free, not counted, and made only of the built-in effects, so nothing here can sound any
 // different in the bounce than it does on the speakers.
 import { PLUGINS, cleanInserts, newInsert } from "./plugins.js";

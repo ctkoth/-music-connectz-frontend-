@@ -20,7 +20,7 @@ export const TIER_BLURB = {
 // [label, free, premium, statz] — a dash means the tier does not have it.
 // GATES only, and only the few the server's list (/api/economy/ladders/, drawn by LadderTable) does not
 // carry yet. Every NUMBER comes from the server — this table used to type them and drifted twice
-// ("1 free prompt", "40 MB", and DistributeZ "1 / month" after it moved to 3 / 6 / unlimited).
+// ("1 free prompt", "40 MB", and DistributeZ "1 / month" after it moved to 3 / 6 / 12).
 export const TIER_MATRIX = [
   ["PickConnectZ dock pins", "2", "Unlimited", "Unlimited"],
   ["LabelZ — create and run a label", "—", "Yes", "Yes"],

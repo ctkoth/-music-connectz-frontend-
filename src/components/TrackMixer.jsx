@@ -8,6 +8,7 @@ import { COMP, EQ_MAX, FLAT, HP, SPEEDS, cleanStrip, stripIsFlat, stripKey, stri
 import EqBands from "./EqBands.jsx";
 import { useTonePresets } from "../daw/TonePresets.jsx";
 import { presetRoom } from "../daw/tonePresets.js";
+import { upgradeWords } from "../tierCount.js";
 
 // Mix ConnectZ's multitrack section: every track's gain and pan, mute and solo, heard live while
 // they move, and "Suggest a balance", which measures the tracks and proposes a starting mix with a
@@ -162,7 +163,7 @@ const toLog = (f, lo, hi) => Math.log(f / lo) / Math.log(hi / lo);
 const fromLog = (x, lo, hi) => Math.round(lo * Math.pow(hi / lo, x));
 
 // A channel strip saved under a name ("My vocal strip") and put back on any track, in Mix ConnectZ on any
-// device: /api/economy/tonez/ kind "strip", its own 3 / 6 / unlimited room beside tones, FX and masters.
+// device: /api/economy/tonez/ kind "strip", its own room beside tones, FX and masters (Free 3, Premium 6, StatZ 12, served as `tone_presets`).
 // Applying one replaces this track's low cut, EQ and compressor; nothing is mastered until Master it.
 function StripPresets({ strip, onApply, name }) {
   const { state, failed, save, remove } = useTonePresets();
@@ -199,7 +200,7 @@ function StripPresets({ strip, onApply, name }) {
             onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) doSave(); if (e.key === "Escape") setSaving(false); }} />
           <button className="re-btn !w-auto px-2 text-xs" disabled={!title.trim() || (!same && !room.ok)} onClick={doSave}>{same ? "Update it" : "Save"}</button>
           <button className="re-link" onClick={() => setSaving(false)}>Cancel</button>
-          {!same && !room.ok && state && <span className="text-mcz-gold">Your plan keeps {state.limit} strips — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.</span>}
+          {!same && !room.ok && state && <span className="text-mcz-gold">Your plan keeps {state.limit} strips — update or delete one{upgradeWords(state.limit, state.ladder, "keeps") ? `, or ${upgradeWords(state.limit, state.ladder, "keeps")}` : ""}.</span>}
           {mine.map((p) => (
             <span key={p.id} className="flex items-center gap-1 rounded bg-white/5 px-1.5 text-white/70">
               <button title="Update this one" onClick={() => setTitle(p.name)}>{p.name}</button>
@@ -215,7 +216,7 @@ function StripPresets({ strip, onApply, name }) {
   );
 }
 
-function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
+function StripPanel({ t, i, onChange, pending, gr, bandCap, bandsAbove }) {
   const s = cleanStrip(t.strip);
   const set = (patch) => onChange(i, { strip: { ...s, ...patch } });
   const setComp = (patch) => set({ comp: { ...s.comp, ...patch } });
@@ -232,7 +233,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
             onDoubleClick={() => set({ hp: 0 })} />
         </label>
       </div>
-      <EqBands bands={s.bands} onChange={(bands) => set({ bands })} gainMax={EQ_MAX} cap={bandCap} nextCap={nextBandCap} name={name}
+      <EqBands bands={s.bands} onChange={(bands) => set({ bands })} gainMax={EQ_MAX} cap={bandCap} above={bandsAbove} name={name}
         note="The low cut above is a filter, not a band — it never counts." />
       <div className="space-y-1 border-t border-white/10 pt-2">
         <label className="flex items-center gap-2 text-[11px] text-white/70">
@@ -272,7 +273,7 @@ function StripPanel({ t, i, onChange, pending, gr, bandCap, nextBandCap }) {
   );
 }
 
-export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemove, onApply, cap, nextCap, bandCap, nextBandCap, busy }) {
+export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemove, onApply, cap, nextCap, bandCap, bandsAbove, busy }) {
   const input = useRef(null);
   const stripped = useStripped(tracks, sampleRate);
   const live = useLiveMix(tracks, stripped.sources, sampleRate);
@@ -351,7 +352,7 @@ export default function TrackMixer({ tracks, sampleRate, onChange, onAdd, onRemo
                   onDoubleClick={() => onChange(i, { pan: 0 })} />
               </label>
             </div>
-            {open[t.id] && <StripPanel t={t} i={i} onChange={onChange} pending={!!stripped.pending[t.id]} bandCap={bandCap} nextBandCap={nextBandCap}
+            {open[t.id] && <StripPanel t={t} i={i} onChange={onChange} pending={!!stripped.pending[t.id]} bandCap={bandCap} bandsAbove={bandsAbove}
               gr={stripped.sources[i]?.gr || null} />}
             {why?.[t.id] && <p className="text-[11px] text-emerald-300/80">{why[t.id]}</p>}
           </div>

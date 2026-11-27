@@ -1,4 +1,4 @@
-// Auto-trim (every plan; Free 3, Premium 6, StatZ unlimited lifts a day — the server counts): when a member logs a set on a different lift, any lift they started and
+// Auto-trim (every plan; Free 3, Premium 6, StatZ 12 lifts a day — the server counts): when a member logs a set on a different lift, any lift they started and
 // left part-done has its target trimmed to the sets they did — 3/5 reads 3/3. Pure, so it is tested under node.
 //
 // Rules, each one a way it could get it wrong:

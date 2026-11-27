@@ -9,6 +9,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import { IconImg, tabKeys, tabMeta } from '../App.jsx';
 import { readStore } from '../PickConnectZ.jsx';
 import { LAST_KEY, PINS_KEY, USAGE_KEY, hasOwnApps, rankApps, readSeeds, readChosen, writeChosen, toggleChosen } from '../yourApps.js';
+import { planWords } from '../tierCount.js';
 import { loadLimits } from '../limits.js';
 import { FOCUS_MODE, FOCUS_COACHES, FOCUS_COACH_PARENTS, FOCUS_PARENTS, FOCUS_SUPPORT, HOME_APPS, HOME_PARENTS, HOME_FEATURED } from '../focus.js';
 import './ToolZMenu.css';
@@ -388,14 +389,15 @@ function yourAppsNow() {
   return { apps: rankApps({ ...opts, limit: 8 }), own: hasOwnApps(opts) };
 }
 
-// Edit "Your apps": tick any app, up to the plan's count (Free 3, Premium 6, StatZ unlimited — the
-// served `imagez_layers`, the same count tracks and layers use). Free to do; nothing is charged.
+// Edit "Your apps": tick any app, up to the plan's count (the served `imagez_layers`, the same count
+// tracks and layers use). Free to do; nothing is charged.
 // Most-used apps still fill the rest of the row on their own.
 function EditYourApps({ chosen, onChange, onDone }) {
   const [cap, setCap] = useState(undefined);          // undefined = not loaded, null = unlimited
   const [q, setQ] = useState('');
   const [note, setNote] = useState('');
-  useEffect(() => { loadLimits().then((l) => setCap(l && 'imagez_layers' in l ? l.imagez_layers : 3)).catch(() => setCap(3)); }, []);
+  const [lim, setLim] = useState(null);   // the served /limits/ payload, for the plan words below
+  useEffect(() => { loadLimits().then((l) => { setLim(l); setCap(l && 'imagez_layers' in l ? l.imagez_layers : 3); }).catch(() => setCap(3)); }, []);
   const effCap = cap === undefined ? 3 : cap;         // never offer more than the lowest plan until the server answers
   const all = [...tabKeys()].filter((k) => k !== 'toolz').map((k) => ({ k, m: tabMeta(k) })).filter((x) => x.m)
     .sort((a, b) => String(a.m.label).localeCompare(String(b.m.label)));
@@ -411,7 +413,7 @@ function EditYourApps({ chosen, onChange, onDone }) {
         Pick your apps — {chosen.length}{effCap == null ? '' : ` of ${effCap}`} <span className="text-emerald-300">free to change</span>
       </p>
       <p style={{ fontSize: 12, opacity: 0.75, margin: '4px 0 8px' }}>
-        Free 3 · Premium 6 · StatZ unlimited. The apps you open most still fill the rest of the row.
+        {planWords(lim, 'imagez_layers') ? `Upgrade: ${planWords(lim, 'imagez_layers')}. ` : ''}The apps you open most still fill the rest of the row.
       </p>
       <input className="neon-input" placeholder="Search apps" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search apps" />
       {note && <p role="status" className="text-mcz-ember" style={{ fontSize: 12, margin: '6px 0' }}>{note}</p>}

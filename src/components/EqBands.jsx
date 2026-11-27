@@ -1,7 +1,8 @@
 // The band editor shared by TrackZ's channel strip and every DAW's EQ effect: one row per band (type,
 // frequency, gain, and width for a bell), "Add a band" while the plan has room, and the count beside it.
-// How many is the tier's (`eq_bands`: Free 3, Premium 6, StatZ unlimited — src/eqbands.js); an EQ already
-// over the count keeps every band and can still change or remove them, it just cannot add.
+// How many is the tier's (`eq_bands`, served: src/eqbands.js); an EQ already over the count keeps every
+// band and can still change or remove them, it just cannot add. `above` is the words for the plans above
+// the member, built from the served numbers (`bandsAbove`), so the line never names a number nobody sent.
 import { Lock, Plus, X } from "lucide-react";
 import { goToSpot } from "../goto.js";
 import { IN_SHELL } from "../standalone.js";
@@ -11,7 +12,7 @@ const toLog = (f) => Math.log(f / F.min) / Math.log(F.max / F.min);
 const fromLog = (x) => Math.round(F.min * Math.pow(F.max / F.min, x));
 const sdb = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(Number(v)).toFixed(1)} dB`;
 
-export default function EqBands({ bands, onChange, gainMax = 12, cap, nextCap, name = "EQ", note = "", compact = false }) {
+export default function EqBands({ bands, onChange, gainMax = 12, cap, above = "", name = "EQ", note = "", compact = false }) {
   const room = bandRoom(bands.length, cap);
   const set = (i, patch) => onChange(bands.map((b, k) => (k === i ? { ...b, ...patch } : b)));
   return (
@@ -61,7 +62,7 @@ export default function EqBands({ bands, onChange, gainMax = 12, cap, nextCap, n
           <span className="flex flex-wrap items-center gap-1 text-mcz-gold">
             <Lock size={12} />
             {cap != null && bands.length > cap ? `${bands.length} bands, over your plan's ${cap}: every one keeps playing; remove some to add new ones` : `${cap ?? bands.length} bands is ${cap != null ? "your plan's limit" : "the most an EQ holds"}`}
-            {cap != null && (nextCap ? ` — Premium has ${nextCap}, StatZ unlimited.` : " — StatZ is unlimited.")}
+            {cap != null && above ? ` — ${above}.` : null}
             {cap != null && !IN_SHELL && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>}
           </span>
         )}
