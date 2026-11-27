@@ -1,7 +1,7 @@
 import InspirationRef from "../components/InspirationRef.jsx";
 import SelectAllBar from "../components/SelectAllBar.jsx";
 import PriorityDials, { usePriorityInfo } from "../components/PriorityDials.jsx";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { playSound } from "../sound.js";
 import { Copy, Download, Flag, Loader2, PenLine, Star } from "lucide-react";
 import { api } from "../api.js";
@@ -12,6 +12,10 @@ import { useCharLimit } from "../limits.js";
 import { IconImg } from "../App.jsx";
 import { IN_SHELL } from "../standalone.js";
 import SpeakingIn from "../components/SpeakingIn.jsx";
+import { useWorkSave } from "../workSave.js";
+import WorkSaveBar from "../components/WorkSaveBar.jsx";
+import { readDevice } from "../workSaveCore.js";
+import { savePiecePdf } from "../pieceDocument.js";
 import SentenceInspiration from "../components/SentenceInspiration.jsx";
 import UseIn from "../components/UseIn.jsx";
 import RunPrice from "../components/RunPrice.jsx";
@@ -196,22 +200,24 @@ export default function SentenceConnectZ() {
   const [s, setS] = useState(null);
   const [err, setErr] = useState("");
   const [cutBy, setCutBy] = useState(0);
-  const [kind, setKind] = useState(IN_SHELL ? "resume" : "lyrics");
-  const [topic, setTopic] = useState("");
-  const [genre, setGenre] = useState("");
+  // What the form held when it was last changed on this device (src/workSave.js): put back at once, so a reload keeps it.
+  const [keptForm] = useState(() => readDevice("sentenceconnectz", "form")?.data || {});
+  const [kind, setKind] = useState(() => (typeof keptForm.kind === "string" ? keptForm.kind : IN_SHELL ? "resume" : "lyrics"));
+  const [topic, setTopic] = useState(() => String(keptForm.topic || ""));
+  const [genre, setGenre] = useState(() => String(keptForm.genre || ""));
   const [tags, setTags] = useRemembered("promo-hashtags", "");
   const [majority, setMajority] = useState(2);
   const [minority, setMinority] = useState(1);
   const [busy, setBusy] = useState(false);
   const [work, setWork] = useState(null);
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => String(keptForm.draft || ""));
   const [royalty, setRoyalty] = useState(null);
   const [copied, setCopied] = useState(false);
   const [items, setItems] = useState(null);      // a fixer's ranked suggestions
   const [picked, setPicked] = useState([]);      // which of them the member is using
   const [hidden, setHidden] = useState(false);   // the suggestions, minimised
-  const [fixFactors, setFixFactors] = useState([]);   // Fix my lyrics: only these change
-  const [goal, setGoal] = useState("");                 // the inspiration's principles, applied to the member's own lyrics
+  const [fixFactors, setFixFactors] = useState(() => (Array.isArray(keptForm.fixFactors) ? keptForm.fixFactors.map(String) : []));   // Fix my lyrics: only these change
+  const [goal, setGoal] = useState(() => String(keptForm.goal || ""));                 // the inspiration's principles, applied to the member's own lyrics
   const [fixNotes, setFixNotes] = useState({});       // what Inspiration said about each, if it came from there
   const timer = useRef(null);
 
@@ -265,9 +271,23 @@ export default function SentenceConnectZ() {
   }, [draft, work]);
 
   const prioInfo = usePriorityInfo();
-  const [prio, setPrio] = useState({});
+  const [prio, setPrio] = useState(() => (keptForm.prio && typeof keptForm.prio === "object" ? keptForm.prio : {}));
   const dialsHere = !!prioInfo?.writing_kinds?.includes(kind);
   const [insp, setInsp] = useState(null);
+  // StatZ keeps what is being written on the account too (src/workSave.js). Off in the standalone shell: that build sends
+  // nothing it did not already send, and a draft is more than the writer's own answer.
+  const kept = useMemo(() => ({ kind, topic, genre, goal, fixFactors, draft, prio }), [kind, topic, genre, goal, fixFactors, draft, prio]);
+  const nothingYet = !topic && !genre && !goal && !draft && !fixFactors.length;
+  const keeping = useWorkSave({
+    app: "sentenceconnectz", wid: "form", active: !IN_SHELL, data: nothingYet ? null : kept,
+    apply: (d) => {
+      if (typeof d.kind === "string" && (s?.kinds || []).some((k) => k.key === d.kind)) setKind(d.kind);
+      setTopic(String(d.topic || "")); setGenre(String(d.genre || "").slice(0, 60)); setGoal(String(d.goal || ""));
+      setFixFactors(Array.isArray(d.fixFactors) ? d.fixFactors.map(String) : []);
+      setDraft(String(d.draft || ""));
+      if (d.prio && typeof d.prio === "object") setPrio(d.prio);
+    },
+  });
   const inspHere = !!prioInfo?.reference?.writer_kinds?.includes(kind);
 
   async function write() {
@@ -351,6 +371,7 @@ export default function SentenceConnectZ() {
       )}
 
       <div className="neon-frame space-y-4 p-4" data-tour="sentencez-write">
+        <WorkSaveBar work={keeping} what="writing" />
         <div className="flex flex-wrap gap-2" role="group" aria-label="What to write">
           {kinds.map((k) => (
             <button
@@ -505,6 +526,9 @@ export default function SentenceConnectZ() {
             <button className="re-btn !w-auto px-4" onClick={() => {
               navigator.clipboard?.writeText(draft).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
             }}><Copy size={14} /> {copied ? "Copied" : "Copy"}</button>
+            <button className="re-btn !w-auto px-4" onClick={() => { if (!savePiecePdf({ title: work.label, text: draft })) setErr("Allow pop-ups for this site, then press Save as PDF again."); }}>
+              📄 Save as PDF
+            </button>
             <button className="re-btn !w-auto px-4" onClick={() => download(`${work.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.txt`, draft)}>
               <Download size={14} /> Save as text
             </button>

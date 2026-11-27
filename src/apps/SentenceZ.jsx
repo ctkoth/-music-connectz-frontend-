@@ -8,6 +8,10 @@
 import { useEffect, useState } from "react";
 import { Loader2, PenLine } from "lucide-react";
 import { api } from "../api.js";
+import { useWorkSave } from "../workSave.js";
+import WorkSaveBar from "../components/WorkSaveBar.jsx";
+import { readDevice } from "../workSaveCore.js";
+import { savePiecePdf } from "../pieceDocument.js";
 import { handOff } from "../handoff.js";
 import { PROMPTZ } from "../resources.js";
 import { Price } from "../components/Price.jsx";
@@ -19,10 +23,15 @@ import Doors from "../components/Doors.jsx";
 export default function SentenceZ() {
   const [s, setS] = useState(null);
   const [loadErr, setLoadErr] = useState("");
-  const [title, setTitle] = useState("");
-  const [text, setText] = useState("");
+  // What the editor held when it was last changed on this device (src/workSave.js): put back at once, so a reload keeps it.
+  const [keptText] = useState(() => readDevice("sentencez", "lyrics")?.data || {});
+  const [title, setTitle] = useState(() => String(keptText.title || ""));
+  const [text, setText] = useState(() => String(keptText.text || ""));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  // StatZ keeps the lyrics on the account too (src/workSave.js). A restored copy puts them back in the editor.
+  const keeping = useWorkSave({ app: "sentencez", wid: "lyrics", name: title, data: text.trim() || title.trim() ? { title, text } : null,
+    apply: (d) => { setTitle(String(d.title || "")); setText(String(d.text || "")); } });
   const [res, setRes] = useState(null);
   const ae = useAiEnergy();
 
@@ -57,12 +66,14 @@ export default function SentenceZ() {
       </div>
 
       <div className="re-card space-y-2" data-tour="sentencez-editor">
+        <WorkSaveBar work={keeping} what="lyrics" />
         <input className="neon-input !py-2 text-sm" placeholder="Title (optional)" maxLength={120}
                value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title" />
         <textarea className="neon-input min-h-[14rem] font-mono text-sm" placeholder="Write or paste your lyrics…"
                   value={text} onChange={(e) => setText(e.target.value)} aria-label="Lyrics" />
         <p className={`text-[11px] ${over ? "text-mcz-ember" : "text-white/50"}`}>{text.length.toLocaleString()} / {s.max_chars.toLocaleString()}</p>
         <div className="flex flex-wrap items-center gap-2">
+          <button className="re-btn !w-auto px-4" disabled={!text.trim()} onClick={() => { if (!savePiecePdf({ title, text })) setMsg("Allow pop-ups for this site, then press Save as PDF again."); }}>📄 Save as PDF</button>
           <button className="neon-btn-primary !w-auto px-5" disabled={busy || !text.trim() || over || !s.configured || !s.affordable} onClick={score}>
             {busy ? <Loader2 size={15} className="animate-spin" /> : <PenLine size={15} />} Score my writing
           </button>

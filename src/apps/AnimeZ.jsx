@@ -11,6 +11,8 @@ import { IconImg } from "../App.jsx";
 import { goToSpot } from "../goto.js";
 import { handOff, onHandoff } from "../handoff.js";
 import { MAX_SCENES, SECONDS, cleanScenes, moveScene, sceneFromVideo, scenesFromPage, toVideoItems, totalSeconds } from "../anime/scenes.js";
+import { useWorkSave } from "../workSave.js";
+import WorkSaveBar from "../components/WorkSaveBar.jsx";
 
 const KEY = "mcz_animez_episode";
 const mmss = (s) => `${Math.floor(s / 3600) ? `${Math.floor(s / 3600)}:` : ""}${String(Math.floor((s % 3600) / 60)).padStart(Math.floor(s / 3600) ? 2 : 1, "0")}:${String(Math.round(s % 60)).padStart(2, "0")}`;
@@ -25,6 +27,10 @@ export default function AnimeZ() {
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(ep)); setStored(true); } catch { setStored(false); }
   }, [ep]);
+  // StatZ keeps the episode on the account too (src/workSave.js). A restored copy puts its scenes back on this screen.
+  const blank = ep.scenes.length === 0 && ep.title === "My episode";
+  const work = useWorkSave({ app: "animez", wid: "episode", data: blank ? null : ep, name: ep.title,
+    apply: (d) => setEp({ title: String(d.title || "My episode"), scenes: cleanScenes(d.scenes) }) });
   useEffect(() => {
     api("/api/economy/mangaz/").then((d) => setPages(d.pages || [])).catch(() => setPages([]));
     api("/api/economy/animez/").then((d) => setPieces((d.works || []).filter((w) => w.status === "done" && w.video_url))).catch(() => setPieces([]));
@@ -58,6 +64,7 @@ export default function AnimeZ() {
           <span className="text-emerald-300"> Free</span>, on your device.
         </p>
         {!stored && <p className="text-[11px] text-mcz-gold">This browser isn't keeping it (private window or blocked site data) — it lasts until the tab closes.</p>}
+        <WorkSaveBar work={work} what="episode" />
       </div>
 
       <div className="re-card space-y-2" data-tour="animez-add">
