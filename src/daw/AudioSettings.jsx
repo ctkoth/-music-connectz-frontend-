@@ -30,6 +30,8 @@ export default function AudioSettings({ daw, onUseInput }) {
   };  const stream = useRef(null);
   const meter = useRef(null);
   const raf = useRef(0);
+  // Every start and stop takes a number: a mic that finishes opening after a newer pick (or a Stop) is closed, not kept.
+  const attempt = useRef(0);
   // Open (and bring into view) when a track's level bar is tapped, and remember the chosen output on this device.
   useEffect(() => {
     const f = () => { if (box.current) { box.current.open = true; box.current.scrollIntoView({ block: "center", behavior: "smooth" }); } };
@@ -44,17 +46,22 @@ export default function AudioSettings({ daw, onUseInput }) {
   useEffect(() => { list(); navigator.mediaDevices?.addEventListener?.("devicechange", list); return () => navigator.mediaDevices?.removeEventListener?.("devicechange", list); }, [list]);
 
   const stop = useCallback(() => {
+    attempt.current += 1;
     cancelAnimationFrame(raf.current); daw.monitorOff(); meter.current?.stop(); meter.current = null;
     stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null;
     setOn(false); setMon(false);
   }, [daw]);
   useEffect(() => stop, [stop]);
 
-  const start = async () => {
+  // `dev` is the mic to open: the one picked, or "" for the system default.
+  const start = async (dev = input) => {
     setErr("");
+    stop();
+    const mine = attempt.current;
     try {
-      stop();
-      stream.current = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: input ? { exact: input } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      const s = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: dev ? { exact: dev } : undefined, echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (mine !== attempt.current) { s.getTracks().forEach((t) => t.stop()); return; }   // a newer pick, or Stop, came first
+      stream.current = s;
       meter.current = daw.inputMeter(stream.current);
       setOn(true); list();                       // labels only appear once the mic has been allowed
       let held = FLOOR_DB, last = performance.now();
@@ -66,6 +73,7 @@ export default function AudioSettings({ daw, onUseInput }) {
       };
       prevClip.current = false; raf.current = requestAnimationFrame(tick);
     } catch (e) {
+      if (mine !== attempt.current) return;   // superseded: its outcome stands, not this one's error
       setErr(e?.name === "NotAllowedError" ? "The browser blocked the microphone. Allow it for this site, then try again."
         : e?.name === "NotFoundError" ? "No microphone was found on this device."
         : e?.name === "NotReadableError" ? "Another app is holding that input (Zoom, Teams, OBS, another tab). Close it and try again." : (e?.message || "Couldn't open that input."));
@@ -84,6 +92,15 @@ export default function AudioSettings({ daw, onUseInput }) {
     try { await daw.monitorOn(stream.current); setMon(true); setLat(latencyMs(daw.context())); } catch (e) { setErr(e?.message || "Couldn't start monitoring."); }
   };
 
+  // Changing the mic is allowed at any time except mid-take (a take keeps the mic it started on). While checking, the meter moves
+  // to the new mic at once, so what you hear the level from is the mic you picked, without pressing Check level again.
+  const pickInput = (dev) => {
+    setErr("");
+    if (daw.isRecording()) { setErr("Stop recording first: the take is using the mic it started on."); return; }
+    setInput(dev);
+    onUseInput?.(dev);
+    if (on) start(dev);
+  };
   const a = levelAdvice(lvl.held, lvl.clipped);
   return (
     <details ref={box} className="basis-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="daw-audio-settings">
@@ -91,9 +108,9 @@ export default function AudioSettings({ daw, onUseInput }) {
       <div className="mt-2 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1 text-white/60"><Mic size={11} /> Input
-            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={input} aria-label="Input device" disabled={on} onChange={(e) => { setInput(e.target.value); onUseInput?.(e.target.value); }}>
+            <select className="neon-input !w-auto !py-1" data-nomemo="true" value={input} aria-label="Input device" onChange={(e) => pickInput(e.target.value)}>
               <option value="">System default</option>
-              {inputs.map((d, i) => <option key={d.deviceId} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
+              {inputs.map((d, i) => <option key={d.deviceId || `input-${i}`} value={d.deviceId}>{d.label || `Input ${i + 1}`}</option>)}
             </select>
           </label>
           <span className="text-white/60">Output is the 🎧 menu beside the transport.</span>
@@ -115,9 +132,9 @@ export default function AudioSettings({ daw, onUseInput }) {
               : "Plays a short tone through your chosen output, so you can tell a silent output from a silent mix."}
           </span>
         </div>
-        <p className="text-white/50">Choosing an input here sets it on every armed track, and each track can still take its own from its input menu. Armed tracks show a live level bar, so you can see the mic is heard before you record.</p>
+        <p className="text-white/50">Choosing an input here sets it on every armed track, and each track can still take its own from its input menu. Changing it while checking moves the check to that mic. Armed tracks show a live level bar, so you can see the mic is heard before you record.</p>
         <div className="flex flex-wrap items-center gap-2">
-          {!on ? <button type="button" className="re-btn !w-auto px-3" onClick={start}><Mic size={12} /> Check level</button>
+          {!on ? <button type="button" className="re-btn !w-auto px-3" onClick={() => start()}><Mic size={12} /> Check level</button>
                 : <button type="button" className="re-btn !w-auto px-3" onClick={stop}>Stop checking</button>}
           {on && <button type="button" aria-pressed={mon} className={`rounded-lg border px-2 py-1 ${mon ? "border-mcz-cyan bg-mcz-cyan/20 text-white" : "border-white/15 text-white/60"}`} onClick={toggleMon}>
             🎧 Hear myself {mon ? "on" : "off"}</button>}
