@@ -6,7 +6,7 @@
 // hear. Outputs can only be chosen where the browser allows it (Chrome and Edge); the screen says when it does not.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, Volume2 } from "lucide-react";
-import { FLOOR_DB, LATENCY_MODES, holdPeak, latencyMs, levelAdvice, levelFromSamples, meterPos } from "./audioIO.js";
+import { FLOOR_DB, LATENCY_MODES, holdPeak, latencyMs, levelAdvice, levelFromSamples, meterPos, outputNameFor } from "./audioIO.js";
 
 const TONE = { clip: "bg-red-500", hot: "bg-amber-400", good: "bg-emerald-400", low: "bg-sky-400", silent: "bg-white/30" };
 
@@ -87,7 +87,11 @@ export default function AudioSettings({ daw, onUseInput }) {
   const prevClip = useRef(false);
   const test = async () => {
     setErr("");
-    try { setInfo(await daw.testTone()); } catch (e) { setErr(e?.message || "Couldn't play the test sound."); }
+    try {
+      const i = await daw.testTone();
+      const outs = ((await navigator.mediaDevices?.enumerateDevices?.().catch(() => [])) || []).filter((d) => d.kind === "audiooutput");
+      setInfo({ ...i, to: outputNameFor(outs, daw.context().sinkId || "") });
+    } catch (e) { setErr(e?.message || "Couldn't play the test sound."); }
   };
 
   const toggleMon = async () => {
@@ -131,7 +135,7 @@ export default function AudioSettings({ daw, onUseInput }) {
           <button type="button" className="re-btn !w-auto px-3" onClick={test}><Volume2 size={12} /> 🔊 Test sound</button>
           <span className="text-white/60">
             {info ? (info.state === "running"
-              ? `Played a tone through the audio engine (${info.rate} Hz${info.latencyMs ? `, about ${info.latencyMs} ms delay` : ""}). Did you hear it? If not, it's the output device or the volume, not the app.`
+              ? `Played a tone to ${info.to || "your output"}, at ${info.rate} Hz${info.latencyMs ? `, about ${info.latencyMs} ms delay` : ""}. Did you hear it? If not, it's the output device or the volume, not the app.`
               : `The audio engine is ${info.state}: the browser is holding audio until you click something on the page. Press Test sound again.`)
               : "Plays a short tone through your chosen output, so you can tell a silent output from a silent mix."}
           </span>
