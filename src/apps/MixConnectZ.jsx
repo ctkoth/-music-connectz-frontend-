@@ -15,6 +15,7 @@ import { dbToGain } from "../mastering/dsp.js";
 import { decodeFile, run, toAudioBuffer, saveBlob, slug, MAX_SECONDS } from "../mastering/client.js";
 import { guessRole, needsMix, trackRoom } from "../mastering/multitrack.js";
 import { loadLimits } from "../limits.js";
+import { listStemBatches, loadStemBatch, removeStems } from "../daw/store.js";
 import TrackMixer from "../components/TrackMixer.jsx";
 import { bandCap, bandsAbove } from "../eqbands.js";
 import MasterPresets from "../components/MasterPresets.jsx";
@@ -228,6 +229,8 @@ export default function MixConnectZ() {
   const [songCtl, setSongCtl] = useState({ role: "beat", gainDb: 0, pan: 0, mute: false, solo: false });
   const [extra, setExtra] = useState([]);
   const [stemNote, setStemNote] = useState("");
+  const [stemBatch, setStemBatch] = useState(null);   // the kept batch these stems came from (null: not kept)
+  const [kept, setKept] = useState([]);              // stems kept on this device, newest first
   const [lim, setLim] = useState(null);
   useEffect(() => { loadLimits().then(setLim).catch(() => {}); }, []);
   const trackCap = lim && "imagez_layers" in lim ? lim.imagez_layers : undefined;
@@ -242,36 +245,65 @@ export default function MixConnectZ() {
     .catch((e) => setLoadErr(e.message || "Your saved masters couldn't be loaded."));
   useEffect(() => { load(); }, []);
 
+  // Stems from the DAW: the first is the song (track 1); the rest arrive as TrackZ tracks at 0 dB and centre, exactly as they
+  // sounded in the DAW, up to the tier's track count. A stem is { title, blob } when it is kept on this device, or { title, url }
+  // when it is still in the tab that made it.
+  async function loadStems(stems, { title, of, batch = null, notKept = false }) {
+    setErr(""); setStemNote("");
+    const l = await loadLimits().catch(() => null);
+    const cap = l && "imagez_layers" in l ? l.imagez_layers : null;
+    const list = cap == null ? stems : stems.slice(0, cap);
+    const get = async (st) => {
+      if (st.blob) return st.blob.arrayBuffer();
+      const r = await fetch(st.url);
+      if (!r.ok) throw new Error(`${st.title} couldn't be read (${r.status}).`);
+      return r.arrayBuffer();
+    };
+    await open(await get(list[0]), list[0].title);
+    const rest = [];
+    for (const st of list.slice(1)) {
+      setBusy(`Reading ${st.title}`);
+      const d = await decodeFile(await get(st));
+      rest.push({ id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: st.title, channels: d.channels, sampleRate: d.sampleRate,
+        role: guessRole(st.title), gainDb: 0, pan: 0, mute: false, solo: false });
+    }
+    setExtra(rest);
+    setStemBatch(batch);
+    const total = of || stems.length;
+    setStemNote(`${list.length} stems from ${title || "your session"}, each at 0 dB and centre — together they are exactly your DAW mix. Rebalance them below, then master.${list.length < total ? ` Your plan mixes ${cap} tracks, so ${total - list.length} stayed in the DAW.` : ""}${notKept ? " They're only in this tab for now: save the master before you reload." : ""}`);
+    refreshKept();
+  }
+  // Stems kept on this device (src/daw/store.js), listed here so a reload or a closed tab is never the end of them.
+  const refreshKept = () => { listStemBatches().then(setKept).catch(() => {}); };
+  // A kept batch opens the same way a handoff from the DAW does: its audio is read from this device.
+  async function loadKept(id) {
+    setErr("");
+    try {
+      const b = await loadStemBatch(id);
+      if (!b) { setErr("Those stems are no longer on this device — send them again from the DAW."); refreshKept(); return; }
+      await loadStems(b.stems, { title: b.session, of: b.of, batch: id });
+    } catch (e) { setErr(e.message); } finally { setBusy(""); }
+  }
+  async function removeKept(id) {
+    if (!window.confirm("Remove these stems from this device? A mix you have already loaded stays as it is.")) return;
+    try { await removeStems(id); if (stemBatch === id) setStemBatch(null); } catch (e) { setErr(e.message); }
+    refreshKept();
+  }
+  useEffect(() => { listStemBatches().then(setKept).catch(() => {}); }, []);
+
   // A track handed over from another app (a post's audio) arrives as a URL — and, from Inspiration, the
   // song to sound like as `reference`, which becomes the Match reference target exactly as if it had been
   // picked here. Each half reports its own failure: a reference that won't load must not hide the song.
   useEffect(() => onHandoff("mixconnectz", async (p) => {
-    // Stems from a DAW: the first is the song (track 1), the rest arrive as TrackZ tracks at 0 dB and
-    // centre — exactly how they sounded in the DAW — up to the tier's track count.
-    if (p?.stems?.length) {
+    // Stems from a DAW: kept on this device (a batch id), or still in the tab that made them when they could not be kept.
+    if (p?.batch || p?.stems?.length) {
       try {
-        setErr(""); setStemNote("");
-        const l = await loadLimits().catch(() => null);
-        const cap = l && "imagez_layers" in l ? l.imagez_layers : null;
-        const list = cap == null ? p.stems : p.stems.slice(0, cap);
-        const get = async (st) => {
-          const r = await fetch(st.url);
-          if (!r.ok) throw new Error(`${st.title} couldn't be read (${r.status}).`);
-          return r.arrayBuffer();
-        };
-        await open(await get(list[0]), list[0].title);
-        const rest = [];
-        for (const st of list.slice(1)) {
-          setBusy(`Reading ${st.title}`);
-          const d = await decodeFile(await get(st));
-          rest.push({ id: `t${Date.now()}${Math.random().toString(36).slice(2, 6)}`, name: st.title, channels: d.channels, sampleRate: d.sampleRate,
-            role: guessRole(st.title), gainDb: 0, pan: 0, mute: false, solo: false });
-        }
-        setExtra(rest);
-        const total = p.of || p.stems.length;
-        setStemNote(`${list.length} stems from ${p.title || "your session"}, each at 0 dB and centre — together they are exactly your DAW mix. Rebalance them below, then master.${list.length < total ? ` Your plan mixes ${cap} tracks, so ${total - list.length} stayed in the DAW.` : ""}`);
+        const batch = p.batch ? await loadStemBatch(p.batch) : null;
+        if (p.batch && !batch) throw new Error("gone");
+        await loadStems(batch ? batch.stems : p.stems, { title: p.title, of: p.of, batch: p.batch || null, notKept: p.kept === false });
       } catch (e) {
-        setErr(/fetch|Failed/i.test(e.message) ? "The stems were made in a tab that has since reloaded, so they're gone — send them again from the DAW." : e.message);
+        setErr(e.message === "gone" ? "Those stems are no longer on this device — send them again from the DAW."
+          : /fetch|Failed/i.test(e.message) ? "The stems were made in a tab that has since reloaded, so they're gone — send them again from the DAW." : e.message);
       } finally { setBusy(""); }
       return;
     }
@@ -551,6 +583,23 @@ export default function MixConnectZ() {
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) open(f, f.name); }} />
           <span className="text-[11px] text-white/60">WAV, FLAC, MP3, M4A or OGG, up to {MAX_SECONDS / 60} minutes. Master from your final mix, not from an earlier master.</span>
         </div>
+
+        {/* Kept from the DAW, so this is shown whether or not a song is loaded: a reload leaves no song, and that is the case it is for. */}
+        {kept.length > 0 && (
+          <div className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs" data-tour="mixz-kept-stems">
+            <p className="font-semibold text-white">🎚️ Stems kept on this device</p>
+            <p className="text-white/60">Sent from the DAW. They stay here until you remove them, so a reload doesn't lose them. Free: they use this device's storage, not your FileZ space.{kept.some((b) => !b.persisted) ? " This browser may clear them if it runs short of disk space." : ""}</p>
+            <ul className="mt-2 space-y-1">
+              {kept.map((b) => (
+                <li key={b.id} className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate text-white/80">{b.session || "Untitled session"} · {b.count} {b.count === 1 ? "track" : "tracks"} · {new Date(b.sentAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
+                  <button type="button" className="re-btn !w-auto px-3" disabled={!!busy} onClick={() => loadKept(b.id)}>Load into Mix</button>
+                  <button type="button" className="rounded px-2 py-1 text-white/60 hover:text-mcz-ember disabled:opacity-40" disabled={!!busy} onClick={() => removeKept(b.id)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {song && (
           <p className="text-sm text-white/70">

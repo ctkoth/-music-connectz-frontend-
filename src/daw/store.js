@@ -9,7 +9,7 @@
 // A session may also be kept on the member's account (cloud.js), opt-in per session. That choice and which
 // upload holds each sound live on the session's own row as `cloud`, so removing the row forgets them.
 const DB = "mcz-dawz";
-const VERSION = 1;
+const VERSION = 2;   // 2 adds the stems kept for Mix ConnectZ (keepStems below)
 
 function open() {
   return new Promise((resolve, reject) => {
@@ -19,9 +19,16 @@ function open() {
       const db = req.result;
       if (!db.objectStoreNames.contains("sessions")) db.createObjectStore("sessions", { keyPath: "id" });
       if (!db.objectStoreNames.contains("sources")) db.createObjectStore("sources", { keyPath: "id" });
+      if (!db.objectStoreNames.contains("stems")) db.createObjectStore("stems", { keyPath: "key" }).createIndex("batch", "batch");
+      if (!db.objectStoreNames.contains("stemBatches")) db.createObjectStore("stemBatches", { keyPath: "id" });
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error || new Error("Couldn't open this device's storage."));
+    // Blocked means another tab still holds the older version open. That usually clears in a moment, so wait a little before
+    // saying so; and if it clears after we have said so, the connection that finally opens is closed rather than kept.
+    let settled = false;
+    const settle = (fn) => { if (!settled) { settled = true; fn(); } };
+    req.onblocked = () => setTimeout(() => settle(() => reject(new Error("Close the other tabs of this app and reload, so this device's storage can update."))), 3000);
+    req.onsuccess = () => { if (settled) { req.result.close(); return; } settled = true; resolve(req.result); };
+    req.onerror = () => settle(() => reject(req.error || new Error("Couldn't open this device's storage.")));
   });
 }
 
@@ -62,6 +69,48 @@ export async function removeSession(id) {
 
 export const putSource = (id, blob) => run("sources", "readwrite", (os) => req(os.put({ id, blob })));
 export const getSource = (id) => run("sources", "readonly", (os) => req(os.get(id))).then((row) => row?.blob || null);
+
+// Stems the DAW sends to Mix ConnectZ, kept on THIS device until the member removes them. They are rendered tracks, not a
+// session, and until now lived only as in-tab blobs, so a reload or a closed tab lost them. A batch is listed only once every
+// stem in it is stored (stems first, the batch row last); a save that fails part way removes what it wrote.
+
+/** Ask the browser not to clear this site's storage to make room. True when it agreed. */
+export async function askToKeep() {
+  try { return !!(await navigator.storage?.persist?.()); } catch { return false; }
+}
+
+/** Keep a batch of rendered stems, [{ title, blob }], under `id`. Resolves once the whole batch is on the device. */
+export async function keepStems(id, { session = "", of = 0, stems, persisted = false }) {
+  try {
+    for (const [index, st] of stems.entries()) {
+      await run("stems", "readwrite", (os) => req(os.put({ key: `${id}:${index}`, batch: id, index, title: st.title, blob: st.blob })));
+    }
+    await run("stemBatches", "readwrite", (os) => req(os.put({ id, session, of: of || stems.length, count: stems.length, sentAt: Date.now(), persisted })));
+  } catch (e) {
+    await removeStems(id).catch(() => {});
+    throw e;
+  }
+  return id;
+}
+
+/** Batches kept on this device, newest first. Metadata only: no audio is read to list them. */
+export const listStemBatches = () => run("stemBatches", "readonly", (os) => req(os.getAll()))
+  .then((rows) => (rows || []).sort((a, b) => b.sentAt - a.sentAt));
+
+/** One kept batch, with its stems in the order they were sent. Null when it is no longer on this device. */
+export async function loadStemBatch(id) {
+  const meta = await run("stemBatches", "readonly", (os) => req(os.get(id)));
+  if (!meta) return null;
+  const rows = await run("stems", "readonly", (os) => req(os.index("batch").getAll(id)));
+  return { ...meta, stems: (rows || []).sort((a, b) => a.index - b.index).map((r) => ({ title: r.title, blob: r.blob })) };
+}
+
+/** Remove a kept batch and its audio. */
+export async function removeStems(id) {
+  const keys = await run("stems", "readonly", (os) => req(os.index("batch").getAllKeys(id)));
+  if (keys?.length) await run("stems", "readwrite", (os) => Promise.all(keys.map((k) => req(os.delete(k)))));
+  await run("stemBatches", "readwrite", (os) => req(os.delete(id)));
+}
 
 /** Delete stored audio no saved session points at any more. */
 export async function sweepSources() {

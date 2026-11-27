@@ -75,7 +75,7 @@ import AudioSettings from "./AudioSettings.jsx";
 import OutputPick from "./OutputPick.jsx";
 import { holdPeak, latencyMs, levelFromSamples, meterPos } from "./audioIO.js";
 import { GENRES, GENRE_GROUPS } from "../genres.js";
-import { getSource, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
+import { askToKeep, getSource, keepStems, listSessions, loadSession, putSource, removeSession, saveSession } from "./store.js";
 import { listCloud, pullSession, removeCloud, sizeToSend, syncSession } from "./cloud.js";
 import { mb, mergeLists, originNote } from "./cloudList.js";
 
@@ -1208,6 +1208,7 @@ export default function Workspace({ workflow }) {
   const sendStems = async () => {
     setErr("");
     const list = stemCap == null ? stemTracks : stemTracks.slice(0, stemCap);
+    if (!list.length) { setErr("No track has audio to send."); return; }
     const stems = [];
     try {
       for (const [i, t] of list.entries()) {
@@ -1215,9 +1216,21 @@ export default function Workspace({ workflow }) {
         const cur = sRef.current;
         const solo = { ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: x.id === t.id, mute: x.id === t.id ? false : x.mute })) };
         const buf = await daw.bounce(solo);
-        stems.push({ url: URL.createObjectURL(daw.toWav(buf, 24)), title: `${t.name}.wav` });
+        stems.push({ title: `${t.name}.wav`, blob: daw.toWav(buf, 24) });
       }
-      handOff("mixconnectz", "mixz-tracks", { stems, title: session.name, of: stemTracks.length });
+      // Kept on this device before they are handed over, so a reload or a closed tab cannot take them. Mix ConnectZ opens them
+      // from here, and they stay there until the member removes them.
+      setBusy("Keeping the stems on this device…");
+      const batch = uid("stems");
+      const persisted = await askToKeep();
+      try {
+        await keepStems(batch, { session: session.name, of: stemTracks.length, stems, persisted });
+        handOff("mixconnectz", "mixz-tracks", { batch, title: session.name, of: stemTracks.length });
+      } catch (e) {
+        // Not kept (the device is full, or this is a private window): hand them over from this tab as before, and say so.
+        handOff("mixconnectz", "mixz-tracks", { stems: stems.map((st) => ({ url: URL.createObjectURL(st.blob), title: st.title })), title: session.name, of: stemTracks.length, kept: false });
+        setStoreErr(`The stems couldn't be kept on this device (${e.message}). They're in Mix ConnectZ, but a reload before you've saved the master loses them.`);
+      }
     } catch (e) { setErr(e.message); } finally { setBusy(""); }
   };
 
@@ -1843,7 +1856,8 @@ export default function Workspace({ workflow }) {
         )}
         {stemTracks.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="re-btn !w-auto px-3" disabled={!!busy || recording} onClick={sendStems} data-tour="daw-stems">
+            <button type="button" className="re-btn !w-auto px-3" disabled={!!busy || recording} onClick={sendStems} data-tour="daw-stems"
+              title="Kept on this device until you remove them in Mix ConnectZ. Free: it uses this device's storage, not your FileZ space.">
               🎚️ Send {stemCap != null && stemTracks.length > stemCap ? `${stemCap} of ${stemTracks.length}` : stemTracks.length} tracks to Mix ConnectZ as stems
             </button>
             <span className="text-white/55">
