@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import KeyBadge from "../components/KeyBadge.jsx";
 import { detectKeyFromChannels } from "../songKey.js";
 import { detectTempoFromChannels } from "../tempo.js";
-import { instrumentalTracks, keySentence, rhythmTracks, sessionKeyFor, tempoSentence } from "./instrumentalKey.js";
+import { instrumentalTracks, keyOfSession, keySentence, rhythmTracks, sessionKeyFor, tempoSentence } from "./instrumentalKey.js";
 import {
   ArrowLeftRight, ChevronLeft, ChevronRight, Circle, Copy, Download, FolderOpen, Loader2, Minus, Play, Plus, Redo2, Save, Scissors,
   SkipBack, Square, Trash2, Undo2, Upload, Wand2,
@@ -14,7 +14,7 @@ import {
 import { api } from "../api.js";
 import { IconImg } from "../App.jsx";
 import Doors from "../components/Doors.jsx";
-import { handOff, onHandoff } from "../handoff.js";
+import { handInPlace, handOff, onHandoff } from "../handoff.js";
 import { mediaError } from "../recorder.js";
 import { useRecordingHold, useTabActive } from "../useRecordingHold.js";
 import { createDaw } from "./engine.js";
@@ -1156,6 +1156,14 @@ export default function Workspace({ workflow }) {
     const ids = new Set(picked.map((t) => t.id));
     return daw.bounce({ ...cur, tracks: cur.tracks.map((x) => ({ ...x, solo: ids.has(x.id), mute: ids.has(x.id) ? false : x.mute, ...(ids.has(x.id) ? { gain: 0, pan: 0, auto: {} } : {}) })) }, { tail: 0 });
   };
+  // ChordZ beside the DAW in the project's key: the same key handoff KeyBadge uses, without leaving the DAW. Already open, it
+  // changes key in place; closed, it opens and takes the key as it mounts. Free.
+  const chordsInKey = () => {
+    const k = keyOfSession(session.key);
+    if (!k) return;
+    handInPlace("chordz", { ...k, from: "project", label: session.key });
+    window.dispatchEvent(new CustomEvent("mcz-mini-show", { detail: "chordz" }));
+  };
   const detectProjectKey = async () => {
     const cur = sRef.current;
     const withAudio = (t) => playlistOf(t).regions.length > 0;
@@ -1556,6 +1564,8 @@ export default function Workspace({ workflow }) {
             {SESSION_KEYS.map((k) => <option key={k} value={k}>{k}</option>)}
           </select>
         </label>
+        <button type="button" className="re-btn !w-auto px-3" onClick={chordsInKey} disabled={!session.key}
+                title="Opens ChordZ beside the DAW in this project's key, with its notes and chords. Free.">🎼 Chords in {session.key || "the key"}</button>
         <button type="button" className="re-btn !w-auto px-3" onClick={detectProjectKey} disabled={keyBusy || recording}
                 title="Listens to the instrumental, tells you the key and the BPM, and sets both on the project. Free, on your device.">
           {keyBusy ? "Listening…" : "🎹 Detect key & BPM"}

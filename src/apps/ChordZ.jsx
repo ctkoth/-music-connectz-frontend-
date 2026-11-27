@@ -155,7 +155,7 @@ function ChordZ() {
   const [songKey, setSongKey] = useState(null);
   useEffect(() => onHandoff("chordz", (d) => {
     if (!d?.root || !["major", "minor"].includes(d.mode) || !NOTES.includes(d.root)) return;
-    setSongKey({ root: d.root, mode: d.mode });
+    setSongKey({ root: d.root, mode: d.mode, label: d.label || null, from: d.from || null });
     setRootNote(d.root); setScaleKey(d.mode); setChordType(d.mode === "minor" ? "minor" : "major");
   }), []);
   const playNotes = (names) => {
@@ -227,8 +227,8 @@ function ChordZ() {
       <div className="mx-auto max-w-3xl">
         {songKey && (
           <div className="mb-4 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-center" data-tour="chordz-songkey" role="status">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-300">Key of your song · estimated</p>
-            <p className="mt-1 text-3xl font-extrabold text-white">{songKey.root} {songKey.mode}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-cyan-300">{songKey.from === "project" ? "Your project's key" : "Key of your song · estimated"}</p>
+            <p className="mt-1 text-3xl font-extrabold text-white">{songKey.label || `${songKey.root} ${songKey.mode}`}</p>
             <p className="mt-1 flex flex-wrap justify-center gap-1.5">
               {scaleNotes(songKey.root, songKey.mode).map((n, i) => (
                 <span key={n} className={`rounded px-2 py-0.5 text-sm font-bold ${i === 0 ? "bg-cyan-400 text-slate-900" : "bg-slate-700 text-slate-100"}`}>{n}</span>

@@ -1196,9 +1196,12 @@ function Home() {
       : TABS.some((t) => t.key === e.detail) ? [...m, e.detail].slice(-MAX_MINIS) : m));
     // The whole kit at once: all four tools beside whatever is open, or all closed if they already are.
     const kit = () => setMinis((m) => (MINI_TOOLS.every((k) => m.includes(k)) ? m.filter((k) => !MINI_TOOLS.includes(k)) : [...new Set([...m.filter((k) => !MINI_TOOLS.includes(k)), ...MINI_TOOLS])].slice(-MAX_MINIS)));
+    // Open a mini tool without toggling it: "Chords in this key" wants ChordZ open, and a toggle would close it if it already is.
+    const show = (e) => setMinis((m) => (m.includes(e.detail) || !TABS.some((t) => t.key === e.detail) ? m : [...m, e.detail].slice(-MAX_MINIS)));
     window.addEventListener("mcz-mini", h);
+    window.addEventListener("mcz-mini-show", show);
     window.addEventListener("mcz-kit", kit);
-    return () => { window.removeEventListener("mcz-mini", h); window.removeEventListener("mcz-kit", kit); };
+    return () => { window.removeEventListener("mcz-mini", h); window.removeEventListener("mcz-mini-show", show); window.removeEventListener("mcz-kit", kit); };
   }, []);
   const refreshTourMe = useCallback(() => {
     api("/api/auth/me/").then(setTourMe).catch(() => {});

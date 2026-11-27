@@ -44,6 +44,19 @@ export function handOff(app, target, payload) {
   return goToSpot(app, target);
 }
 
+/**
+ * Park `payload` for `app` without leaving this screen: for a panel already on screen beside this one (a mini pane in the
+ * DAW). An open panel takes it at once; a closed one takes it as it mounts.
+ */
+export function handInPlace(app, payload) {
+  try {
+    sessionStorage.setItem(KEY(app), JSON.stringify({ ...payload, at: Date.now() }));
+  } catch {
+    // A full or blocked sessionStorage: the panel still opens, just without the key.
+  }
+  window.dispatchEvent(new CustomEvent(EVENT, { detail: { app } }));
+}
+
 /** Take whatever is waiting for `app`, clearing it. Null when there's nothing. */
 export function takeHandoff(app) {
   let raw = null;

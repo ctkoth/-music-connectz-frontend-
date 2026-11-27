@@ -24,6 +24,14 @@ export function sessionKeyFor(key) {
   return SESSION_KEYS.includes(name) ? name : "";
 }
 
+const SHARP = { Db: "C#", Eb: "D#", Gb: "F#", Ab: "G#", Bb: "A#" };
+
+/** The inverse of sessionKeyFor: a project key label ("Db major") as the key ChordZ reads ({root:"C#", mode:"major"}), or null. */
+export function keyOfSession(label) {
+  const m = /^([A-G][b#]?) (major|minor)$/.exec(label || "");
+  return m ? { root: SHARP[m[1]] || m[1], mode: m[2] } : null;
+}
+
 /** One plain sentence saying what was heard, from what, and how sure. */
 export function keySentence(key, names = [], wholeMix = false) {
   if (!key) return "I couldn't find a clear key in this audio — it may be drums, very short or very noisy. Set it by hand if you know it.";
