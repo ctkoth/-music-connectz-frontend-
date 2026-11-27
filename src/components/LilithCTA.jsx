@@ -101,48 +101,69 @@ const BECAUSE = {
   gap: "🧩 something missing", profile: "🧑‍🎤 your profile", activity: "📈 your activity", start: "🌱 a place to begin",
 };
 
-/** Recommended for you — routines AND one-off tasks, each with the reason, from the member's profile
- *  (what is missing) and activity (what they did and didn't). Suggests only: nothing is added until
- *  it is tapped, and the request names only WHICH one (+ the coach for an instrument-aware one). */
-export function Suggested({ items, add, busyKey }) {
+/** Lilith's suggestions, said to the member as a conversation (the INFJ voice: inward, big-picture, values-led,
+ *  and one clear call). Each one states the record it stands on first (`why`, the server's words), then what it
+ *  means to them, then makes one call. Nothing is added until "Add it" is pressed. "Not now" sets one aside for a
+ *  while (the server keeps the time). Nothing is pushed: she is here when the member opens the board. */
+export function Suggested({ items, add, busyKey, dismiss }) {
   const [picked, setPicked] = useState({});
+  const [open, setOpen] = useState({});
   if (!items?.length) return null;
   const routines = items.filter((s) => s.kind !== "task");
   const tasks = items.filter((s) => s.kind === "task");
-  const row = (s) => (
-    <div key={`${s.kind}-${s.key}`} className="space-y-1 rounded-lg bg-white/5 px-3 py-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="min-w-0 flex-1 text-sm font-semibold">
-          {s.kind === "task" ? "✅" : CADENCE[s.cadence]?.emoji} {s.title}
-          {s.kind !== "task" && <span className="ml-2 text-[11px] font-normal text-white/55">{CADENCE[s.cadence]?.label}</span>}
-          {s.action && <span className="ml-2 text-[11px] font-normal text-mcz-cyan" title="Lilith keeps it from your real activity">✨</span>}
-        </span>
-        {s.app_key && (
-          <button onClick={() => goToSpot(s.app_key, s.target)} className="flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline">
-            Look <ArrowRight size={11} />
+  const id = (s) => `${s.kind}-${s.key}`;
+  const row = (s) => {
+    const reason = s.why ? `${s.why}` : "";
+    return (
+      <div key={id(s)} className="space-y-2 rounded-xl border border-fuchsia-400/20 bg-black/30 px-3 py-2">
+        <div className="flex items-start gap-2">
+          <span aria-hidden="true" className="mt-0.5 text-base">🌙</span>
+          <p className="min-w-0 flex-1 text-sm leading-relaxed text-white/85">{s.say || reason}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pl-7">
+          <span className="min-w-0 flex-1 text-[12px] font-semibold">
+            {s.kind === "task" ? "✅" : CADENCE[s.cadence]?.emoji} {s.title}
+            {s.kind !== "task" && <span className="ml-2 text-[11px] font-normal text-white/55">{CADENCE[s.cadence]?.label}</span>}
+            {s.action && <span className="ml-2 text-[11px] font-normal text-mcz-cyan" title="Lilith keeps it from your real activity">✨</span>}
+          </span>
+          {s.kind !== "task" && <CadencePick value={picked[s.key] || s.cadence} onChange={(c) => setPicked((p) => ({ ...p, [s.key]: c }))} />}
+          <button onClick={() => add(s.kind === "task" ? "task" : "routine", s.key, s.app_key, s.kind === "task" ? undefined : picked[s.key] || s.cadence)}
+                  disabled={busyKey === s.key} className="re-btn !w-auto px-3 py-1 text-[11px]">
+            {busyKey === s.key ? "…" : "Add it"}
           </button>
+          {dismiss && (
+            <button onClick={() => dismiss(s)} className="rounded-md px-2 py-1 text-[11px] text-white/60 hover:bg-white/10">Not now</button>
+          )}
+          {s.app_key && (
+            <button onClick={() => goToSpot(s.app_key, s.target)} className="flex items-center gap-1 text-[11px] text-mcz-cyan hover:underline">
+              Look <ArrowRight size={11} />
+            </button>
+          )}
+          <button onClick={() => setOpen((o) => ({ ...o, [id(s)]: !o[id(s)] }))} aria-expanded={!!open[id(s)]}
+                  className="text-[11px] text-mcz-cyan hover:underline">
+            {open[id(s)] ? "Less" : "Why?"}
+          </button>
+        </div>
+        {open[id(s)] && (
+          <div className="space-y-1 pl-7">
+            <p className="text-[11px] text-fuchsia-200/80">
+              <span className="text-white/55">Because {BECAUSE[s.because] || "of you"} — </span>{reason}
+            </p>
+            <p className="text-[11px] text-white/55">{s.note}</p>
+          </div>
         )}
-        {s.kind !== "task" && <CadencePick value={picked[s.key] || s.cadence} onChange={(c) => setPicked((p) => ({ ...p, [s.key]: c }))} />}
-        <button onClick={() => add(s.kind === "task" ? "task" : "routine", s.key, s.app_key, s.kind === "task" ? undefined : picked[s.key] || s.cadence)} disabled={busyKey === s.key}
-                className="re-btn !w-auto px-3 py-1 text-[11px]">
-          {busyKey === s.key ? "…" : "Add"}
-        </button>
       </div>
-      <p className="text-[11px] text-fuchsia-200/80">
-        <span className="text-white/55">Because {BECAUSE[s.because] || "of you"} — </span>{s.why}
-      </p>
-      <p className="text-[11px] text-white/55">{s.note}</p>
-    </div>
-  );
+    );
+  };
   return (
     <section className="space-y-2 rounded-xl border border-fuchsia-400/20 bg-fuchsia-400/5 p-3">
       <h3 className="flex items-center gap-2 font-display text-sm font-bold text-fuchsia-200">
-        <Sparkles size={15} /> Recommended for you
+        <Sparkles size={15} /> Lilith has a few thoughts
       </h3>
-      <p className="text-[11px] text-white/60">From your profile and what you actually do. Nothing is added until you tap it.</p>
+      <p className="text-[11px] text-white/60">From your profile and what you actually do. Nothing is added until you say so.</p>
       {tasks.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">✅ Tasks</p>}
       {tasks.map(row)}
-      {routines.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">🔥 Routines</p>}
+      {routines.length > 0 && <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">🔥 RoutineZ</p>}
       {routines.map(row)}
     </section>
   );

@@ -41,6 +41,7 @@ import {
   BuildCTA, CADENCE, MoveMenu, RoutineList, Starters, Suggested, TrashedRoutines,
 } from "../components/LilithCTA.jsx";
 import LilithAuto from "../components/LilithAuto.jsx";
+import LilithVoice from "../components/LilithVoice.jsx";
 import { dueLabel, isOverdue, localISODate, matchesQuery } from "../lilithDates.js";
 
 // All six buckets `models.BUCKETS` serves. inbox and someday used to be absent
@@ -198,6 +199,16 @@ export default function Lilith() {
     });
     setAddingKey("");
     if (made) load();
+  }
+  // "Not now" sets one suggestion aside for a while (the server keeps the time). Nothing is said or pushed.
+  async function notNow(s) {
+    const out = await call("/api/economy/lilith/suggest/not-now/", { method: "POST", body: { kind: s.kind, key: s.key } });
+    if (out) load();
+  }
+  // Lilith's voice: StatZ members choose how she talks; the server refuses everyone else and says why.
+  async function chooseVoice(style) {
+    const out = await call("/api/economy/lilith/voice/", { method: "POST", body: { style } });
+    if (out) load();
   }
   // Move any entry anywhere: a bucket, a routine (a cadence), a task, or the Trash. The server owns
   // the rules (no moving finished tasks, ceilings, a changed cadence restarting the run) and says so.
@@ -616,7 +627,8 @@ export default function Lilith() {
       )}
 
       <LilithAuto auto={board?.auto} onChanged={load} />
-      <Suggested items={asList(board?.suggested)} add={addStarter} busyKey={addingKey} />
+      <LilithVoice voice={board?.voice} onChoose={chooseVoice} />
+      <Suggested items={asList(board?.suggested)} add={addStarter} busyKey={addingKey} dismiss={notNow} />
 
       {/* RoutineZ: the habits, kept by the day, the week, the month or the year. */}
       <section className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-3">
