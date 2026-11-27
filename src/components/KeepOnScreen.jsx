@@ -1,7 +1,7 @@
 // "Keep this session on screen" — the control on BodieZ's Today card.
 //
 // What it costs is stated BEFORE it is pressed (the cost/gain rule): it uses one of the day's sessions on
-// screen (the server's `bodiez_float`: Free 3, Premium 6, StatZ unlimited), spends no ⚡ 🍥 🏷️, and a session
+// screen (the server's `bodiez_float`: Free 3, Premium 6, StatZ 12), spends no ⚡ 🍥 🏷️, and a session
 // counts once however many times it is switched off and on. The number, the wording of a refusal and the
 // next plan's allowance are the server's; this decides nothing. A tier buys how OFTEN, never whether the
 // session runs — past the number the session is untouched and BodieZ still shows everything.

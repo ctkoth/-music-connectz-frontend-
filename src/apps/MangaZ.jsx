@@ -157,7 +157,7 @@ export default function MangaZ() {
               </button>
             ))}
             <button className="re-link text-[12px]" onClick={() => goToSpot("characterz", "")}>+ character</button>
-            <span className="text-[11px] text-white/60">{picked.length} of {s.max_characters} on a page{s.max_characters < 10 ? " · Premium 6, StatZ every one" : ""}</span>
+            <span className="text-[11px] text-white/60">{picked.length} of {s.max_characters} on a page</span>
             {s.max_characters < 10 && <PlansLink />}
           </div>
           <textarea className="neon-input text-sm" rows={3} maxLength={s.idea_max} placeholder="What happens on this page?"

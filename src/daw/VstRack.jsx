@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, ExternalLink, Wand2 } from "lucide-react";
 import { BUILDS } from "../downloadBuilds.js";
 import { loadLimits, TIER_LABEL } from "../limits.js";
+import { planWords, upgradeWords } from "../tierCount.js";
 import { goToSpot } from "../goto.js";
 import { useTonePresets } from "./TonePresets.jsx";
 import { pluginRoom } from "./tonePresets.js";
@@ -84,7 +85,7 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
   };
 
   const render = async () => {
-    if (full) { setErr(`${TIER_LABEL[lim?.tier] || "Your tier"} renders ${cap} plugins per track — Premium 6, StatZ unlimited.`); return; }
+    if (full) { setErr(`${TIER_LABEL[lim?.tier] || "Your tier"} renders ${cap} plugins per track${planWords(lim, "imagez_layers") ? ` — ${planWords(lim, "imagez_layers")}` : ""}.`); return; }
     const regions = track.playlists[track.active]?.regions || [];
     if (!regions.length) { setErr("That track has nothing on it to send through a plugin."); return; }
     setErr(""); setBusy(`Rendering ${track.name} through ${plugin.name}…`);
@@ -148,7 +149,7 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
             <button className="re-btn !w-auto px-3" disabled={!presetName.trim() || (!sameName && !room.ok)} onClick={savePreset}>{sameName ? "Update it" : "Save these settings"}</button>
           </div>
           {!room.ok && !sameName && presetName.trim() && (
-            <p className="text-mcz-gold">Your plan keeps {tones.state.limit} per plugin — update or delete one, or Premium keeps {tones.state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
+            <p className="text-mcz-gold">Your plan keeps {tones.state.limit} per plugin — update or delete one{upgradeWords(tones.state.limit, tones.state.ladder, "keeps") ? `, or ${upgradeWords(tones.state.limit, tones.state.ladder, "keeps")}` : ""}.{" "}
               <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button></p>)}
           {mine.length > 0 && <ul className="space-y-0.5">{mine.map((p) => (
             <li key={p.id} className="flex items-center gap-2">
@@ -177,7 +178,7 @@ export default function VstRack({ session, daw, busy: working, onRendered }) {
       </>}
       <p className="text-[11px] text-white/60">
         The render is a new take on the track — the original stays in its playlist menu. {track?.name}: {used} plugin render{used === 1 ? "" : "s"}{cap != null ? ` of ${cap} on ${TIER_LABEL[lim?.tier] || "your tier"}` : ""}.
-        {cap != null && <> <button className="re-link" onClick={() => goToSpot("membershipz", "")}>Premium 6, StatZ unlimited</button></>}
+        {cap != null && planWords(lim, "imagez_layers") && <> <button className="re-link" onClick={() => goToSpot("membershipz", "")}>{planWords(lim, "imagez_layers")}</button></>}
       </p>
       {busy && <p className="text-xs text-mcz-cyan">{busy}</p>}
       {err && <p className="text-xs text-mcz-ember">{err}</p>}

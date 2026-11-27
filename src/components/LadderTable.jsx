@@ -1,6 +1,6 @@
 // What each plan holds — every gate in the app, from /api/economy/ladders/, which reads each row off the
 // constant that actually gates it. Nothing here is typed: the old typed matrix said DistributeZ was
-// "1 / month" for a day after the server moved it to 3 / 6 / unlimited. Every row opens the app it
+// "1 / month" for a day after the server moved it to 3 / 6 / 12. Every row opens the app it
 // gates (cross-pollination), the member's own column is marked, and a search finds a limit by name.
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api.js";

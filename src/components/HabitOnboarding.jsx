@@ -158,8 +158,8 @@ export default function HabitOnboarding({ appKey = "singz", onComplete }) {
           <div className="rounded-xl border border-mcz-cyan/30 bg-mcz-cyan/5 p-3 space-y-2">
             <p className="text-[11px] uppercase tracking-widest text-mcz-cyan/60">Keep the streak going</p>
             <div className="text-xs text-white/75 space-y-1">
-              <p><span className="text-emerald-300">Free:</span> Daily reminders + 1 habit tracked</p>
-              <p><span className="text-mcz-cyan">Premium:</span> 2x faster Energy gain + unlimited habits + priority support</p>
+              <p><span className="text-emerald-300">Free:</span> Daily reminders</p>
+              <p><span className="text-mcz-cyan">Premium:</span> faster Energy gain</p>
             </div>
           </div>
 

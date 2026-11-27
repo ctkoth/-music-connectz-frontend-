@@ -147,7 +147,7 @@ export default function VoiceZ() {
         {readOnly && (
           <p className="text-sm text-white/70">
             Writing in a voice other than Corey's is Premium's and StatZ's: describe who is talking, set the dials, paste something you wrote, then point the coach, the writer or OCC at it
-            (Premium keeps {d.limits.premium_voices ?? 6}, StatZ {d.limits.statz_voices == null ? "unlimited" : d.limits.statz_voices}). Corey's voice and the built-in voices stay yours.{" "}
+            (Premium keeps {d.limits.premium_voices ?? "more"}, StatZ {d.limits.statz_voices == null ? "unlimited" : d.limits.statz_voices}). Corey's voice and the built-in voices stay yours.{" "}
             {!IN_SHELL && <button className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>See plans</button>}
           </p>
         )}

@@ -1,6 +1,6 @@
 // Album mastering in Mix ConnectZ: several songs to one loudness and one tone, with the settings above.
 // The work is src/mastering/album.js (tested); this is the screen. Everything runs on the member's device
-// and nothing is charged; the plan says how many songs one album holds (`album_songs`: Free 3, Premium 6,
+// and nothing is charged; the plan says how many songs one album holds (`album_songs`: Free 8, Premium 11,
 // StatZ unlimited). Songs are decoded one at a time and only the finished file is kept, so a long album
 // does not hold every song's audio in memory at once.
 import { useEffect, useRef, useState } from "react";

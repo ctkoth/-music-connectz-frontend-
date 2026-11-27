@@ -11,7 +11,7 @@
 //      a few dB under the rest, as albums are sequenced). The trim is said in the result.
 //   4. The result says how close each song now sits to the album's tone (before → after) and how far apart
 //      the loudness ended, measured from the mastered audio, never assumed.
-// The tier says how many songs one album holds (`album_songs`: Free 3, Premium 6, StatZ unlimited);
+// The tier says how many songs one album holds (`album_songs`: Free 8, Premium 11, StatZ unlimited);
 // mastering one song at a time stays every tier's.
 import { TARGETS, CUSTOM_LUFS } from "./master.js";
 

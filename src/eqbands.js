@@ -1,12 +1,14 @@
 // The one EQ band model: TrackZ's channel strip (src/mastering/strip.js) and every DAW's EQ effect
 // (src/daw/plugins.js) both hold a list of these, so the two EQs gain and lose bands the same way.
 //
-// How many bands an EQ may have is the tier's (`eq_bands` from /limits/: Free 3, Premium 6, StatZ
-// unlimited — Corey's numbers). The count is applied where a band is ADDED, never by cutting a list:
+// How many bands an EQ may have is the tier's (`eq_bands`, served by /limits/: Free 3, Premium 6,
+// StatZ 12 — Corey's numbers). The count is applied where a band is ADDED, never by cutting a list:
 // an EQ already over the count keeps playing every band, the same rule as tracks and presets.
-// MAX_BANDS is the engine's own bound, which is what "unlimited" runs to.
+// MAX_BANDS is the engine's own bound: no plan's number goes past it, and the owner's unlimited runs to it.
 //
 // Pure: no DOM, no Web Audio, so it is tested under plain node.
+
+import { planWords } from "./tierCount.js";
 
 export const BAND_TYPES = {
   lowshelf: { label: "Low shelf", short: "lows" },
@@ -40,8 +42,8 @@ export const bandOn = (b) => Math.abs(b.gain) > 0.01;
 
 /** The tier's band count from /limits/: a number, null for unlimited, undefined while unknown. */
 export const bandCap = (lim) => (lim && "eq_bands" in lim ? lim.eq_bands : undefined);
-/** What the next plan holds, for the line under a locked "Add a band". */
-export const nextBandCap = (lim) => (lim?.tier === "free" ? lim?.tiers?.premium?.eq_bands ?? 6 : null);
+/** The plans above the member's band count, for the line under a locked "Add a band": served numbers only. */
+export const bandsAbove = (lim) => planWords(lim, "eq_bands");
 
 /** Whether a band can be added, and how many are left. Unknown or unlimited blocks nothing. */
 export function bandRoom(count, cap) {

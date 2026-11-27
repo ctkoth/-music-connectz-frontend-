@@ -138,17 +138,16 @@ export default function PostEmbeds({ post, canEdit }) {
         // Fallback limits if not available
         setLimits({
           tier: user?.tier || "free",
-          embed_limit: { free: 3, premium: 10, statz: null },
+          embed_limit: null,
         });
       });
   }, [user?.tier]);
 
   if (!embeds.length && !canEdit) return null;
 
-  // Calculate embed limit for current tier
-  const tierEmbedLimits = limits?.embed_limit || { free: 3, premium: 10, statz: null };
-  const currentTier = user?.tier || "free";
-  const embedLimit = tierEmbedLimits[currentTier];
+  // `embed_limit` from /limits/ is the CALLER'S tier number — one number for the tier asking, not a table.
+  // Until it lands no limit is shown; no number is typed here.
+  const embedLimit = typeof limits?.embed_limit === "number" ? limits.embed_limit : null;
   const atLimit = embedLimit !== null && embeds.length >= embedLimit;
   const canAddMore = !atLimit && canEdit;
 

@@ -8,6 +8,7 @@ import { api } from "../api.js";
 import { goToSpot } from "../goto.js";
 import { StatzSample } from "../components/StatzSample.jsx";
 import { KIND_LABEL, STARTERS, chainNeedsStatz, chainToInserts, insertsToChain, presetRoom } from "./tonePresets.js";
+import { upgradeWords } from "../tierCount.js";
 
 export function useTonePresets() {
   const [state, setState] = useState(null);     // GET /tonez/: { presets, count, limit, full, ladder, who }
@@ -113,7 +114,7 @@ export default function TonePicker({ tones, inserts, onApply, trackName, statzOk
       ))}
       {!room.ok && saving && state && !same && (
         <p className="text-mcz-gold">
-          Your plan keeps {state.limit} {KIND_LABEL[kind].toLowerCase()} presets — update or delete one, or Premium keeps {state.ladder?.premium ?? 6}, StatZ unlimited.{" "}
+          Your plan keeps {state.limit} {KIND_LABEL[kind].toLowerCase()} presets — update or delete one{upgradeWords(state.limit, state.ladder, "keeps") ? `, or ${upgradeWords(state.limit, state.ladder, "keeps")}` : ""}.{" "}
           <button type="button" className="re-link" onClick={() => goToSpot("membershipz", "membershipz-plans")}>Plans</button>
         </p>
       )}

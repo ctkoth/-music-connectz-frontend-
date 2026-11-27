@@ -214,7 +214,7 @@ export default function BodieZ() {
   }, []);
   const [board, setBoard] = useState(null);
   const [session, setSession] = useState(null);
-  // Keep a live session on screen over other apps (the server's `bodiez_float`: Free 3, Premium 6, StatZ unlimited a
+  // Keep a live session on screen over other apps (the server's `bodiez_float`: Free 3, Premium 6, StatZ 12 a
   // day). Pressing it marks the session on the server (`floated_at`, counted once); turning it off and on again is
   // this device's, per session, and free. The shell keeps this app mounted while the hold stands.
   const [, bumpFloat] = useState(0);
@@ -1337,7 +1337,7 @@ function RestAlertsControl({ prefs }) {
 }
 
 // Auto-trim: a lift left part-done when the member moves on reads done (3/5 -> 3/3). Every plan has it; the tier says
-// how many lifts a day (Free 3, Premium 6, StatZ unlimited — the server's `bodiez/autotrim/`, never typed here). On by
+// how many lifts a day (Free 3, Premium 6, StatZ 12 — the server's `bodiez/autotrim/`, never typed here). On by
 // default and switchable; the switch is the member's. The rules for WHEN are in autoTrim.js.
 const TRIM_KEY = "bodiez.autoTrim";
 function useAutoTrimPref() {

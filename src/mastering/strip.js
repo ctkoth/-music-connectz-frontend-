@@ -4,7 +4,7 @@
 // with its own idea of a compressor, so what is set by ear is exactly what is mixed and mastered.
 //
 // Free at every tier — it runs on the member's device and costs the platform nothing. The tier says how
-// many tracks and how many EQ BANDS (both Free 3 / Premium 6 / StatZ unlimited, the band count applied
+// many tracks and how many EQ BANDS (tracks Free 3 / Premium 6 / StatZ unlimited; bands Free 3 / Premium 6 / StatZ 12, the band count applied
 // where a band is added — src/eqbands.js); it never says whether a track may have an EQ. The low cut is
 // a filter, not a band, and is not counted.
 import { dbToGain, highPass, lowShelf, highShelf, peaking, biquadInPlace, responseDb } from "./dsp.js";

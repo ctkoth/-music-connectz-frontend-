@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { bandCap, bandRoom, cleanBands, defaultBands, newBand, nextBandCap, MAX_BANDS } from "./eqbands.js";
+import { bandCap, bandRoom, cleanBands, defaultBands, newBand, bandsAbove, MAX_BANDS } from "./eqbands.js";
 
 test("the band count is the tier's, applied where a band is added", () => {
   assert.equal(bandCap({ eq_bands: 3 }), 3);
@@ -11,7 +11,11 @@ test("the band count is the tier's, applied where a band is added", () => {
   assert.equal(bandRoom(8, null).ok, true, "unlimited");
   assert.equal(bandRoom(MAX_BANDS, null).ok, false, "to the engine's bound");
   assert.equal(bandRoom(5, undefined).ok, true, "unknown blocks nothing");
-  assert.equal(nextBandCap({ tier: "free", tiers: { premium: { eq_bands: 6 } } }), 6);
+  // The plans above a member, read off the served /limits/ payload: Premium 6 and StatZ 12 for a Free member,
+  // nothing above StatZ, and "unlimited" when StatZ's count is served as null.
+  assert.equal(bandsAbove({ eq_bands: 3, tiers: { premium: { eq_bands: 6 }, statz: { eq_bands: 12 } } }), "Premium has 6, StatZ has 12");
+  assert.equal(bandsAbove({ eq_bands: 12, tiers: { premium: { eq_bands: 6 }, statz: { eq_bands: 12 } } }), "");
+  assert.equal(bandsAbove({ eq_bands: 3, tiers: { premium: { eq_bands: 6 }, statz: { eq_bands: null } } }), "Premium has 6, StatZ is unlimited");
 });
 
 test("an EQ over the count keeps every band (a lapse never cuts the list)", () => {

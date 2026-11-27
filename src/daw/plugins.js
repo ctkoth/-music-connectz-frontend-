@@ -18,7 +18,7 @@ const P = (label, min, max, def, unit = "", step) => ({ label, min, max, default
 
 export const PLUGINS = {
   // The EQ holds a list of bands (src/eqbands.js), not fixed params: how many is the tier's (`eq_bands`,
-  // Free 3 / Premium 6 / StatZ unlimited), the same model as TrackZ's channel strip. An EQ saved before
+  // Free 3 / Premium 6 / StatZ 12), the same model as TrackZ's channel strip. An EQ saved before
   // bands existed (lowGain / midFreq / …) opens as the three bands it always was.
   eq: {
     label: "EQ", emoji: "🎚️", what: "Shelve the lows and highs and push or cut any frequency in between — as many bands as your plan holds.",

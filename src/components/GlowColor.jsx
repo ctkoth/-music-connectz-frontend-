@@ -14,7 +14,7 @@ export default function GlowColor() {
   const cap = lim && "glow_colors" in lim ? lim.glow_colors : undefined;
   const ready = !!lim && cap !== undefined;
   const n = room(cap);
-  const next = lim?.tier === "free" ? lim?.tiers?.premium?.glow_colors ?? 6 : null;
+  const next = lim?.tier === "free" ? (lim?.tiers?.premium?.glow_colors ?? null) : null;
 
   // The page follows the choice, and follows the plan: a lapse stops applying a colour the plan no
   // longer holds (the choice itself is kept on the device).
